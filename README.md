@@ -20,3 +20,10 @@ You can join our discord and help with the development [here](https://discord.gg
   - [ ] Create a custom PlayerTeleportAlgorithm that will handle teleports between servers.
 - [ ] Handle new island creations to be forwarded to other servers.
   - This will require a 3rd-party service to handle the requests.
+
+
+## Donation
+
+In order to run all the required tests, I bought a dedicated server that hosts a few Skyblock servers and 2 proxies 
+to simulate a network that the module will be used on. The server costs me money, and if you wanna help with funding
+it, please check out my [Patreon page](https://bg-software.com/patreon/).
