@@ -78,6 +78,14 @@ public class RedisConnector implements IConnector {
     }
 
     @Override
+    public void unregisterListener(String channel, IListener listener) {
+        List<IListener> listeners = this.listeners.get(channel);
+        if (listeners != null && listeners.remove(listener) && listeners.isEmpty()) {
+            subCommands.unsubscribe(channel);
+        }
+    }
+
+    @Override
     public void sendData(String channel, String data) {
         pubCommands.publish(channel, data);
     }

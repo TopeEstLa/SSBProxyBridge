@@ -1,5 +1,8 @@
 package com.bgsoftware.ssbproxybridge.bukkit;
 
+import com.bgsoftware.ssbproxybridge.bukkit.database.DatabaseBridgeListener;
+import com.bgsoftware.ssbproxybridge.bukkit.database.ProxyDatabaseBridge;
+import com.bgsoftware.ssbproxybridge.bukkit.database.ProxyDatabaseBridgeFactory;
 import com.bgsoftware.ssbproxybridge.core.messaging.ConnectionFailureException;
 import com.bgsoftware.ssbproxybridge.core.messaging.EmptyConnector;
 import com.bgsoftware.ssbproxybridge.core.messaging.IConnector;
@@ -28,7 +31,8 @@ public class SSBProxyBridgeModule extends PluginModule {
     @Override
     public void onEnable(SuperiorSkyblock plugin) {
         this.plugin = plugin;
-        this.setupMessagingConnector();
+        setupMessagingConnector();
+        setupDatabaseBridgeFactory();
     }
 
     @Override
@@ -72,10 +76,15 @@ public class SSBProxyBridgeModule extends PluginModule {
         this.messagingConnector = new RedisConnector("127.0.0.1", 6379, "");
         try {
             this.messagingConnector.connect();
+            this.messagingConnector.registerListener(ProxyDatabaseBridge.CHANNEL_NAME, new DatabaseBridgeListener());
         } catch (ConnectionFailureException error) {
             getLogger().info("Failed to connect to messaging connector:");
             error.printStackTrace();
         }
+    }
+
+    private void setupDatabaseBridgeFactory() {
+        plugin.getFactory().registerDatabaseBridgeFactory(ProxyDatabaseBridgeFactory.getInstance());
     }
 
     public static SSBProxyBridgeModule getModule() {
