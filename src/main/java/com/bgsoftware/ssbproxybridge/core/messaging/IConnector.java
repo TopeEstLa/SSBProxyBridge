@@ -6,9 +6,9 @@ public interface IConnector {
 
     void shutdown();
 
-    void registerListener(String channel, IListener listener);
+    boolean registerListener(String channel, IListener listener);
 
-    void unregisterListener(String channel, IListener listener);
+    boolean unregisterListener(String channel, IListener listener);
 
     void sendData(String channel, String data);
 

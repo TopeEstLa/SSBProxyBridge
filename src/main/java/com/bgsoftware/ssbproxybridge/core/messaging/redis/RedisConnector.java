@@ -1,24 +1,18 @@
 package com.bgsoftware.ssbproxybridge.core.messaging.redis;
 
 import com.bgsoftware.ssbproxybridge.core.messaging.ConnectionFailureException;
-import com.bgsoftware.ssbproxybridge.core.messaging.IConnector;
+import com.bgsoftware.ssbproxybridge.core.messaging.ConnectorAbstract;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
 import io.lettuce.core.pubsub.RedisPubSubAdapter;
 import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
 import io.lettuce.core.pubsub.api.sync.RedisPubSubCommands;
 
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
 import java.util.logging.Logger;
 
-public class RedisConnector implements IConnector {
+public class RedisConnector extends ConnectorAbstract {
 
     private static final Logger logger = Logger.getLogger("SSBProxyBridge");
-
-    private final Map<String, List<IListener>> listeners = new HashMap<>();
 
     private final String host;
     private final int port;
@@ -72,28 +66,26 @@ public class RedisConnector implements IConnector {
     }
 
     @Override
-    public void registerListener(String channel, IListener listener) {
-        listeners.computeIfAbsent(channel, ch -> new LinkedList<>()).add(listener);
-        subCommands.subscribe(channel);
+    public boolean registerListener(String channel, IListener listener) {
+        boolean res = super.registerListener(channel, listener);
+        if (res) {
+            subCommands.subscribe(channel);
+        }
+        return res;
     }
 
     @Override
-    public void unregisterListener(String channel, IListener listener) {
-        List<IListener> listeners = this.listeners.get(channel);
-        if (listeners != null && listeners.remove(listener) && listeners.isEmpty()) {
+    public boolean unregisterListener(String channel, IListener listener) {
+        boolean res = super.unregisterListener(channel, listener);
+        if (res) {
             subCommands.unsubscribe(channel);
         }
+        return res;
     }
 
     @Override
     public void sendData(String channel, String data) {
         pubCommands.publish(channel, data);
-    }
-
-    private void notifyListeners(String channel, String data) {
-        List<IListener> listeners = this.listeners.get(channel);
-        if (listeners != null)
-            listeners.forEach(listener -> listener.onReceive(data));
     }
 
 }

@@ -1,4 +1,4 @@
-package com.bgsoftware.ssbproxybridge.core.messaging.database;
+package com.bgsoftware.ssbproxybridge.core.database;
 
 public class Filter {
 

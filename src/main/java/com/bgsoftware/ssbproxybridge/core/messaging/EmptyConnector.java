@@ -23,13 +23,13 @@ public class EmptyConnector implements IConnector {
     }
 
     @Override
-    public void registerListener(String channel, IListener listener) {
-        // Do nothing.
+    public boolean registerListener(String channel, IListener listener) {
+        return false;
     }
 
     @Override
-    public void unregisterListener(String channel, IListener listener) {
-        // Do nothing.
+    public boolean unregisterListener(String channel, IListener listener) {
+        return false;
     }
 
     @Override

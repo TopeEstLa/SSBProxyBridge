@@ -1,9 +1,9 @@
 package com.bgsoftware.ssbproxybridge.bukkit.database;
 
 import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
-import com.bgsoftware.ssbproxybridge.core.messaging.database.Column;
-import com.bgsoftware.ssbproxybridge.core.messaging.database.Filter;
-import com.bgsoftware.ssbproxybridge.core.messaging.database.OperationSerializer;
+import com.bgsoftware.ssbproxybridge.core.database.Column;
+import com.bgsoftware.ssbproxybridge.core.database.Filter;
+import com.bgsoftware.ssbproxybridge.core.database.OperationSerializer;
 import com.bgsoftware.superiorskyblock.api.data.DatabaseBridge;
 import com.bgsoftware.superiorskyblock.api.data.DatabaseBridgeMode;
 import com.bgsoftware.superiorskyblock.api.data.DatabaseFilter;
