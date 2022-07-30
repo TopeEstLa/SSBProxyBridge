@@ -60,23 +60,26 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
 
     @Override
     public void updateObject(String table, @Nullable DatabaseFilter databaseFilter, Pair<String, Object>... pairs) {
-        JsonObject operation = OperationSerializer.serializeOperation(table, createFilters(databaseFilter), createColumns(pairs));
-        operation.addProperty("type", "update");
-        commitData(operation);
+        if (databaseBridgeMode == DatabaseBridgeMode.SAVE_DATA) {
+            JsonObject operation = OperationSerializer.serializeOperation(table, createFilters(databaseFilter), createColumns(pairs));
+            commitData(finishData(operation, "update"));
+        }
     }
 
     @Override
     public void insertObject(String table, Pair<String, Object>... pairs) {
-        JsonObject operation = OperationSerializer.serializeOperation(table, Collections.emptyList(), createColumns(pairs));
-        operation.addProperty("type", "insert");
-        commitData(operation);
+        if (databaseBridgeMode == DatabaseBridgeMode.SAVE_DATA) {
+            JsonObject operation = OperationSerializer.serializeOperation(table, Collections.emptyList(), createColumns(pairs));
+            commitData(finishData(operation, "insert"));
+        }
     }
 
     @Override
     public void deleteObject(String table, @Nullable DatabaseFilter databaseFilter) {
-        JsonObject operation = OperationSerializer.serializeOperation(table, createFilters(databaseFilter));
-        operation.addProperty("type", "delete");
-        commitData(operation);
+        if (databaseBridgeMode == DatabaseBridgeMode.SAVE_DATA) {
+            JsonObject operation = OperationSerializer.serializeOperation(table, createFilters(databaseFilter));
+            commitData(finishData(operation, "delete"));
+        }
     }
 
     @Override
@@ -111,6 +114,12 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
             columns[i] = new Column(pair.getKey(), pair.getValue());
         }
         return columns;
+    }
+
+    private JsonObject finishData(JsonObject dataObject, String type) {
+        dataObject.addProperty("type", type);
+        dataObject.addProperty("sender", SSBProxyBridgeModule.getModule().getServerName());
+        return dataObject;
     }
 
     private void commitData(JsonElement data) {

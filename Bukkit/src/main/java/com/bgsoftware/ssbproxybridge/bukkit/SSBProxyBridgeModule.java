@@ -15,6 +15,7 @@ import com.bgsoftware.superiorskyblock.api.modules.PluginModule;
 import org.bukkit.event.Listener;
 
 import javax.annotation.Nullable;
+import java.util.UUID;
 
 public class SSBProxyBridgeModule extends PluginModule {
 
@@ -23,6 +24,8 @@ public class SSBProxyBridgeModule extends PluginModule {
     private SuperiorSkyblock plugin;
 
     private IConnector messagingConnector = EmptyConnector.getInstance();
+
+    private String serverName = UUID.randomUUID().toString(); // TODO: Load server name from config file
 
     public SSBProxyBridgeModule() {
         super("SSBProxyBridge", "Ome_R");
@@ -79,6 +82,10 @@ public class SSBProxyBridgeModule extends PluginModule {
 
     public IConnector getMessaging() {
         return this.messagingConnector;
+    }
+
+    public String getServerName() {
+        return serverName;
     }
 
     private void setupMessagingConnector() {
