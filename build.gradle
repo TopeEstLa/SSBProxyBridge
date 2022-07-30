@@ -54,7 +54,8 @@ repositories {
 dependencies {
     implementation fileTree("archive")
 
-    compileOnly "org.spigotmc:v1_8_R3-Taco:latest"
+    // Redis
+    implementation 'io.lettuce:lettuce-core:6.2.0.RELEASE'
 }
 
 jar {
