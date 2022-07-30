@@ -1,8 +1,8 @@
-package com.bgsoftware.ssbproxybridge.core.messaging.redis;
+package com.bgsoftware.ssbproxybridge.core.redis;
 
 import com.bgsoftware.ssbproxybridge.core.Singleton;
-import com.bgsoftware.ssbproxybridge.core.messaging.ConnectionFailureException;
-import com.bgsoftware.ssbproxybridge.core.messaging.ConnectorAbstract;
+import com.bgsoftware.ssbproxybridge.core.connector.ConnectionFailureException;
+import com.bgsoftware.ssbproxybridge.core.connector.ConnectorAbstract;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
 import io.lettuce.core.pubsub.RedisPubSubAdapter;

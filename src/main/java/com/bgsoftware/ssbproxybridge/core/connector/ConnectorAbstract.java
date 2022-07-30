@@ -1,4 +1,4 @@
-package com.bgsoftware.ssbproxybridge.core.messaging;
+package com.bgsoftware.ssbproxybridge.core.connector;
 
 import java.util.HashMap;
 import java.util.LinkedList;

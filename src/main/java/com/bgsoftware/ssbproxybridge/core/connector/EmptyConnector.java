@@ -1,4 +1,4 @@
-package com.bgsoftware.ssbproxybridge.core.messaging;
+package com.bgsoftware.ssbproxybridge.core.connector;
 
 public class EmptyConnector implements IConnector {
 

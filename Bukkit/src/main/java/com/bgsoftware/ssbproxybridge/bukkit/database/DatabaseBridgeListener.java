@@ -1,6 +1,6 @@
 package com.bgsoftware.ssbproxybridge.bukkit.database;
 
-import com.bgsoftware.ssbproxybridge.core.messaging.IConnector;
+import com.bgsoftware.ssbproxybridge.core.connector.IConnector;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import org.bukkit.Bukkit;

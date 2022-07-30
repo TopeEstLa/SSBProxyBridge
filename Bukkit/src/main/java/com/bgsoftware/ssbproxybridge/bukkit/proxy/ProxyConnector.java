@@ -1,8 +1,8 @@
-package com.bgsoftware.ssbproxybridge.bukkit.messaging;
+package com.bgsoftware.ssbproxybridge.bukkit.proxy;
 
 import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
 import com.bgsoftware.ssbproxybridge.core.Singleton;
-import com.bgsoftware.ssbproxybridge.core.messaging.ConnectorAbstract;
+import com.bgsoftware.ssbproxybridge.core.connector.ConnectorAbstract;
 import com.google.common.io.ByteArrayDataInput;
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
