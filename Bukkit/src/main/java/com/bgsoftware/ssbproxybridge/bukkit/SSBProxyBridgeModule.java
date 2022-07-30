@@ -4,6 +4,7 @@ import com.bgsoftware.ssbproxybridge.bukkit.database.DatabaseBridgeListener;
 import com.bgsoftware.ssbproxybridge.bukkit.database.ProxyDatabaseBridge;
 import com.bgsoftware.ssbproxybridge.bukkit.database.ProxyDatabaseBridgeFactory;
 import com.bgsoftware.ssbproxybridge.bukkit.proxy.ProxyPlayerBridge;
+import com.bgsoftware.ssbproxybridge.bukkit.teleport.ProxyPlayersFactory;
 import com.bgsoftware.ssbproxybridge.core.connector.ConnectionFailureException;
 import com.bgsoftware.ssbproxybridge.core.connector.EmptyConnector;
 import com.bgsoftware.ssbproxybridge.core.connector.IConnector;
@@ -39,8 +40,9 @@ public class SSBProxyBridgeModule extends PluginModule {
         // Setup messaging connector so the modules can talk with each other.
         setupMessagingConnector();
 
-        // Setup the custom database bridge factory for SuperiorSkyblock2
+        // Setup the custom factories for SuperiorSkyblock2
         setupDatabaseBridgeFactory();
+        setupPlayersFactory();
 
         // Setup outgoing plugin channel for BungeeCord
         // Used to teleport the player, send messages, etc.
@@ -101,6 +103,10 @@ public class SSBProxyBridgeModule extends PluginModule {
 
     private void setupDatabaseBridgeFactory() {
         plugin.getFactory().registerDatabaseBridgeFactory(ProxyDatabaseBridgeFactory.getInstance());
+    }
+
+    private void setupPlayersFactory() {
+        plugin.getFactory().registerPlayersFactory(ProxyPlayersFactory.getInstance());
     }
 
     public static SSBProxyBridgeModule getModule() {
