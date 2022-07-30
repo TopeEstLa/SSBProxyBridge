@@ -1,5 +1,6 @@
 package com.bgsoftware.ssbproxybridge.core.messaging.redis;
 
+import com.bgsoftware.ssbproxybridge.core.Singleton;
 import com.bgsoftware.ssbproxybridge.core.messaging.ConnectionFailureException;
 import com.bgsoftware.ssbproxybridge.core.messaging.ConnectorAbstract;
 import io.lettuce.core.RedisClient;
@@ -12,11 +13,14 @@ import java.util.logging.Logger;
 
 public class RedisConnector extends ConnectorAbstract {
 
-    private static final Logger logger = Logger.getLogger("SSBProxyBridge");
+    private static final Singleton<RedisConnector> SINGLETON = new Singleton<RedisConnector>() {
+        @Override
+        protected RedisConnector create() {
+            return new RedisConnector();
+        }
+    };
 
-    private final String host;
-    private final int port;
-    private final String password;
+    private static final Logger logger = Logger.getLogger("SSBProxyBridge");
 
     private RedisClient redisClient;
     private RedisPubSubCommands<String, String> subCommands;
@@ -24,19 +28,21 @@ public class RedisConnector extends ConnectorAbstract {
     private StatefulRedisPubSubConnection<String, String> subConnection;
     private StatefulRedisPubSubConnection<String, String> pubConnection;
 
-    public RedisConnector(String host, int port, String password) {
-        this.host = host;
-        this.port = port;
-        this.password = password;
+    public static RedisConnector getConnector() {
+        return SINGLETON.get();
+    }
+
+    private RedisConnector() {
+
     }
 
     @Override
-    public void connect() throws ConnectionFailureException {
-        logger.info("Connecting to Redis (" + this.host + ":" + this.port + ")");
+    public void connect(String host, int port, String password) throws ConnectionFailureException {
+        logger.info("Connecting to Redis (" + host + ":" + port + ")");
 
-        RedisURI.Builder builder = RedisURI.Builder.redis(this.host, this.port);
-        if (!this.password.isEmpty())
-            builder.withPassword(this.password.toCharArray());
+        RedisURI.Builder builder = RedisURI.Builder.redis(host, port);
+        if (!password.isEmpty())
+            builder.withPassword(password.toCharArray());
 
         try {
             this.redisClient = RedisClient.create(builder.build());

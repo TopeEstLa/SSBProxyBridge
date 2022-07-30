@@ -2,7 +2,7 @@ package com.bgsoftware.ssbproxybridge.core.messaging;
 
 public interface IConnector {
 
-    void connect() throws ConnectionFailureException;
+    void connect(String host, int port, String password) throws ConnectionFailureException;
 
     void shutdown();
 

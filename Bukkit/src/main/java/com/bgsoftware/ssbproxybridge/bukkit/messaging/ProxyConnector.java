@@ -1,6 +1,7 @@
 package com.bgsoftware.ssbproxybridge.bukkit.messaging;
 
 import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
+import com.bgsoftware.ssbproxybridge.core.Singleton;
 import com.bgsoftware.ssbproxybridge.core.messaging.ConnectorAbstract;
 import com.google.common.io.ByteArrayDataInput;
 import com.google.common.io.ByteArrayDataOutput;
@@ -15,12 +16,27 @@ import java.util.List;
 
 public class ProxyConnector extends ConnectorAbstract {
 
+    private static final Singleton<ProxyConnector> SINGLETON = new Singleton<ProxyConnector>() {
+        @Override
+        protected ProxyConnector create() {
+            return new ProxyConnector();
+        }
+    };
+
     public static final String CHANNEL_NAME = "SSBProxyBridge";
 
     private final List<byte[]> pendingRequests = new LinkedList<>();
 
+    public static ProxyConnector getConnector() {
+        return SINGLETON.get();
+    }
+
+    private ProxyConnector() {
+
+    }
+
     @Override
-    public void connect() {
+    public void connect(String host, int port, String password) {
         Plugin plugin = SSBProxyBridgeModule.getModule().getPlugin();
         Bukkit.getMessenger().registerOutgoingPluginChannel(plugin, CHANNEL_NAME);
         Bukkit.getMessenger().registerIncomingPluginChannel(plugin, CHANNEL_NAME, new ListenerImpl());

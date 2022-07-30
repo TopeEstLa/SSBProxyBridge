@@ -13,7 +13,7 @@ public class EmptyConnector implements IConnector {
     }
 
     @Override
-    public void connect() {
+    public void connect(String host, int port, String password) {
         // Do nothing.
     }
 
