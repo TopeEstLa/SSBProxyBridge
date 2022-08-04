@@ -142,6 +142,7 @@ public final class RemoteIsland implements Island {
     @Override
     public List<SuperiorPlayer> getIslandMembers(boolean includeOwner) {
         // TODO
+        // TODO: When implemented, check #removeIsland
         return Collections.emptyList();
     }
 
@@ -641,6 +642,31 @@ public final class RemoteIsland implements Island {
     @Override
     public void disbandIsland() {
         // TODO
+    }
+
+    public void removeIsland() {
+        // Remove roles and island status from leader and members
+
+        // TODO: REMOVE when #getIslandMembers functional
+        try {
+            this.islandLeader.getDatabaseBridge().setDatabaseBridgeMode(DatabaseBridgeMode.IDLE);
+            this.islandLeader.setIsland(null);
+            this.islandLeader.setPlayerRole(plugin.getRoles().getGuestRole());
+        } finally {
+            this.islandLeader.getDatabaseBridge().setDatabaseBridgeMode(DatabaseBridgeMode.SAVE_DATA);
+        }
+
+        getIslandMembers(true).forEach(islandMember -> {
+            try {
+                islandMember.getDatabaseBridge().setDatabaseBridgeMode(DatabaseBridgeMode.IDLE);
+                islandMember.setIsland(null);
+                islandMember.setPlayerRole(plugin.getRoles().getGuestRole());
+            } finally {
+                islandMember.getDatabaseBridge().setDatabaseBridgeMode(DatabaseBridgeMode.SAVE_DATA);
+            }
+        });
+
+        plugin.getGrid().getIslandsContainer().removeIsland(this);
     }
 
     @Override

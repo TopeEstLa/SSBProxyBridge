@@ -2,6 +2,7 @@ package com.bgsoftware.ssbproxybridge.bukkit.database.requests;
 
 import com.bgsoftware.ssbproxybridge.bukkit.island.RemoteIsland;
 import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI;
+import com.bgsoftware.superiorskyblock.api.island.Island;
 import com.bgsoftware.superiorskyblock.api.key.Key;
 import com.bgsoftware.superiorskyblock.api.key.KeyMap;
 import com.google.gson.Gson;
@@ -52,6 +53,16 @@ public class IslandRequests {
                     );
                     SuperiorSkyblockAPI.getGrid().getIslandsContainer().addIsland(remoteIsland);
                     break;
+                }
+                case "delete": {
+                    JsonObject filters = Requests.convertFilters(dataObject.get("filters").getAsJsonArray());
+                    UUID islandUUID = UUID.fromString(filters.get("uuid").getAsString());
+                    Island island = SuperiorSkyblockAPI.getIslandByUUID(islandUUID);
+
+                    if(!(island instanceof RemoteIsland))
+                        throw new RequestHandlerException("Tried to delete invalid island: \"" + islandUUID + "\", \"" + island + "\"");
+
+                    ((RemoteIsland) island).removeIsland();
                 }
                 default:
                     throw new RequestHandlerException("Cannot find a valid type \"" + type + "\"");
