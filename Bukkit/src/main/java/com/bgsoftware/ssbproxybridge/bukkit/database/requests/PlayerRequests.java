@@ -19,8 +19,10 @@ import java.util.UUID;
 public class PlayerRequests {
 
     private static final Map<String, UpdateAction> UPDATE_ACTION_MAP = new ImmutableMap.Builder<String, UpdateAction>()
-            .put("players:last_time_updated", (player, value) -> player.updateLastTimeStatus())
             .put("players:last_used_skin", (player, value) -> player.setTextureValue(value.getAsString()))
+            .put("players:last_used_name", (player, value) -> player.updateName())
+            .put("players:disbands", (player, value) -> player.setDisbands(value.getAsInt()))
+            .put("players:last_time_updated", (player, value) -> player.updateLastTimeStatus())
 
             .put("players_settings:language", (player, value) -> {
                 String[] language = value.getAsString().split("-");
