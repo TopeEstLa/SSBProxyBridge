@@ -26,20 +26,15 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
 
     public static String CHANNEL_NAME = "ssb-data";
 
-    private static final ProxyDatabaseBridge INSTANCE = new ProxyDatabaseBridge();
-
     private static final Gson gson = new Gson();
 
-    public static ProxyDatabaseBridge getInstance() {
-        return INSTANCE;
-    }
-
     private DatabaseBridgeMode databaseBridgeMode = DatabaseBridgeMode.IDLE;
+    private boolean isActivated;
     @Nullable
     private JsonArray batchOperations = null;
 
-    private ProxyDatabaseBridge() {
-
+    public ProxyDatabaseBridge(boolean isActivated) {
+        this.isActivated = isActivated;
     }
 
     @Override
@@ -60,7 +55,7 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
 
     @Override
     public void updateObject(String table, @Nullable DatabaseFilter databaseFilter, Pair<String, Object>... pairs) {
-        if (databaseBridgeMode == DatabaseBridgeMode.SAVE_DATA) {
+        if (isActivated && databaseBridgeMode == DatabaseBridgeMode.SAVE_DATA) {
             JsonObject operation = OperationSerializer.serializeOperation(table, createFilters(databaseFilter), createColumns(pairs));
             commitData(finishData(operation, "update"));
         }
@@ -68,7 +63,7 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
 
     @Override
     public void insertObject(String table, Pair<String, Object>... pairs) {
-        if (databaseBridgeMode == DatabaseBridgeMode.SAVE_DATA) {
+        if (isActivated && databaseBridgeMode == DatabaseBridgeMode.SAVE_DATA) {
             JsonObject operation = OperationSerializer.serializeOperation(table, Collections.emptyList(), createColumns(pairs));
             commitData(finishData(operation, "insert"));
         }
@@ -76,7 +71,7 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
 
     @Override
     public void deleteObject(String table, @Nullable DatabaseFilter databaseFilter) {
-        if (databaseBridgeMode == DatabaseBridgeMode.SAVE_DATA) {
+        if (isActivated && databaseBridgeMode == DatabaseBridgeMode.SAVE_DATA) {
             JsonObject operation = OperationSerializer.serializeOperation(table, createFilters(databaseFilter));
             commitData(finishData(operation, "delete"));
         }
@@ -94,6 +89,10 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
 
     public DatabaseBridgeMode getDatabaseBridgeMode() {
         return this.databaseBridgeMode;
+    }
+
+    public void activate() {
+        isActivated = true;
     }
 
     private static Collection<Filter> createFilters(@Nullable DatabaseFilter databaseFilter) {

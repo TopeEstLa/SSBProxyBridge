@@ -1,16 +1,36 @@
 package com.bgsoftware.ssbproxybridge.bukkit.database;
 
 import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
+import com.bgsoftware.ssbproxybridge.bukkit.database.requests.IRequestHandler;
+import com.bgsoftware.ssbproxybridge.bukkit.database.requests.IslandRequests;
+import com.bgsoftware.ssbproxybridge.bukkit.database.requests.PlayerRequests;
+import com.bgsoftware.ssbproxybridge.bukkit.database.requests.RequestHandlerException;
 import com.bgsoftware.ssbproxybridge.core.connector.IConnector;
+import com.google.common.collect.ImmutableMap;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import org.bukkit.Bukkit;
+import com.google.gson.JsonPrimitive;
+
+import java.util.Map;
 
 public class DatabaseBridgeListener implements IConnector.IListener {
 
     private static final Gson gson = new Gson();
+
+    private static final Map<String, IRequestHandler> REQUEST_HANDLERS = new ImmutableMap.Builder<String, IRequestHandler>()
+            .put("players", PlayerRequests::handleRequest)
+            .put("players_settings", PlayerRequests::handleRequest)
+            .put("players_missions", PlayerRequests::handleRequest)
+            .put("islands", IslandRequests::handleIslands)
+            .build();
+
+    private final SSBProxyBridgeModule module;
+
+    public DatabaseBridgeListener(SSBProxyBridgeModule module) {
+        this.module = module;
+    }
 
     @Override
     public void onReceive(String data) {
@@ -50,8 +70,20 @@ public class DatabaseBridgeListener implements IConnector.IListener {
     }
 
     private void processRequest(JsonObject dataObject) {
-        // TODO: Process request
-        Bukkit.broadcastMessage(dataObject + "");
+        JsonElement tableElement = dataObject.get("table");
+        String table = tableElement instanceof JsonPrimitive ? tableElement.getAsString() : "";
+        try {
+            REQUEST_HANDLERS.getOrDefault(table, this::handleRequestsFallback).handle(dataObject);
+        } catch (RequestHandlerException error) {
+            this.module.getLogger().warning("Received an unexpected error while handling request:");
+            this.module.getLogger().warning(dataObject + "");
+            error.printStackTrace();
+        }
+    }
+
+    private void handleRequestsFallback(JsonObject dataObject) {
+        this.module.getLogger().warning("Received data without an appropriate handler:");
+        this.module.getLogger().warning(dataObject + "");
     }
 
 }

@@ -17,28 +17,34 @@ public class ProxyDatabaseBridgeFactory implements DatabaseBridgeFactory {
         return INSTANCE;
     }
 
+    private boolean createActivatedBridge = true;
+
     private ProxyDatabaseBridgeFactory() {
 
     }
 
+    public void setCreateActivatedBridge(boolean createActivatedBridge) {
+        this.createActivatedBridge = createActivatedBridge;
+    }
+
     @Override
     public DatabaseBridge createIslandsDatabaseBridge(@Nullable Island island, DatabaseBridge databaseBridge) {
-        return ProxyDatabaseBridge.getInstance();
+        return new ProxyDatabaseBridge(createActivatedBridge);
     }
 
     @Override
     public DatabaseBridge createPlayersDatabaseBridge(@Nullable SuperiorPlayer superiorPlayer, DatabaseBridge databaseBridge) {
-        return ProxyDatabaseBridge.getInstance();
+        return new ProxyDatabaseBridge(createActivatedBridge);
     }
 
     @Override
     public DatabaseBridge createGridDatabaseBridge(@Nullable GridManager gridManager, DatabaseBridge databaseBridge) {
-        return ProxyDatabaseBridge.getInstance();
+        return new ProxyDatabaseBridge(createActivatedBridge);
     }
 
     @Override
     public DatabaseBridge createStackedBlocksDatabaseBridge(@Nullable StackedBlocksManager stackedBlocksManager, DatabaseBridge databaseBridge) {
-        return ProxyDatabaseBridge.getInstance();
+        return new ProxyDatabaseBridge(createActivatedBridge);
     }
 
 }

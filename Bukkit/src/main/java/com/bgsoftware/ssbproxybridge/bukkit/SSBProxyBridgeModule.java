@@ -94,7 +94,7 @@ public class SSBProxyBridgeModule extends PluginModule {
         this.messagingConnector = RedisConnector.getConnector();
         try {
             this.messagingConnector.connect("127.0.0.1", 6379, "");
-            this.messagingConnector.registerListener(ProxyDatabaseBridge.CHANNEL_NAME, new DatabaseBridgeListener());
+            this.messagingConnector.registerListener(ProxyDatabaseBridge.CHANNEL_NAME, new DatabaseBridgeListener(this));
         } catch (ConnectionFailureException error) {
             getLogger().info("Failed to connect to messaging connector:");
             error.printStackTrace();
