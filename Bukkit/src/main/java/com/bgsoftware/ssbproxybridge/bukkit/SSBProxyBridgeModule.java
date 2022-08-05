@@ -10,6 +10,7 @@ import com.bgsoftware.ssbproxybridge.core.connector.EmptyConnector;
 import com.bgsoftware.ssbproxybridge.core.connector.IConnector;
 import com.bgsoftware.ssbproxybridge.core.redis.RedisConnector;
 import com.bgsoftware.superiorskyblock.api.SuperiorSkyblock;
+import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI;
 import com.bgsoftware.superiorskyblock.api.commands.SuperiorCommand;
 import com.bgsoftware.superiorskyblock.api.modules.ModuleLoadTime;
 import com.bgsoftware.superiorskyblock.api.modules.PluginModule;
@@ -19,6 +20,8 @@ import javax.annotation.Nullable;
 import java.util.UUID;
 
 public class SSBProxyBridgeModule extends PluginModule {
+
+    private static final int API_VERSION = 2;
 
     private static SSBProxyBridgeModule INSTANCE;
 
@@ -36,6 +39,9 @@ public class SSBProxyBridgeModule extends PluginModule {
     @Override
     public void onEnable(SuperiorSkyblock plugin) {
         this.plugin = plugin;
+
+        if (SuperiorSkyblockAPI.getAPIVersion() < API_VERSION)
+            throw new RuntimeException("SuperiorSkyblock2 API version is not supported: " + SuperiorSkyblockAPI.getAPIVersion() + " < " + API_VERSION);
 
         // Setup messaging connector so the modules can talk with each other.
         setupMessagingConnector();
