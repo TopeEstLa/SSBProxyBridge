@@ -72,7 +72,7 @@ public class DatabaseBridgeListener implements IConnector.IListener {
 
     private void handleDataObject(JsonObject dataObject) {
         String senderName = dataObject.get("sender").getAsString();
-        String currentServerName = SSBProxyBridgeModule.getModule().getServerName();
+        String currentServerName = module.getSettings().serverName;
 
         if (senderName.equals(currentServerName))
             return;

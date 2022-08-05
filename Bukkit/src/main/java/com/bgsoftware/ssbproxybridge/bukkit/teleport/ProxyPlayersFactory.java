@@ -27,7 +27,7 @@ public class ProxyPlayersFactory implements PlayersFactory {
 
     @Override
     public PlayerTeleportAlgorithm createPlayerTeleportAlgorithm(SuperiorPlayer superiorPlayer, PlayerTeleportAlgorithm playerTeleportAlgorithm) {
-        return ProxyPlayerTeleportAlgorithm.get(playerTeleportAlgorithm);
+        return new ProxyPlayerTeleportAlgorithm(playerTeleportAlgorithm);
     }
 
 }

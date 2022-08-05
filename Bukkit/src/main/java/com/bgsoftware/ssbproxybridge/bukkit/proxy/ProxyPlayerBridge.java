@@ -12,7 +12,6 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 public class ProxyPlayerBridge {
 
@@ -55,24 +54,6 @@ public class ProxyPlayerBridge {
             dataOutput.writeUTF(message);
             recipient.sendPluginMessage(plugin, CHANNEL_NAME, dataOutput.toByteArray());
         }
-    }
-
-    public static CompletableFuture<String> fetchServerName(PluginMessageRecipient recipient) {
-        CompletableFuture<String> completableFuture = new CompletableFuture<>();
-
-        if (plugin == null) {
-            completableFuture.completeExceptionally(new NullPointerException("plugin is null"));
-            return completableFuture;
-        }
-
-        ByteArrayDataOutput dataOutput = ByteStreams.newDataOutput();
-        dataOutput.writeUTF("GetServer");
-        recipient.sendPluginMessage(plugin, CHANNEL_NAME, dataOutput.toByteArray());
-        listenOnce("GetServer", dataInput -> {
-            String serverName = dataInput.readUTF();
-            completableFuture.complete(serverName);
-        });
-        return completableFuture;
     }
 
     private static void registerListener(String channel, IListener listener) {

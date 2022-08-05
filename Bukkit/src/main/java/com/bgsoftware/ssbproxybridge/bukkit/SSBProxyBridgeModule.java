@@ -1,5 +1,6 @@
 package com.bgsoftware.ssbproxybridge.bukkit;
 
+import com.bgsoftware.ssbproxybridge.bukkit.config.SettingsManager;
 import com.bgsoftware.ssbproxybridge.bukkit.database.DatabaseBridgeListener;
 import com.bgsoftware.ssbproxybridge.bukkit.database.ProxyDatabaseBridge;
 import com.bgsoftware.ssbproxybridge.bukkit.database.ProxyDatabaseBridgeFactory;
@@ -17,7 +18,6 @@ import com.bgsoftware.superiorskyblock.api.modules.PluginModule;
 import org.bukkit.event.Listener;
 
 import javax.annotation.Nullable;
-import java.util.UUID;
 
 public class SSBProxyBridgeModule extends PluginModule {
 
@@ -27,9 +27,9 @@ public class SSBProxyBridgeModule extends PluginModule {
 
     private SuperiorSkyblock plugin;
 
-    private IConnector messagingConnector = EmptyConnector.getInstance();
+    private SettingsManager settingsManager;
 
-    private String serverName = UUID.randomUUID().toString(); // TODO: Load server name from config file
+    private IConnector messagingConnector = EmptyConnector.getInstance();
 
     public SSBProxyBridgeModule() {
         super("SSBProxyBridge", "Ome_R");
@@ -42,6 +42,8 @@ public class SSBProxyBridgeModule extends PluginModule {
 
         if (SuperiorSkyblockAPI.getAPIVersion() < API_VERSION)
             throw new RuntimeException("SuperiorSkyblock2 API version is not supported: " + SuperiorSkyblockAPI.getAPIVersion() + " < " + API_VERSION);
+
+        this.settingsManager = new SettingsManager(this);
 
         // Setup messaging connector so the modules can talk with each other.
         setupMessagingConnector();
@@ -88,18 +90,19 @@ public class SSBProxyBridgeModule extends PluginModule {
         return ModuleLoadTime.NORMAL;
     }
 
-    public IConnector getMessaging() {
-        return this.messagingConnector;
+    public SettingsManager getSettings() {
+        return settingsManager;
     }
 
-    public String getServerName() {
-        return serverName;
+    public IConnector getMessaging() {
+        return this.messagingConnector;
     }
 
     private void setupMessagingConnector() {
         this.messagingConnector = RedisConnector.getConnector();
         try {
-            this.messagingConnector.connect("127.0.0.1", 6379, "");
+            this.messagingConnector.connect(settingsManager.messagingServiceHost,
+                    settingsManager.messagingServicePort, settingsManager.messagingServicePassword);
             this.messagingConnector.registerListener(ProxyDatabaseBridge.CHANNEL_NAME, new DatabaseBridgeListener(this));
         } catch (ConnectionFailureException error) {
             getLogger().info("Failed to connect to messaging connector:");

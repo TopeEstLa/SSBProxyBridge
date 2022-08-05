@@ -24,6 +24,8 @@ import java.util.function.Consumer;
 
 public class ProxyDatabaseBridge implements DatabaseBridge {
 
+    private static final SSBProxyBridgeModule module = SSBProxyBridgeModule.getModule();
+
     public static String CHANNEL_NAME = "ssb-data";
 
     private static final Gson gson = new Gson();
@@ -117,7 +119,7 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
 
     private JsonObject finishData(JsonObject dataObject, String type) {
         dataObject.addProperty("type", type);
-        dataObject.addProperty("sender", SSBProxyBridgeModule.getModule().getServerName());
+        dataObject.addProperty("sender", module.getSettings().serverName);
         return dataObject;
     }
 
@@ -125,7 +127,7 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
         if (this.batchOperations != null) {
             this.batchOperations.add(data);
         } else {
-            SSBProxyBridgeModule.getModule().getMessaging().sendData(CHANNEL_NAME, gson.toJson(data));
+            module.getMessaging().sendData(CHANNEL_NAME, gson.toJson(data));
         }
     }
 

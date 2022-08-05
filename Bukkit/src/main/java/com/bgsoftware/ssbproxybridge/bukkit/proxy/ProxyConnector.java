@@ -16,6 +16,8 @@ import java.util.List;
 
 public class ProxyConnector extends ConnectorAbstract {
 
+    private static final SSBProxyBridgeModule module = SSBProxyBridgeModule.getModule();
+
     private static final Singleton<ProxyConnector> SINGLETON = new Singleton<ProxyConnector>() {
         @Override
         protected ProxyConnector create() {
@@ -37,14 +39,14 @@ public class ProxyConnector extends ConnectorAbstract {
 
     @Override
     public void connect(String host, int port, String password) {
-        Plugin plugin = SSBProxyBridgeModule.getModule().getPlugin();
+        Plugin plugin = module.getPlugin();
         Bukkit.getMessenger().registerOutgoingPluginChannel(plugin, CHANNEL_NAME);
         Bukkit.getMessenger().registerIncomingPluginChannel(plugin, CHANNEL_NAME, new ListenerImpl());
     }
 
     @Override
     public void shutdown() {
-        Plugin plugin = SSBProxyBridgeModule.getModule().getPlugin();
+        Plugin plugin = module.getPlugin();
         Bukkit.getMessenger().unregisterIncomingPluginChannel(plugin, CHANNEL_NAME);
         Bukkit.getMessenger().unregisterOutgoingPluginChannel(plugin, CHANNEL_NAME);
     }
@@ -64,13 +66,13 @@ public class ProxyConnector extends ConnectorAbstract {
         if (onlinePlayer == null) {
             this.pendingRequests.add(dataOutput.toByteArray());
         } else {
-            Plugin plugin = SSBProxyBridgeModule.getModule().getPlugin();
+            Plugin plugin = module.getPlugin();
             onlinePlayer.sendPluginMessage(plugin, CHANNEL_NAME, dataOutput.toByteArray());
         }
     }
 
     public void flushPendingRequests(Player player) {
-        Plugin plugin = SSBProxyBridgeModule.getModule().getPlugin();
+        Plugin plugin = module.getPlugin();
         pendingRequests.forEach(data -> player.sendPluginMessage(plugin, CHANNEL_NAME, data));
     }
 

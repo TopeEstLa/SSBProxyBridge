@@ -1,0 +1,31 @@
+######################################################
+##                                                  ##
+##               SSBProxyBridge Module              ##
+##                Developed by Ome_R                ##
+##                                                  ##
+######################################################
+
+
+# The name of the server the module is running on.
+# This name should be the same as the one configured in your BungeeCord / Velocity configuration,
+# as this name is later being used to teleport players between servers.
+server: 'server'
+
+# The name of the server of the spawn. This name can be the same as the one above.
+# This name should be the same as the one configured in your BungeeCord / Velocity configuration,
+# as this name is later being used to teleport players between servers.
+spawn-server-name: 'spawn'
+
+# The module uses an external messaging service in order to communicate and synchronize data
+# between the servers. In this section you should configure the options for the service.
+messaging-service:
+  # The type of service to use for messaging.
+  # This type can be Redis.
+  type: 'redis'
+  # The host name of the service to connect to.
+  host: 'localhost'
+  # The port of the service.
+  port: 6379
+  # The password to use in order to connect.
+  # If no password exists, set this to ''.
+  password: ''
