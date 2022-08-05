@@ -5,13 +5,14 @@ import com.bgsoftware.ssbproxybridge.bukkit.database.ProxyDatabaseBridgeFactory;
 import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI;
 import com.bgsoftware.superiorskyblock.api.data.DatabaseBridgeMode;
 import com.bgsoftware.superiorskyblock.api.enums.BorderColor;
+import com.bgsoftware.superiorskyblock.api.missions.Mission;
 import com.bgsoftware.superiorskyblock.api.wrappers.SuperiorPlayer;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
-import org.bukkit.Bukkit;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
@@ -41,6 +42,10 @@ public class PlayerRequests {
             })
             .put("players_settings:border_color", (player, value) ->
                     player.setBorderColor(BorderColor.valueOf(value.getAsString())))
+            .put("players_custom_data:data", (player, value) -> {
+                byte[] data = value.getAsString().getBytes(StandardCharsets.UTF_8);
+                player.getPersistentDataContainer().load(data);
+            })
 
             .build();
 
@@ -78,11 +83,19 @@ public class PlayerRequests {
         String table = dataObject.get("table").getAsString();
         JsonObject columns = Requests.convertColumns(dataObject.get("columns").getAsJsonArray());
 
+        UUID playerUUID;
+
+        if (columns.has("uuid")) {
+            playerUUID = UUID.fromString(columns.get("uuid").getAsString());
+        } else if (columns.has("player")) {
+            playerUUID = UUID.fromString(columns.get("player").getAsString());
+        } else {
+            throw new RequestHandlerException("Cannot find a valid uuid of a player.");
+        }
+
         switch (table) {
-            case "players":
-                Bukkit.broadcastMessage("Received players insert");
+            case "players": {
                 // We want to create a new player, which is done by calling the getPlayer method.
-                UUID playerUUID = UUID.fromString(columns.get("uuid").getAsString());
                 try {
                     ProxyDatabaseBridgeFactory.getInstance().setCreateActivatedBridge(false);
                     SuperiorPlayer superiorPlayer = SuperiorSkyblockAPI.getPlayer(playerUUID);
@@ -91,13 +104,50 @@ public class PlayerRequests {
                     ProxyDatabaseBridgeFactory.getInstance().setCreateActivatedBridge(true);
                 }
                 break;
+            }
             case "players_settings":
                 // Do nothing
                 break;
-            case "players_missions":
-                Bukkit.broadcastMessage(dataObject + "");
-                // TODO
+            case "players_missions": {
+                SuperiorPlayer superiorPlayer = SuperiorSkyblockAPI.getPlayer(playerUUID);
+
+                String missionName = columns.get("name").getAsString();
+                Mission<?> mission = SuperiorSkyblockAPI.getMissions().getMission(missionName);
+
+                if (mission == null)
+                    throw new RequestHandlerException("Cannot find a valid mission \"" + missionName + "\"");
+
+                int currentFinishCount = superiorPlayer.getAmountMissionCompleted(mission);
+                int newFinishCount = columns.get("finish_count").getAsInt();
+                int countsDelta = Math.abs(currentFinishCount - newFinishCount);
+
+                if (currentFinishCount == newFinishCount)
+                    return;
+
+                disableDatabaseBridge(superiorPlayer, () -> {
+                    // TODO: Change it to setAmountMissionCompleted using the new API method
+                    if (currentFinishCount > newFinishCount) {
+                        for (int i = 0; i < countsDelta; ++i)
+                            superiorPlayer.resetMission(mission);
+                    } else {
+                        for (int i = 0; i < countsDelta; ++i)
+                            superiorPlayer.completeMission(mission);
+                    }
+                });
+
                 break;
+            }
+            case "players_custom_data": {
+                SuperiorPlayer superiorPlayer = SuperiorSkyblockAPI.getPlayer(playerUUID);
+
+                byte[] data = dataObject.get("data").getAsString().getBytes(StandardCharsets.UTF_8);
+
+                disableDatabaseBridge(superiorPlayer, () -> {
+                    superiorPlayer.getPersistentDataContainer().load(data);
+                });
+
+                break;
+            }
             default:
                 throw new RequestHandlerException("Cannot find a valid table \"" + table + "\"");
         }
@@ -118,8 +168,7 @@ public class PlayerRequests {
         }
 
         SuperiorPlayer superiorPlayer = SuperiorSkyblockAPI.getPlayer(playerUUID);
-        try {
-            superiorPlayer.getDatabaseBridge().setDatabaseBridgeMode(DatabaseBridgeMode.IDLE);
+        disableDatabaseBridge(superiorPlayer, () -> {
             for (JsonElement columnElement : dataObject.get("columns").getAsJsonArray()) {
                 JsonObject column = columnElement.getAsJsonObject();
                 String name = column.get("name").getAsString();
@@ -131,9 +180,21 @@ public class PlayerRequests {
 
                 updateAction.apply(superiorPlayer, value);
             }
+        });
+    }
+
+    private static void disableDatabaseBridge(SuperiorPlayer superiorPlayer, PlayerAction action) throws RequestHandlerException {
+        try {
+            superiorPlayer.getDatabaseBridge().setDatabaseBridgeMode(DatabaseBridgeMode.IDLE);
+            action.run();
         } finally {
             superiorPlayer.getDatabaseBridge().setDatabaseBridgeMode(DatabaseBridgeMode.SAVE_DATA);
         }
+    }
+
+    interface PlayerAction {
+
+        void run() throws RequestHandlerException;
 
     }
 
