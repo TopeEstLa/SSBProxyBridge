@@ -3,6 +3,7 @@ package com.bgsoftware.ssbproxybridge.bukkit.database.requests;
 import com.bgsoftware.ssbproxybridge.bukkit.database.ProxyDatabaseBridge;
 import com.bgsoftware.ssbproxybridge.bukkit.database.ProxyDatabaseBridgeFactory;
 import com.bgsoftware.ssbproxybridge.bukkit.island.Islands;
+import com.bgsoftware.ssbproxybridge.bukkit.player.RemoteSuperiorPlayer;
 import com.bgsoftware.ssbproxybridge.core.MapBuilder;
 import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI;
 import com.bgsoftware.superiorskyblock.api.data.DatabaseBridgeMode;
@@ -21,7 +22,10 @@ public class PlayerRequests {
 
     private static final Map<String, RequestAction<SuperiorPlayer, JsonPrimitive>> UPDATE_ACTION_MAP = new MapBuilder<String, RequestAction<SuperiorPlayer, JsonPrimitive>>()
             .put("players:last_used_skin", (player, value) -> player.setTextureValue(value.getAsString()))
-            .put("players:last_used_name", (player, value) -> player.updateName())
+            .put("players:last_used_name", (player, value) -> {
+                RemoteSuperiorPlayer remoteSuperiorPlayer = new RemoteSuperiorPlayer(player);
+                remoteSuperiorPlayer.setName(value.getAsString());
+            })
             .put("players:disbands", (player, value) -> player.setDisbands(value.getAsInt()))
             .put("players:last_time_updated", (player, value) -> player.updateLastTimeStatus())
 
@@ -99,6 +103,12 @@ public class PlayerRequests {
                 try {
                     ProxyDatabaseBridgeFactory.getInstance().setCreateActivatedBridge(false);
                     SuperiorPlayer superiorPlayer = SuperiorSkyblockAPI.getPlayer(playerUUID);
+
+                    RemoteSuperiorPlayer remoteSuperiorPlayer = new RemoteSuperiorPlayer(superiorPlayer);
+                    remoteSuperiorPlayer.setName(columns.get("last_used_name").getAsString());
+                    remoteSuperiorPlayer.setTextureValue(columns.get("last_used_skin").getAsString());
+                    remoteSuperiorPlayer.setDisbands(columns.get("disbands").getAsInt());
+
                     ((ProxyDatabaseBridge) superiorPlayer.getDatabaseBridge()).activate();
                 } finally {
                     ProxyDatabaseBridgeFactory.getInstance().setCreateActivatedBridge(true);

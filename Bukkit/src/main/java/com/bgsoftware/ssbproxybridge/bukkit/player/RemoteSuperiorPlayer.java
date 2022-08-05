@@ -29,6 +29,7 @@ public class RemoteSuperiorPlayer implements SuperiorPlayer {
     private final SuperiorPlayer handle;
 
     private boolean onlineStatus = false;
+    private Player fakePlayer;
 
     public RemoteSuperiorPlayer(SuperiorPlayer handle) {
         this.handle = handle;
@@ -69,10 +70,19 @@ public class RemoteSuperiorPlayer implements SuperiorPlayer {
         this.handle.updateName();
     }
 
+    public void setName(String name) {
+        try {
+            this.fakePlayer = new FakeBukkitPlayer(name, this.getUniqueId());
+            this.handle.updateName(); // Will trigger name changes for the player.
+        } finally {
+            this.fakePlayer = null;
+        }
+    }
+
     @Nullable
     @Override
     public Player asPlayer() {
-        return this.handle.asPlayer();
+        return this.fakePlayer != null ? this.fakePlayer : this.handle.asPlayer();
     }
 
     @Nullable
