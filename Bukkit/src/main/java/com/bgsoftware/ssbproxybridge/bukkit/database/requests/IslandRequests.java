@@ -4,6 +4,7 @@ import com.bgsoftware.ssbproxybridge.bukkit.island.BankTransactionImpl;
 import com.bgsoftware.ssbproxybridge.bukkit.island.FakeSchematic;
 import com.bgsoftware.ssbproxybridge.bukkit.island.Islands;
 import com.bgsoftware.ssbproxybridge.bukkit.island.RemoteIsland;
+import com.bgsoftware.ssbproxybridge.bukkit.player.RemoteSuperiorPlayer;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.Serializers;
 import com.bgsoftware.ssbproxybridge.core.MapBuilder;
 import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI;
@@ -110,10 +111,15 @@ public class IslandRequests {
                     World.Environment.valueOf(columns.get("environment").getAsString())
             ))
             .put("islands_chests", (island, columns) -> { /* We don't update chests */ })
-            .put("islands_visitors", (island, columns) -> island.setPlayerInside(
-                    SuperiorSkyblockAPI.getPlayer(UUID.fromString(columns.get("player").getAsString())),
-                    true
-            ))
+            .put("islands_visitors", (island, columns) -> {
+                SuperiorPlayer islandVisitor = SuperiorSkyblockAPI.getPlayer(UUID.fromString(columns.get("player").getAsString()));
+                // We use a fake player so we can fake his online status
+                RemoteSuperiorPlayer remoteSuperiorPlayer = new RemoteSuperiorPlayer(islandVisitor);
+                remoteSuperiorPlayer.setOnlineStatus(true);
+                island.setPlayerInside(remoteSuperiorPlayer, true);
+                island.setPlayerInside(remoteSuperiorPlayer, false);
+                remoteSuperiorPlayer.setOnlineStatus(false);
+            })
             .put("islands_warp_categories", (island, columns) -> {
                 WarpCategory warpCategory = island.createWarpCategory(columns.get("name").getAsString());
                 warpCategory.setSlot(columns.get("slot").getAsInt());
@@ -136,16 +142,7 @@ public class IslandRequests {
                 island.getIslandBank().setBalance(new BigDecimal(columns.get("balance").getAsString()));
                 island.setLastInterestTime(columns.get("last_interest_time").getAsLong());
             })
-            .put("islands_settings", (island, columns) -> {
-                island.setIslandSize(columns.get("size").getAsInt());
-                island.setBankLimit(new BigDecimal(columns.get("bank_limit").getAsString()));
-                island.setCoopLimit(columns.get("coops_limit").getAsInt());
-                island.setTeamLimit(columns.get("members_limit").getAsInt());
-                island.setWarpsLimit(columns.get("warps_limit").getAsInt());
-                island.setCropGrowthMultiplier(columns.get("crop_growth_multiplier").getAsInt());
-                island.setSpawnerRatesMultiplier(columns.get("spawner_rates_multiplier").getAsInt());
-                island.setMobDropsMultiplier(columns.get("mob_drops_multiplier").getAsInt());
-            })
+            .put("islands_settings", (island, columns) -> { /* Do nothing, as upgrades will not be synced otherwise */ })
             .build();
 
     private static final Map<String, RequestAction<Island, JsonPrimitive>> UPDATE_ACTION_MAP = new MapBuilder<String, RequestAction<Island, JsonPrimitive>>()
