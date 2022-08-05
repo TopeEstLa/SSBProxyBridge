@@ -2,12 +2,12 @@ package com.bgsoftware.ssbproxybridge.bukkit.database.requests;
 
 import com.bgsoftware.ssbproxybridge.bukkit.database.ProxyDatabaseBridge;
 import com.bgsoftware.ssbproxybridge.bukkit.database.ProxyDatabaseBridgeFactory;
+import com.bgsoftware.ssbproxybridge.bukkit.island.Islands;
+import com.bgsoftware.ssbproxybridge.core.MapBuilder;
 import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI;
 import com.bgsoftware.superiorskyblock.api.data.DatabaseBridgeMode;
 import com.bgsoftware.superiorskyblock.api.enums.BorderColor;
-import com.bgsoftware.superiorskyblock.api.missions.Mission;
 import com.bgsoftware.superiorskyblock.api.wrappers.SuperiorPlayer;
-import com.google.common.collect.ImmutableMap;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
@@ -19,7 +19,7 @@ import java.util.UUID;
 
 public class PlayerRequests {
 
-    private static final Map<String, UpdateAction> UPDATE_ACTION_MAP = new ImmutableMap.Builder<String, UpdateAction>()
+    private static final Map<String, RequestAction<SuperiorPlayer, JsonPrimitive>> UPDATE_ACTION_MAP = new MapBuilder<String, RequestAction<SuperiorPlayer, JsonPrimitive>>()
             .put("players:last_used_skin", (player, value) -> player.setTextureValue(value.getAsString()))
             .put("players:last_used_name", (player, value) -> player.updateName())
             .put("players:disbands", (player, value) -> player.setDisbands(value.getAsInt()))
@@ -110,31 +110,7 @@ public class PlayerRequests {
                 break;
             case "players_missions": {
                 SuperiorPlayer superiorPlayer = SuperiorSkyblockAPI.getPlayer(playerUUID);
-
-                String missionName = columns.get("name").getAsString();
-                Mission<?> mission = SuperiorSkyblockAPI.getMissions().getMission(missionName);
-
-                if (mission == null)
-                    throw new RequestHandlerException("Cannot find a valid mission \"" + missionName + "\"");
-
-                int currentFinishCount = superiorPlayer.getAmountMissionCompleted(mission);
-                int newFinishCount = columns.get("finish_count").getAsInt();
-                int countsDelta = Math.abs(currentFinishCount - newFinishCount);
-
-                if (currentFinishCount == newFinishCount)
-                    return;
-
-                disableDatabaseBridge(superiorPlayer, () -> {
-                    // TODO: Change it to setAmountMissionCompleted using the new API method
-                    if (currentFinishCount > newFinishCount) {
-                        for (int i = 0; i < countsDelta; ++i)
-                            superiorPlayer.resetMission(mission);
-                    } else {
-                        for (int i = 0; i < countsDelta; ++i)
-                            superiorPlayer.completeMission(mission);
-                    }
-                });
-
+                disableDatabaseBridge(superiorPlayer, () -> Islands.setMissionCompletedCount(superiorPlayer, columns));
                 break;
             }
             case "players_custom_data": {
@@ -173,7 +149,7 @@ public class PlayerRequests {
                 JsonObject column = columnElement.getAsJsonObject();
                 String name = column.get("name").getAsString();
                 JsonPrimitive value = column.get("value").getAsJsonPrimitive();
-                UpdateAction updateAction = UPDATE_ACTION_MAP.get(table + ":" + name);
+                RequestAction<SuperiorPlayer, JsonPrimitive> updateAction = UPDATE_ACTION_MAP.get(table + ":" + name);
 
                 if (updateAction == null)
                     throw new RequestHandlerException("Invalid update column: \"" + name + "\" for table \"" + table + "\"");

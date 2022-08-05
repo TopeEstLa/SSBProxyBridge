@@ -1,13 +1,11 @@
 package com.bgsoftware.ssbproxybridge.bukkit.island;
 
-import com.bgsoftware.ssbproxybridge.bukkit.database.ProxyDatabaseBridgeFactory;
 import com.bgsoftware.ssbproxybridge.bukkit.proxy.ProxyPlayerBridge;
 import com.bgsoftware.superiorskyblock.api.SuperiorSkyblock;
 import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI;
 import com.bgsoftware.superiorskyblock.api.data.DatabaseBridge;
 import com.bgsoftware.superiorskyblock.api.data.DatabaseBridgeMode;
 import com.bgsoftware.superiorskyblock.api.enums.Rating;
-import com.bgsoftware.superiorskyblock.api.factory.BanksFactory;
 import com.bgsoftware.superiorskyblock.api.island.Island;
 import com.bgsoftware.superiorskyblock.api.island.IslandChest;
 import com.bgsoftware.superiorskyblock.api.island.IslandFlag;
@@ -22,25 +20,20 @@ import com.bgsoftware.superiorskyblock.api.island.bank.IslandBank;
 import com.bgsoftware.superiorskyblock.api.island.warps.IslandWarp;
 import com.bgsoftware.superiorskyblock.api.island.warps.WarpCategory;
 import com.bgsoftware.superiorskyblock.api.key.Key;
-import com.bgsoftware.superiorskyblock.api.key.KeyMap;
 import com.bgsoftware.superiorskyblock.api.missions.Mission;
 import com.bgsoftware.superiorskyblock.api.objects.Pair;
 import com.bgsoftware.superiorskyblock.api.persistence.PersistentDataContainer;
 import com.bgsoftware.superiorskyblock.api.service.message.IMessageComponent;
 import com.bgsoftware.superiorskyblock.api.upgrades.Upgrade;
 import com.bgsoftware.superiorskyblock.api.upgrades.UpgradeLevel;
-import com.bgsoftware.superiorskyblock.api.wrappers.BlockPosition;
 import com.bgsoftware.superiorskyblock.api.wrappers.SuperiorPlayer;
-import com.google.common.base.Preconditions;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffectType;
 
 import javax.annotation.Nullable;
@@ -48,7 +41,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -59,359 +51,283 @@ public final class RemoteIsland implements Island {
 
     private static final SuperiorSkyblock plugin = SuperiorSkyblockAPI.getSuperiorSkyblock();
 
-    private final DatabaseBridge databaseBridge = ProxyDatabaseBridgeFactory.getInstance().createIslandsDatabaseBridge(this, null);
-    private final IslandBank islandBank = createIslandBank();
+    private final String originalServer;
+    private final Island handle;
 
-    private final SuperiorPlayer islandLeader;
-    private final UUID uuid;
-    private final BlockPosition center;
-    private final long creationTime;
-    private final String islandType;
+    public RemoteIsland(String originalServer, Island handle) {
+        this.originalServer = originalServer;
+        this.handle = handle;
+    }
 
-    /* islands table */
-    private String discord;
-    private String paypal;
-    private BigDecimal bonusWorth;
-    private BigDecimal bonusLevel;
-    private boolean isLocked;
-    private boolean isIgnored;
-    private String name;
-    private String description;
-    private byte generatedSchematic;
-    private byte unlockedWorlds;
-    private long lastTimeUpdated;
-    private KeyMap<BigInteger> blockCounts;
-
-    public RemoteIsland(SuperiorPlayer islandLeader, UUID uuid, BlockPosition center, long creationTime,
-                        String islandType, String discord, String paypal, BigDecimal bonusWorth, BigDecimal bonusLevel,
-                        boolean isLocked, boolean isIgnored, String name, String description, byte generatedSchematic,
-                        byte unlockedWorlds, long lastTimeUpdated, KeyMap<BigInteger> blockCounts) {
-        this.islandLeader = islandLeader;
-        this.uuid = uuid;
-        this.center = center;
-        this.creationTime = creationTime;
-        this.islandType = islandType;
-        this.discord = discord;
-        this.paypal = paypal;
-        this.bonusWorth = bonusWorth;
-        this.bonusLevel = bonusLevel;
-        this.isLocked = isLocked;
-        this.isIgnored = isIgnored;
-        this.name = name;
-        this.description = description;
-        this.generatedSchematic = generatedSchematic;
-        this.unlockedWorlds = unlockedWorlds;
-        this.lastTimeUpdated = lastTimeUpdated;
-        this.blockCounts = blockCounts;
-
-        // Update player with him being the leader
-        try {
-            this.islandLeader.getDatabaseBridge().setDatabaseBridgeMode(DatabaseBridgeMode.IDLE);
-            this.islandLeader.setIsland(this);
-            this.islandLeader.setPlayerRole(plugin.getRoles().getLastRole());
-        } finally {
-            this.islandLeader.getDatabaseBridge().setDatabaseBridgeMode(DatabaseBridgeMode.SAVE_DATA);
-        }
+    public String getOriginalServer() {
+        return originalServer;
     }
 
     @Override
     public SuperiorPlayer getOwner() {
-        return this.islandLeader;
+        return this.handle.getOwner();
     }
 
     @Override
     public UUID getUniqueId() {
-        return this.uuid;
+        return this.handle.getUniqueId();
     }
 
     @Override
     public long getCreationTime() {
-        return this.creationTime;
+        return this.handle.getCreationTime();
     }
 
     @Override
     public String getCreationTimeDate() {
-        return "";
+        return this.handle.getCreationTimeDate();
     }
 
     @Override
     public void updateDatesFormatter() {
-        // TODO
+        this.handle.updateDatesFormatter();
     }
 
     @Override
     public List<SuperiorPlayer> getIslandMembers(boolean includeOwner) {
-        // TODO
-        // TODO: When implemented, check #removeIsland
-        return Collections.emptyList();
+        return this.handle.getIslandMembers(includeOwner);
     }
 
     @Override
     public List<SuperiorPlayer> getIslandMembers(PlayerRole... playerRoles) {
-        // TODO
-        return Collections.emptyList();
+        return this.handle.getIslandMembers(playerRoles);
     }
 
     @Override
     public List<SuperiorPlayer> getBannedPlayers() {
-        // TODO
-        return Collections.emptyList();
+        return this.handle.getBannedPlayers();
     }
 
     @Override
     public List<SuperiorPlayer> getIslandVisitors() {
-        // TODO
-        return Collections.emptyList();
+        return this.handle.getIslandVisitors();
     }
 
     @Override
     public List<SuperiorPlayer> getIslandVisitors(boolean checkCoopStatus) {
-        // TODO
-        return Collections.emptyList();
+        return this.handle.getIslandVisitors(checkCoopStatus);
     }
 
     @Override
     public List<SuperiorPlayer> getAllPlayersInside() {
-        // TODO
-        return Collections.emptyList();
+        return this.handle.getAllPlayersInside();
     }
 
     @Override
     public List<SuperiorPlayer> getUniqueVisitors() {
-        // TODO
-        return Collections.emptyList();
+        return this.handle.getUniqueVisitors();
     }
 
     @Override
     public List<Pair<SuperiorPlayer, Long>> getUniqueVisitorsWithTimes() {
-        // TODO
-        return Collections.emptyList();
+        return this.handle.getUniqueVisitorsWithTimes();
     }
 
     @Override
     public void inviteMember(SuperiorPlayer superiorPlayer) {
-        // TODO
+        this.handle.inviteMember(superiorPlayer);
     }
 
     @Override
     public void revokeInvite(SuperiorPlayer superiorPlayer) {
-        // TODO
+        this.handle.revokeInvite(superiorPlayer);
     }
 
     @Override
     public boolean isInvited(SuperiorPlayer superiorPlayer) {
-        // TODO
-        return false;
+        return this.handle.isInvited(superiorPlayer);
     }
 
     @Override
     public List<SuperiorPlayer> getInvitedPlayers() {
-        // TODO
-        return Collections.emptyList();
+        return this.handle.getInvitedPlayers();
     }
 
     @Override
     public void addMember(SuperiorPlayer superiorPlayer, PlayerRole playerRole) {
-        // TODO
+        this.handle.addMember(superiorPlayer, playerRole);
     }
 
     @Override
     public void kickMember(SuperiorPlayer superiorPlayer) {
-        // TODO
+        this.handle.kickMember(superiorPlayer);
     }
 
     @Override
     public boolean isMember(SuperiorPlayer superiorPlayer) {
-        // TODO
-        return false;
+        return this.handle.isMember(superiorPlayer);
     }
 
     @Override
     public void banMember(SuperiorPlayer superiorPlayer) {
-        // TODO
+        this.handle.banMember(superiorPlayer);
     }
 
     @Override
     public void banMember(SuperiorPlayer superiorPlayer, @Nullable SuperiorPlayer whoBanned) {
-        // TODO
+        this.handle.banMember(superiorPlayer, whoBanned);
     }
 
     @Override
     public void unbanMember(SuperiorPlayer superiorPlayer) {
-        // TODO
+        this.handle.unbanMember(superiorPlayer);
     }
 
     @Override
     public boolean isBanned(SuperiorPlayer superiorPlayer) {
-        // TODO
-        return false;
+        return this.handle.isBanned(superiorPlayer);
     }
 
     @Override
     public void addCoop(SuperiorPlayer superiorPlayer) {
-        // TODO
+        this.handle.addCoop(superiorPlayer);
     }
 
     @Override
     public void removeCoop(SuperiorPlayer superiorPlayer) {
-        // TODO
+        this.handle.removeCoop(superiorPlayer);
     }
 
     @Override
     public boolean isCoop(SuperiorPlayer superiorPlayer) {
-        // TODO
-        return false;
+        return this.handle.isCoop(superiorPlayer);
     }
 
     @Override
     public List<SuperiorPlayer> getCoopPlayers() {
-        // TODO
-        return Collections.emptyList();
+        return this.handle.getCoopPlayers();
     }
 
     @Override
     public int getCoopLimit() {
-        // TODO
-        return 0;
+        return this.handle.getCoopLimit();
     }
 
     @Override
     public int getCoopLimitRaw() {
-        // TODO
-        return 0;
+        return this.handle.getCoopLimitRaw();
     }
 
     @Override
     public void setCoopLimit(int coopLimit) {
-        // TODO
+        this.handle.setCoopLimit(coopLimit);
     }
 
     @Override
     public void setPlayerInside(SuperiorPlayer superiorPlayer, boolean inside) {
-        // TODO
+        this.handle.setPlayerInside(superiorPlayer, inside);
     }
 
     @Override
     public boolean isVisitor(SuperiorPlayer superiorPlayer, boolean includeCoopStatus) {
-        // TODO
-        return false;
+        return this.handle.isVisitor(superiorPlayer, includeCoopStatus);
     }
 
     @Override
     public Location getCenter(World.Environment environment) {
-        World world = plugin.getGrid().getIslandsWorld(this, environment);
-        return this.center.parse(world).add(0.5, 0, 0.5);
+        return this.handle.getCenter(environment);
     }
 
     @Nullable
     @Override
     public Location getTeleportLocation(World.Environment environment) {
-        return this.getIslandHome(environment);
+        return this.handle.getTeleportLocation(environment);
     }
 
     @Override
     public Map<World.Environment, Location> getTeleportLocations() {
-        return this.getIslandHomes();
+        return this.handle.getTeleportLocations();
     }
 
     @Override
     public void setTeleportLocation(Location location) {
-        this.setIslandHome(location);
+        this.handle.setTeleportLocation(location);
     }
 
     @Override
     public void setTeleportLocation(World.Environment environment, @Nullable Location location) {
-        this.setIslandHome(environment, location);
+        this.handle.setTeleportLocation(environment, location);
     }
 
     @Nullable
     @Override
     public Location getIslandHome(World.Environment environment) {
-        // TODO
-        return this.getCenter(environment);
+        return this.handle.getIslandHome(environment);
     }
 
     @Override
     public Map<World.Environment, Location> getIslandHomes() {
-        // TODO
-        return Collections.emptyMap();
+        return this.handle.getIslandHomes();
     }
 
     @Override
     public void setIslandHome(Location location) {
-        // TODO
+        this.handle.setIslandHome(location);
     }
 
     @Override
     public void setIslandHome(World.Environment environment, @Nullable Location location) {
-        // TODO
+        this.handle.setIslandHome(environment, location);
     }
 
     @Nullable
     @Override
     public Location getVisitorsLocation() {
-        // TODO
-        return this.getCenter(plugin.getSettings().getWorlds().getDefaultWorld());
+        return this.handle.getVisitorsLocation();
     }
 
     @Override
     public void setVisitorsLocation(@Nullable Location location) {
-        // TODO
+        this.handle.setVisitorsLocation(location);
     }
 
     @Override
     public Location getMinimum() {
-        int islandDistance = (int) Math.round(plugin.getSettings().getMaxIslandSize() *
-                (plugin.getSettings().isBuildOutsideIsland() ? 1.5 : 1D));
-        return getCenter(plugin.getSettings().getWorlds().getDefaultWorld()).subtract(islandDistance, 0, islandDistance);
+        return this.handle.getMinimum();
     }
 
     @Override
     public Location getMinimumProtected() {
-        int islandSize = getIslandSize();
-        return getCenter(plugin.getSettings().getWorlds().getDefaultWorld()).subtract(islandSize, 0, islandSize);
+        return this.handle.getMinimumProtected();
     }
 
     @Override
     public Location getMaximum() {
-        int islandDistance = (int) Math.round(plugin.getSettings().getMaxIslandSize() *
-                (plugin.getSettings().isBuildOutsideIsland() ? 1.5 : 1D));
-        return getCenter(plugin.getSettings().getWorlds().getDefaultWorld()).add(islandDistance, 0, islandDistance);
+        return this.handle.getMaximum();
     }
 
     @Override
     public Location getMaximumProtected() {
-        int islandSize = getIslandSize();
-        return getCenter(plugin.getSettings().getWorlds().getDefaultWorld()).add(islandSize, 0, islandSize);
+        return this.handle.getMaximumProtected();
     }
 
     @Override
     public List<Chunk> getAllChunks() {
-        return getAllChunks(false);
+        // On another server, therefore no chunks.
+        return Collections.emptyList();
     }
 
     @Override
     public List<Chunk> getAllChunks(boolean onlyProtected) {
-        List<Chunk> chunks = new LinkedList<>();
-
-        for (World.Environment environment : World.Environment.values()) {
-            try {
-                chunks.addAll(getAllChunks(environment, onlyProtected));
-            } catch (NullPointerException ignored) {
-            }
-        }
-
-        return Collections.unmodifiableList(chunks);
+        // On another server, therefore no chunks.
+        return Collections.emptyList();
     }
 
     @Override
     public List<Chunk> getAllChunks(World.Environment environment) {
-        return getAllChunks(environment, false);
+        // On another server, therefore no chunks.
+        return Collections.emptyList();
     }
 
     @Override
     public List<Chunk> getAllChunks(World.Environment environment, boolean onlyProtected) {
-        return getAllChunks(environment, onlyProtected, false);
+        // On another server, therefore no chunks.
+        return Collections.emptyList();
     }
 
     @Override
@@ -435,7 +351,8 @@ public final class RemoteIsland implements Island {
     @Override
     public List<CompletableFuture<Chunk>> getAllChunksAsync(World.Environment environment, boolean onlyProtected,
                                                             @Nullable Consumer<Chunk> onChunkLoad) {
-        return getAllChunksAsync(environment, onlyProtected, false, onChunkLoad);
+        // On another server, therefore no chunks.
+        return Collections.emptyList();
     }
 
     @Override
@@ -447,165 +364,138 @@ public final class RemoteIsland implements Island {
 
     @Override
     public void resetChunks(World.Environment environment, boolean onlyProtected) {
-        resetChunks(environment, onlyProtected, null);
+        // On another server, therefore no chunks.
     }
 
     @Override
     public void resetChunks(World.Environment environment, boolean onlyProtected, @Nullable Runnable onFinish) {
-        // On another server, therefore nothing to do.
+        // On another server, therefore no chunks.
     }
 
     @Override
     public void resetChunks(boolean onlyProtected) {
-        resetChunks(onlyProtected, null);
+        // On another server, therefore no chunks.
     }
 
     @Override
     public void resetChunks(boolean onlyProtected, @Nullable Runnable onFinish) {
-        // On another server, therefore nothing to do.
+        // On another server, therefore no chunks.
     }
 
     @Override
     public boolean isInside(Location location) {
-        if (location.getWorld() == null || !plugin.getGrid().isIslandsWorld(location.getWorld()))
-            return false;
-
-        int islandDistance = (int) Math.round(plugin.getSettings().getMaxIslandSize() *
-                (plugin.getSettings().isBuildOutsideIsland() ? 1.5 : 1D));
-        IslandArea islandArea = new IslandArea(this.center, islandDistance);
-
-        return islandArea.intercepts(location.getBlockX(), location.getBlockZ());
+        return this.handle.isInside(location);
     }
 
     @Override
     public boolean isInsideRange(Location location) {
-        return isInsideRange(location, 0);
+        return this.handle.isInsideRange(location);
     }
 
     @Override
     public boolean isInsideRange(Location location, int extra) {
-        if (location.getWorld() == null || !plugin.getGrid().isIslandsWorld(location.getWorld()))
-            return false;
-
-        IslandArea islandArea = new IslandArea(center, getIslandSize());
-        islandArea.expand(extra);
-
-        return islandArea.intercepts(location.getBlockX(), location.getBlockZ());
+        return this.handle.isInsideRange(location, extra);
     }
 
     @Override
     public boolean isInsideRange(Chunk chunk) {
-        if (chunk.getWorld() == null || !plugin.getGrid().isIslandsWorld(chunk.getWorld()))
-            return false;
-
-        IslandArea islandArea = new IslandArea(center, getIslandSize());
-        islandArea.rshift(4);
-
-        return islandArea.intercepts(chunk.getX(), chunk.getZ());
+        return this.handle.isInsideRange(chunk);
     }
 
     @Override
     public boolean isNormalEnabled() {
-        return plugin.getProviders().getWorldsProvider().isNormalUnlocked() || (unlockedWorlds & 4) == 4;
+        return this.handle.isNormalEnabled();
     }
 
     @Override
     public void setNormalEnabled(boolean enabled) {
-        // TODO
+        this.handle.setNormalEnabled(enabled);
     }
 
     @Override
     public boolean isNetherEnabled() {
-        return plugin.getProviders().getWorldsProvider().isNetherUnlocked() || (unlockedWorlds & 1) == 1;
+        return this.handle.isNetherEnabled();
     }
 
     @Override
     public void setNetherEnabled(boolean enabled) {
-        // TODO
+        this.handle.setNetherEnabled(enabled);
     }
 
     @Override
     public boolean isEndEnabled() {
-        return plugin.getProviders().getWorldsProvider().isEndUnlocked() || (unlockedWorlds & 2) == 2;
+        return this.handle.isEndEnabled();
     }
 
     @Override
-    public void setEndEnabled(boolean b) {
-        // TODO
+    public void setEndEnabled(boolean enabled) {
+        this.handle.setEndEnabled(enabled);
     }
 
     @Override
     public int getUnlockedWorldsFlag() {
-        return this.unlockedWorlds;
+        return this.handle.getUnlockedWorldsFlag();
     }
 
     @Override
     public boolean hasPermission(CommandSender sender, IslandPrivilege islandPrivilege) {
-        return sender instanceof ConsoleCommandSender ||
-                hasPermission(plugin.getPlayers().getSuperiorPlayer((Player) sender), islandPrivilege);
+        return this.handle.hasPermission(sender, islandPrivilege);
     }
 
     @Override
     public boolean hasPermission(SuperiorPlayer superiorPlayer, IslandPrivilege islandPrivilege) {
-        PermissionNode playerNode = getPermissionNode(superiorPlayer);
-        return superiorPlayer.hasBypassModeEnabled() || superiorPlayer.hasPermissionWithoutOP("superior.admin.bypass.*") ||
-                superiorPlayer.hasPermissionWithoutOP("superior.admin.bypass." + islandPrivilege.getName()) ||
-                (playerNode != null && playerNode.hasPermission(islandPrivilege));
+        return this.handle.hasPermission(superiorPlayer, islandPrivilege);
     }
 
     @Override
     public boolean hasPermission(PlayerRole playerRole, IslandPrivilege islandPrivilege) {
-        return getRequiredPlayerRole(islandPrivilege).getWeight() <= playerRole.getWeight();
+        return this.handle.hasPermission(playerRole, islandPrivilege);
     }
 
+    @Deprecated
     @Override
     public void setPermission(PlayerRole playerRole, IslandPrivilege islandPrivilege, boolean value) {
-        if (value)
-            this.setPermission(playerRole, islandPrivilege);
+        this.handle.setPermission(playerRole, islandPrivilege, value);
     }
 
     @Override
     public void setPermission(PlayerRole playerRole, IslandPrivilege islandPrivilege) {
-        // TODO
+        this.handle.setPermission(playerRole, islandPrivilege);
     }
 
     @Override
     public void resetPermissions() {
-        // TODO
+        this.handle.resetPermissions();
     }
 
     @Override
     public void setPermission(SuperiorPlayer superiorPlayer, IslandPrivilege islandPrivilege, boolean value) {
-        // TODO
+        this.handle.setPermission(superiorPlayer, islandPrivilege, value);
     }
 
     @Override
     public void resetPermissions(SuperiorPlayer superiorPlayer) {
-        // TODO
+        this.handle.resetPermissions();
     }
 
     @Override
     public PermissionNode getPermissionNode(SuperiorPlayer superiorPlayer) {
-        // TODO
-        return null;
+        return this.handle.getPermissionNode(superiorPlayer);
     }
 
     @Override
     public PlayerRole getRequiredPlayerRole(IslandPrivilege islandPrivilege) {
-        // TODO
-        return islandLeader.getPlayerRole();
+        return this.handle.getRequiredPlayerRole(islandPrivilege);
     }
 
     @Override
     public Map<SuperiorPlayer, PermissionNode> getPlayerPermissions() {
-        // TODO
-        return Collections.emptyMap();
+        return this.handle.getPlayerPermissions();
     }
 
     @Override
     public Map<IslandPrivilege, PlayerRole> getRolePermissions() {
-        // TODO
-        return Collections.emptyMap();
+        return this.handle.getRolePermissions();
     }
 
     @Override
@@ -615,28 +505,27 @@ public final class RemoteIsland implements Island {
 
     @Override
     public String getName() {
-        return this.name;
+        return this.handle.getName();
     }
 
     @Override
     public void setName(String name) {
-        // TODO
+        this.handle.setName(name);
     }
 
     @Override
     public String getRawName() {
-        // TODO
-        return this.name;
+        return this.handle.getRawName();
     }
 
     @Override
     public String getDescription() {
-        return this.description;
+        return this.handle.getDescription();
     }
 
     @Override
-    public void setDescription(String name) {
-        // TODO
+    public void setDescription(String description) {
+        this.handle.setDescription(description);
     }
 
     @Override
@@ -646,15 +535,6 @@ public final class RemoteIsland implements Island {
 
     public void removeIsland() {
         // Remove roles and island status from leader and members
-
-        // TODO: REMOVE when #getIslandMembers functional
-        try {
-            this.islandLeader.getDatabaseBridge().setDatabaseBridgeMode(DatabaseBridgeMode.IDLE);
-            this.islandLeader.setIsland(null);
-            this.islandLeader.setPlayerRole(plugin.getRoles().getGuestRole());
-        } finally {
-            this.islandLeader.getDatabaseBridge().setDatabaseBridgeMode(DatabaseBridgeMode.SAVE_DATA);
-        }
 
         getIslandMembers(true).forEach(islandMember -> {
             try {
@@ -671,18 +551,17 @@ public final class RemoteIsland implements Island {
 
     @Override
     public boolean transferIsland(SuperiorPlayer superiorPlayer) {
-        // TODO
-        return false;
+        return this.handle.transferIsland(superiorPlayer);
     }
 
     @Override
     public void replacePlayers(SuperiorPlayer originalPlayer, SuperiorPlayer newPlayer) {
-        // TODO
+        this.handle.replacePlayers(originalPlayer, newPlayer);
     }
 
     @Override
     public void calcIslandWorth(@Nullable SuperiorPlayer superiorPlayer) {
-        // TODO
+        this.handle.calcIslandWorth(superiorPlayer);
     }
 
     @Override
@@ -697,60 +576,57 @@ public final class RemoteIsland implements Island {
 
     @Override
     public void updateBorder() {
-        // TODO
+        this.handle.updateBorder();
     }
 
     @Override
     public void updateIslandFly(SuperiorPlayer superiorPlayer) {
-        // TODO
+        this.handle.updateIslandFly(superiorPlayer);
     }
 
     @Override
     public int getIslandSize() {
-        // TODO
-        return 0;
+        return this.handle.getIslandSize();
     }
 
     @Override
     public void setIslandSize(int islandSize) {
-        // TODO
+        this.handle.setIslandSize(islandSize);
     }
 
     @Override
     public int getIslandSizeRaw() {
-        // TODO
-        return 0;
+        return this.handle.getIslandSizeRaw();
     }
 
     @Override
     public String getDiscord() {
-        return this.discord;
+        return this.handle.getDiscord();
     }
 
     @Override
     public void setDiscord(String discord) {
-        // TODO
+        this.handle.setDiscord(discord);
     }
 
     @Override
     public String getPaypal() {
-        return this.paypal;
+        return this.handle.getPaypal();
     }
 
     @Override
     public void setPaypal(String paypal) {
-        // TODO
+        this.handle.setPaypal(paypal);
     }
 
     @Override
     public Biome getBiome() {
-        // TODO
-        return Biome.PLAINS;
+        return this.handle.getBiome();
     }
 
     @Override
     public void setBiome(Biome biome) {
-        // TODO
+        this.handle.setBiome(biome);
     }
 
     @Override
@@ -760,22 +636,22 @@ public final class RemoteIsland implements Island {
 
     @Override
     public boolean isLocked() {
-        return this.isLocked;
+        return this.handle.isLocked();
     }
 
     @Override
     public void setLocked(boolean locked) {
-        // TODO
+        this.handle.setLocked(locked);
     }
 
     @Override
     public boolean isIgnored() {
-        return this.isIgnored;
+        return this.handle.isIgnored();
     }
 
     @Override
     public void setIgnored(boolean ignored) {
-        // TODO
+        this.handle.setIgnored(ignored);
     }
 
     @Override
@@ -818,584 +694,545 @@ public final class RemoteIsland implements Island {
 
     @Override
     public void updateLastTime() {
-        // TODO
+        this.handle.updateLastTime();
     }
 
     @Override
     public void setCurrentlyActive() {
-        this.lastTimeUpdated = -1L;
+        this.handle.setCurrentlyActive();
     }
 
     @Override
     public long getLastTimeUpdate() {
-        return this.lastTimeUpdated;
+        return this.handle.getLastTimeUpdate();
     }
 
     @Override
     public void setLastTimeUpdate(long lastTimeUpdated) {
-        // TODO
+        this.handle.setLastTimeUpdate(lastTimeUpdated);
     }
 
     @Override
     public IslandBank getIslandBank() {
-        // TODO
-        return this.islandBank;
+        return this.handle.getIslandBank();
     }
 
     @Override
     public BigDecimal getBankLimit() {
-        return BigDecimal.ZERO;
+        return this.handle.getBankLimit();
     }
 
     @Override
     public void setBankLimit(BigDecimal bankLimit) {
-        // TODO
+        this.handle.setBankLimit(bankLimit);
     }
 
     @Override
     public BigDecimal getBankLimitRaw() {
-        // TODO
-        return BigDecimal.ZERO;
+        return this.handle.getBankLimitRaw();
     }
 
     @Override
     public boolean giveInterest(boolean checkOnlineStatus) {
-        // TODO
-        return false;
+        return this.handle.giveInterest(checkOnlineStatus);
     }
 
     @Override
     public long getLastInterestTime() {
-        // TODO
-        return 0;
+        return this.handle.getLastInterestTime();
     }
 
     @Override
     public void setLastInterestTime(long lastInterestTime) {
-        // TODO
+        this.handle.setLastInterestTime(lastInterestTime);
     }
 
     @Override
     public long getNextInterest() {
-        // TODO
-        return 0;
+        return this.handle.getNextInterest();
     }
 
     @Override
     public void handleBlockPlace(Block block) {
-        handleBlockPlace(Key.of(block), 1);
+        this.handle.handleBlockPlace(block);
     }
 
     @Override
     public void handleBlockPlace(Block block, int amount) {
-        handleBlockPlace(Key.of(block), amount, true);
+        this.handle.handleBlockPlace(block, amount);
     }
 
     @Override
     public void handleBlockPlace(Block block, int amount, boolean save) {
-        handleBlockPlace(Key.of(block), amount, save);
+        this.handle.handleBlockPlace(block, amount, save);
     }
 
     @Override
     public void handleBlockPlace(Key key, int amount) {
-        Preconditions.checkNotNull(key, "key parameter cannot be null.");
-        handleBlockPlace(key, amount, true);
+        this.handle.handleBlockPlace(key, amount);
     }
 
     @Override
     public void handleBlockPlace(Key key, int amount, boolean save) {
-        Preconditions.checkNotNull(key, "key parameter cannot be null.");
-        handleBlockPlace(key, BigInteger.valueOf(amount), save);
+        this.handle.handleBlockPlace(key, amount, save);
     }
 
     @Override
     public void handleBlockPlace(Key key, BigInteger amount, boolean save) {
-        handleBlockPlace(key, amount, save, true);
+        this.handle.handleBlockPlace(key, amount, save);
     }
 
     @Override
     public void handleBlockPlace(Key key, BigInteger amount, boolean save, boolean updateLastTimeStatus) {
-        // TODO
+        this.handle.handleBlockPlace(key, amount, save, updateLastTimeStatus);
     }
 
     @Override
-    public void handleBlocksPlace(Map<Key, Integer> map) {
-        // TODO
+    public void handleBlocksPlace(Map<Key, Integer> blocks) {
+        this.handle.handleBlocksPlace(blocks);
     }
 
     @Override
     public void handleBlockBreak(Block block) {
-        handleBlockBreak(Key.of(block), 1);
+        this.handle.handleBlockBreak(block);
     }
 
     @Override
     public void handleBlockBreak(Block block, int amount) {
-        handleBlockBreak(block, amount, true);
+        this.handle.handleBlockBreak(block, amount);
     }
 
     @Override
     public void handleBlockBreak(Block block, int amount, boolean save) {
-        handleBlockBreak(Key.of(block), amount, save);
+        this.handle.handleBlockBreak(block, amount, save);
     }
 
     @Override
     public void handleBlockBreak(Key key, int amount) {
-        handleBlockBreak(key, amount, true);
+        this.handle.handleBlockBreak(key, amount);
     }
 
     @Override
     public void handleBlockBreak(Key key, int amount, boolean save) {
-        handleBlockBreak(key, BigInteger.valueOf(amount), save);
+        this.handle.handleBlockBreak(key, amount, save);
     }
 
     @Override
     public void handleBlockBreak(Key key, BigInteger amount, boolean save) {
-        // TODO
+        this.handle.handleBlockBreak(key, amount, save);
     }
 
     @Override
     public BigInteger getBlockCountAsBigInteger(Key key) {
-        return blockCounts.getOrDefault(key, BigInteger.ZERO);
+        return this.handle.getBlockCountAsBigInteger(key);
     }
 
     @Override
     public Map<Key, BigInteger> getBlockCountsAsBigInteger() {
-        return Collections.unmodifiableMap(blockCounts);
+        return this.handle.getBlockCountsAsBigInteger();
     }
 
     @Override
     public BigInteger getExactBlockCountAsBigInteger(Key key) {
-        return blockCounts.getRaw(key, BigInteger.ZERO);
+        return this.handle.getExactBlockCountAsBigInteger(key);
     }
 
     @Override
     public void clearBlockCounts() {
-        // TODO
+        this.handle.clearBlockCounts();
     }
 
     @Override
     public IslandBlocksTrackerAlgorithm getBlocksTracker() {
-        return null;
+        return this.handle.getBlocksTracker();
     }
 
     @Override
     public BigDecimal getWorth() {
-        // TODO
-        return BigDecimal.ZERO;
+        return this.handle.getWorth();
     }
 
     @Override
     public BigDecimal getRawWorth() {
-        // TODO
-        return BigDecimal.ZERO;
+        return this.handle.getRawWorth();
     }
 
     @Override
     public BigDecimal getBonusWorth() {
-        return this.bonusWorth;
+        return this.handle.getBonusWorth();
     }
 
     @Override
     public void setBonusWorth(BigDecimal bonusWorth) {
-        // TODO
+        this.handle.setBonusWorth(bonusWorth);
     }
 
     @Override
     public BigDecimal getBonusLevel() {
-        return this.bonusLevel;
+        return this.handle.getBonusLevel();
     }
 
     @Override
     public void setBonusLevel(BigDecimal bonusLevel) {
-        // TODO
+        this.handle.setBonusLevel(bonusLevel);
     }
 
     @Override
     public BigDecimal getIslandLevel() {
-        // TODO
-        return BigDecimal.ZERO;
+        return this.handle.getIslandLevel();
     }
 
     @Override
     public BigDecimal getRawLevel() {
-        // TODO
-        return BigDecimal.ZERO;
+        return this.handle.getRawLevel();
     }
 
     @Override
     public UpgradeLevel getUpgradeLevel(Upgrade upgrade) {
-        return upgrade.getUpgradeLevel(getUpgrades().getOrDefault(upgrade.getName(), 1));
+        return this.handle.getUpgradeLevel(upgrade);
     }
 
     @Override
     public void setUpgradeLevel(Upgrade upgrade, int level) {
-        // TODO
+        this.handle.setUpgradeLevel(upgrade, level);
     }
 
     @Override
     public Map<String, Integer> getUpgrades() {
-        return Collections.emptyMap();
+        return this.handle.getUpgrades();
     }
 
     @Override
     public void syncUpgrades() {
-        // TODO
+        this.handle.syncUpgrades();
     }
 
     @Override
     public void updateUpgrades() {
-        // TODO
+        this.handle.updateUpgrades();
     }
 
     @Override
     public long getLastTimeUpgrade() {
-        // TODO
-        return 0;
+        return this.handle.getLastTimeUpgrade();
     }
 
     @Override
     public boolean hasActiveUpgradeCooldown() {
-        long lastTimeUpgrade = getLastTimeUpgrade();
-        long currentTime = System.currentTimeMillis();
-        long upgradeCooldown = plugin.getSettings().getUpgradeCooldown();
-        return upgradeCooldown > 0 && lastTimeUpgrade > 0 && currentTime - lastTimeUpgrade <= upgradeCooldown;
+        return this.handle.hasActiveUpgradeCooldown();
     }
 
     @Override
     public double getCropGrowthMultiplier() {
-        // TODO
-        return 0;
+        return this.handle.getCropGrowthMultiplier();
     }
 
     @Override
     public void setCropGrowthMultiplier(double cropGrowth) {
-        // TODO
+        this.handle.setCropGrowthMultiplier(cropGrowth);
     }
 
     @Override
     public double getCropGrowthRaw() {
-        // TODO
-        return 0;
+        return this.handle.getCropGrowthRaw();
     }
 
     @Override
     public double getSpawnerRatesMultiplier() {
-        // TODO
-        return 0;
+        return this.handle.getSpawnerRatesMultiplier();
     }
 
     @Override
     public void setSpawnerRatesMultiplier(double spawnerRates) {
-        // TODO
+        this.handle.setSpawnerRatesMultiplier(spawnerRates);
     }
 
     @Override
     public double getSpawnerRatesRaw() {
-        // TODO
-        return 0;
+        return this.handle.getSpawnerRatesRaw();
     }
 
     @Override
     public double getMobDropsMultiplier() {
-        // TODO
-        return 0;
+        return this.handle.getMobDropsMultiplier();
     }
 
     @Override
     public void setMobDropsMultiplier(double mobDrops) {
-        // TODO
+        this.handle.setMobDropsMultiplier(mobDrops);
     }
 
     @Override
     public double getMobDropsRaw() {
-        // TODO
-        return 0;
+        return this.handle.getMobDropsRaw();
     }
 
     @Override
     public int getBlockLimit(Key key) {
-        // TODO
-        return 0;
+        return this.handle.getBlockLimit(key);
     }
 
     @Override
     public int getExactBlockLimit(Key key) {
-        // TODO
-        return 0;
+        return this.handle.getExactBlockLimit(key);
     }
 
     @Override
     public Key getBlockLimitKey(Key key) {
-        // TODO
-        return key;
+        return this.handle.getBlockLimitKey(key);
     }
 
     @Override
     public Map<Key, Integer> getBlocksLimits() {
-        return Collections.emptyMap();
+        return this.handle.getBlocksLimits();
     }
 
     @Override
     public Map<Key, Integer> getCustomBlocksLimits() {
-        return Collections.emptyMap();
+        return this.handle.getCustomBlocksLimits();
     }
 
     @Override
     public void clearBlockLimits() {
-        // TODO
+        this.handle.clearBlockLimits();
     }
 
     @Override
     public void setBlockLimit(Key key, int limit) {
-        // TODO
+        this.handle.setBlockLimit(key, limit);
     }
 
     @Override
     public void removeBlockLimit(Key key) {
-        // TODO
+        this.handle.removeBlockLimit(key);
     }
 
     @Override
     public boolean hasReachedBlockLimit(Key key) {
-        return hasReachedBlockLimit(key, 1);
+        return this.handle.hasReachedBlockLimit(key);
     }
 
     @Override
     public boolean hasReachedBlockLimit(Key key, int amount) {
-        // TODO
-        return false;
+        return this.handle.hasReachedBlockLimit(key, amount);
     }
 
     @Override
     public int getEntityLimit(EntityType entityType) {
-        // TODO
-        return 0;
+        return this.handle.getEntityLimit(entityType);
     }
 
     @Override
     public int getEntityLimit(Key key) {
-        // TODO
-        return 0;
+        return this.handle.getEntityLimit(key);
     }
 
     @Override
     public Map<Key, Integer> getEntitiesLimitsAsKeys() {
-        return Collections.emptyMap();
+        return this.handle.getEntitiesLimitsAsKeys();
     }
 
     @Override
     public Map<Key, Integer> getCustomEntitiesLimits() {
-        return Collections.emptyMap();
+        return this.handle.getCustomEntitiesLimits();
     }
 
     @Override
     public void clearEntitiesLimits() {
-        // TODO
+        this.handle.clearEntitiesLimits();
     }
 
     @Override
     public void setEntityLimit(EntityType entityType, int limit) {
-        // TODO
+        this.handle.setEntityLimit(entityType, limit);
     }
 
     @Override
     public void setEntityLimit(Key key, int limit) {
-        // TODO
+        this.handle.setEntityLimit(key, limit);
     }
 
     @Override
     public CompletableFuture<Boolean> hasReachedEntityLimit(EntityType entityType) {
-        return hasReachedEntityLimit(Key.of(entityType));
+        // Island is on another server, no entities check.
+        return CompletableFuture.completedFuture(false);
     }
 
     @Override
     public CompletableFuture<Boolean> hasReachedEntityLimit(Key key) {
-        return hasReachedEntityLimit(key, 1);
+        // Island is on another server, no entities check.
+        return CompletableFuture.completedFuture(false);
     }
 
     @Override
     public CompletableFuture<Boolean> hasReachedEntityLimit(EntityType entityType, int amount) {
-        return hasReachedEntityLimit(Key.of(entityType), amount);
+        // Island is on another server, no entities check.
+        return CompletableFuture.completedFuture(false);
     }
 
     @Override
     public CompletableFuture<Boolean> hasReachedEntityLimit(Key key, int amount) {
-        // TODO
+        // Island is on another server, no entities check.
         return CompletableFuture.completedFuture(false);
     }
 
     @Override
     public IslandEntitiesTrackerAlgorithm getEntitiesTracker() {
-        return null;
+        return this.handle.getEntitiesTracker();
     }
 
     @Override
     public int getTeamLimit() {
-        // TODO
-        return 0;
+        return this.handle.getTeamLimit();
     }
 
     @Override
     public void setTeamLimit(int teamLimit) {
-        // TODO
+        this.handle.setTeamLimit(teamLimit);
     }
 
     @Override
     public int getTeamLimitRaw() {
-        // TODO
-        return 0;
+        return this.handle.getTeamLimitRaw();
     }
 
     @Override
     public int getWarpsLimit() {
-        // TODO
-        return 0;
+        return this.handle.getWarpsLimit();
     }
 
     @Override
     public void setWarpsLimit(int warpsLimit) {
-        // TODO
+        this.handle.setWarpsLimit(warpsLimit);
     }
 
     @Override
     public int getWarpsLimitRaw() {
-        // TODO
-        return 0;
+        return this.handle.getWarpsLimitRaw();
     }
 
     @Override
     public void setPotionEffect(PotionEffectType islandEffect, int level) {
-        // TODO
+        this.handle.setPotionEffect(islandEffect, level);
     }
 
     @Override
     public void removePotionEffect(PotionEffectType islandEffect) {
-        // TODO
+        this.handle.removePotionEffect(islandEffect);
     }
 
     @Override
     public int getPotionEffectLevel(PotionEffectType islandEffect) {
-        // TODO
-        return 0;
+        return this.handle.getPotionEffectLevel(islandEffect);
     }
 
     @Override
     public Map<PotionEffectType, Integer> getPotionEffects() {
-        return Collections.emptyMap();
+        return this.handle.getPotionEffects();
     }
 
     @Override
     public void applyEffects(SuperiorPlayer superiorPlayer) {
-        // TODO
+        this.handle.applyEffects(superiorPlayer);
     }
 
     @Override
     public void removeEffects(SuperiorPlayer superiorPlayer) {
-        // TODO
+        this.handle.removeEffects(superiorPlayer);
     }
 
     @Override
     public void removeEffects() {
-        // TODO
+        this.handle.removeEffects();
     }
 
     @Override
     public void clearEffects() {
-        // TODO
+        this.handle.clearEffects();
     }
 
     @Override
     public void setRoleLimit(PlayerRole playerRole, int limit) {
-        // TODO
+        this.handle.setRoleLimit(playerRole, limit);
     }
 
     @Override
     public void removeRoleLimit(PlayerRole playerRole) {
-        // TODO
+        this.handle.removeRoleLimit(playerRole);
     }
 
     @Override
     public int getRoleLimit(PlayerRole playerRole) {
-        // TODO
-        return 0;
+        return this.handle.getRoleLimit(playerRole);
     }
 
     @Override
     public int getRoleLimitRaw(PlayerRole playerRole) {
-        // TODO
-        return 0;
+        return this.handle.getRoleLimitRaw(playerRole);
     }
 
     @Override
     public Map<PlayerRole, Integer> getRoleLimits() {
-        // TODO
-        return Collections.emptyMap();
+        return this.handle.getRoleLimits();
     }
 
     @Override
     public Map<PlayerRole, Integer> getCustomRoleLimits() {
-        // TODO
-        return Collections.emptyMap();
+        return this.handle.getCustomRoleLimits();
     }
 
     @Override
     public WarpCategory createWarpCategory(String name) {
-        // TODO
-        return null;
+        return this.handle.createWarpCategory(name);
     }
 
     @Nullable
     @Override
     public WarpCategory getWarpCategory(String name) {
-        // TODO
-        return null;
+        return this.handle.getWarpCategory(name);
     }
 
     @Nullable
     @Override
     public WarpCategory getWarpCategory(int slot) {
-        // TODO
-        return null;
+        return this.handle.getWarpCategory(slot);
     }
 
     @Override
     public void renameCategory(WarpCategory warpCategory, String name) {
-        // TODO
+        this.handle.renameCategory(warpCategory, name);
     }
 
     @Override
     public void deleteCategory(WarpCategory warpCategory) {
-        // TODO
+        this.handle.deleteCategory(warpCategory);
     }
 
     @Override
     public Map<String, WarpCategory> getWarpCategories() {
-        return Collections.emptyMap();
+        return this.handle.getWarpCategories();
     }
 
     @Override
     public IslandWarp createWarp(String name, Location location, @Nullable WarpCategory warpCategory) {
-        // TODO
-        return null;
+        return this.handle.createWarp(name, location, warpCategory);
     }
 
     @Override
     public void renameWarp(IslandWarp islandWarp, String name) {
-        // TODO
+        this.handle.renameWarp(islandWarp, name);
     }
 
     @Nullable
     @Override
     public IslandWarp getWarp(Location location) {
-        // TODO
-        return null;
+        return this.handle.getWarp(location);
     }
 
     @Nullable
     @Override
     public IslandWarp getWarp(String name) {
-        // TODO
-        return null;
+        return this.handle.getWarp(name);
     }
 
     @Override
@@ -1405,292 +1242,239 @@ public final class RemoteIsland implements Island {
 
     @Override
     public void deleteWarp(@Nullable SuperiorPlayer superiorPlayer, Location location) {
-        // TODO
+        this.handle.deleteWarp(superiorPlayer, location);
     }
 
     @Override
     public void deleteWarp(String name) {
-        // TODO
+        this.handle.deleteWarp(name);
     }
 
     @Override
     public Map<String, IslandWarp> getIslandWarps() {
-        return Collections.emptyMap();
+        return this.handle.getIslandWarps();
     }
 
     @Override
     public Rating getRating(SuperiorPlayer superiorPlayer) {
-        // TODO
-        return Rating.UNKNOWN;
+        return this.handle.getRating(superiorPlayer);
     }
 
     @Override
     public void setRating(SuperiorPlayer superiorPlayer, Rating rating) {
-        // TODO
+        this.handle.setRating(superiorPlayer, rating);
     }
 
     @Override
     public void removeRating(SuperiorPlayer superiorPlayer) {
-        // TODO
+        this.handle.removeRating(superiorPlayer);
     }
 
     @Override
     public double getTotalRating() {
-        // TODO
-        return 0;
+        return this.handle.getTotalRating();
     }
 
     @Override
     public int getRatingAmount() {
-        // TODO
-        return 0;
+        return this.handle.getRatingAmount();
     }
 
     @Override
     public Map<UUID, Rating> getRatings() {
-        return Collections.emptyMap();
+        return this.handle.getRatings();
     }
 
     @Override
     public void removeRatings() {
-        // TODO
+        this.handle.removeRatings();
     }
 
     @Override
     public boolean hasSettingsEnabled(IslandFlag islandFlag) {
-        // TODO
-        return false;
+        return this.handle.hasSettingsEnabled(islandFlag);
     }
 
     @Override
     public Map<IslandFlag, Byte> getAllSettings() {
-        // TODO
-        return Collections.emptyMap();
+        return this.handle.getAllSettings();
     }
 
     @Override
     public void enableSettings(IslandFlag islandFlag) {
-        // TODO
+        this.handle.enableSettings(islandFlag);
     }
 
     @Override
     public void disableSettings(IslandFlag islandFlag) {
-        // TODO
+        this.handle.disableSettings(islandFlag);
     }
 
     @Override
     public void setGeneratorPercentage(Key key, int rate, World.Environment environment) {
-        // TODO
+        this.handle.setGeneratorPercentage(key, rate, environment);
     }
 
     @Override
     public boolean setGeneratorPercentage(Key key, int rate, World.Environment environment,
                                           @Nullable SuperiorPlayer superiorPlayer, boolean save) {
-        // TODO
-        return false;
+        return this.handle.setGeneratorPercentage(key, rate, environment, superiorPlayer, save);
     }
 
     @Override
     public int getGeneratorPercentage(Key key, World.Environment environment) {
-        // TODO
-        return 0;
+        return this.handle.getGeneratorPercentage(key, environment);
     }
 
     @Override
     public Map<String, Integer> getGeneratorPercentages(World.Environment environment) {
-        // TODO
-        return Collections.emptyMap();
+        return this.handle.getGeneratorPercentages(environment);
     }
 
     @Override
     public void setGeneratorAmount(Key key, int amount, World.Environment environment) {
-        // TODO
+        this.handle.setGeneratorAmount(key, amount, environment);
     }
 
     @Override
     public void removeGeneratorAmount(Key key, World.Environment environment) {
-        // TODO
+        this.handle.removeGeneratorAmount(key, environment);
     }
 
     @Override
     public int getGeneratorAmount(Key key, World.Environment environment) {
-        // TODO
-        return 0;
+        return this.handle.getGeneratorAmount(key, environment);
     }
 
     @Override
     public int getGeneratorTotalAmount(World.Environment environment) {
-        // TODO
-        return 0;
+        return this.handle.getGeneratorTotalAmount(environment);
     }
 
     @Override
     public Map<String, Integer> getGeneratorAmounts(World.Environment environment) {
-        // TODO
-        return Collections.emptyMap();
+        return this.handle.getGeneratorAmounts(environment);
     }
 
     @Override
     public Map<Key, Integer> getCustomGeneratorAmounts(World.Environment environment) {
-        // TODO
-        return Collections.emptyMap();
+        return this.handle.getCustomGeneratorAmounts(environment);
     }
 
     @Override
     public void clearGeneratorAmounts(World.Environment environment) {
-        // TODO
+        this.handle.clearGeneratorAmounts(environment);
     }
 
     @Nullable
     @Override
     public Key generateBlock(Location location, boolean optimizeCobblestone) {
-        return generateBlock(location, location.getWorld().getEnvironment(), optimizeCobblestone);
+        // Island is on another server, do nothing.
+        return Key.of("AIR");
     }
 
     @Override
     public Key generateBlock(Location location, World.Environment environment, boolean optimizeCobblestone) {
-        // TODO
-        return null;
+        // Island is on another server, do nothing.
+        return Key.of("AIR");
     }
 
     @Override
     public boolean wasSchematicGenerated(World.Environment environment) {
-        int generateBitChange = getGeneratedSchematicBitMask(environment);
-
-        if (generateBitChange == 0)
-            return false;
-
-        return (this.generatedSchematic & generateBitChange) != 0;
+        return this.handle.wasSchematicGenerated(environment);
     }
 
     @Override
     public void setSchematicGenerate(World.Environment environment) {
-        setSchematicGenerate(environment, true);
+        this.handle.setSchematicGenerate(environment);
     }
 
     @Override
     public void setSchematicGenerate(World.Environment environment, boolean generated) {
-        // TODO
+        this.handle.setSchematicGenerate(environment, generated);
     }
 
     @Override
     public int getGeneratedSchematicsFlag() {
-        return this.generatedSchematic;
+        return this.handle.getGeneratedSchematicsFlag();
     }
 
     @Override
     public String getSchematicName() {
-        return this.islandType;
+        return this.handle.getSchematicName();
     }
 
     @Override
     public int getPosition(SortingType sortingType) {
-        // TODO
-        return 0;
+        return this.handle.getPosition(sortingType);
     }
 
     @Override
     public IslandChest[] getChest() {
-        // TODO
+        // Island chests are not synchronized, therefore no chests available.
         return new IslandChest[0];
     }
 
     @Override
     public int getChestSize() {
-        // TODO
+        // Island chests are not synchronized, therefore no chests available.
         return 0;
     }
 
     @Override
     public void setChestRows(int index, int rows) {
-        // TODO
+        // Do nothing.
     }
 
     @Override
     public DatabaseBridge getDatabaseBridge() {
-        return this.databaseBridge;
+        return this.handle.getDatabaseBridge();
     }
 
     @Override
     public void completeMission(Mission<?> mission) {
-        // TODO
+        this.handle.completeMission(mission);
     }
 
     @Override
     public void resetMission(Mission<?> mission) {
-        // TODO
+        this.handle.resetMission(mission);
     }
 
     @Override
     public boolean hasCompletedMission(Mission<?> mission) {
-        // TODO
-        return false;
+        return this.handle.hasCompletedMission(mission);
     }
 
     @Override
     public boolean canCompleteMissionAgain(Mission<?> mission) {
-        // TODO
-        return false;
+        return this.handle.canCompleteMissionAgain(mission);
     }
 
     @Override
     public int getAmountMissionCompleted(Mission<?> mission) {
-        // TODO
-        return 0;
+        return this.handle.getAmountMissionCompleted(mission);
     }
 
     @Override
     public List<Mission<?>> getCompletedMissions() {
-        // TODO
-        return Collections.emptyList();
+        return this.handle.getCompletedMissions();
     }
 
     @Override
     public Map<Mission<?>, Integer> getCompletedMissionsWithAmounts() {
-        // TODO
-        return Collections.emptyMap();
+        return this.handle.getCompletedMissionsWithAmounts();
     }
 
     @Override
     public PersistentDataContainer getPersistentDataContainer() {
-        // TODO
-        return null;
+        return this.handle.getPersistentDataContainer();
     }
 
     @Override
     @SuppressWarnings("all")
     public int compareTo(Island other) {
-        if (other == null)
-            return -1;
-
-        if (plugin.getSettings().getIslandTopOrder().equals("WORTH")) {
-            int compare = getWorth().compareTo(other.getWorth());
-            if (compare != 0) return compare;
-        } else {
-            int compare = getIslandLevel().compareTo(other.getIslandLevel());
-            if (compare != 0) return compare;
-        }
-
-        return getOwner().getName().compareTo(other.getOwner().getName());
-    }
-
-    private IslandBank createIslandBank() {
-        RemoteIslandBank islandBank = new RemoteIslandBank(this);
-        BanksFactory banksFactory = plugin.getFactory().getBanksFactory();
-        return banksFactory == null ? islandBank : banksFactory.createIslandBank(this, islandBank);
-    }
-
-    private static int getGeneratedSchematicBitMask(World.Environment environment) {
-        switch (environment) {
-            case NORMAL:
-                return 8;
-            case NETHER:
-                return 4;
-            case THE_END:
-                return 3;
-            default:
-                return 0;
-        }
+        return this.handle.compareTo(other);
     }
 
 }

@@ -1,5 +1,8 @@
 package com.bgsoftware.ssbproxybridge.bukkit.database.requests;
 
+import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI;
+import com.bgsoftware.superiorskyblock.api.missions.IMissionsHolder;
+import com.bgsoftware.superiorskyblock.api.missions.Mission;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
