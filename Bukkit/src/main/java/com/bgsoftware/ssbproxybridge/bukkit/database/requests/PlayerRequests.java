@@ -9,6 +9,7 @@ import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI;
 import com.bgsoftware.superiorskyblock.api.data.DatabaseBridgeMode;
 import com.bgsoftware.superiorskyblock.api.enums.BorderColor;
 import com.bgsoftware.superiorskyblock.api.wrappers.SuperiorPlayer;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
@@ -52,6 +53,13 @@ public class PlayerRequests {
             })
 
             .build();
+    private static final Map<String, RequestAction<SuperiorPlayer, JsonElement>> DELETE_ACTION_MAP = new MapBuilder<String, RequestAction<SuperiorPlayer, JsonElement>>()
+            .put("players_missions:name", (superiorPlayer, value) -> Islands.setMissionCompletedCount(superiorPlayer, value.getAsString(), 0))
+            .put("players_custom_data", (superiorPlayer, unused) -> { /* TODO */ })
+            .put("players_missions", (superiorPlayer, unused) -> { /* Do nothing */ })
+            .put("players", (superiorPlayer, unused) -> SuperiorSkyblockAPI.getPlayers().getPlayersContainer().removePlayer(superiorPlayer))
+            .put("players_settings", (superiorPlayer, unused) -> { /* Do nothing */ })
+            .build();
 
     private PlayerRequests() {
 
@@ -72,6 +80,9 @@ public class PlayerRequests {
                     break;
                 case "update":
                     handleUpdate(dataObject);
+                    break;
+                case "delete":
+                    handleDelete(dataObject);
                     break;
                 default:
                     throw new RequestHandlerException("Received invalid type: \"" + type + "\"");
@@ -119,12 +130,19 @@ public class PlayerRequests {
                 // Do nothing
                 break;
             case "players_missions": {
-                SuperiorPlayer superiorPlayer = SuperiorSkyblockAPI.getPlayer(playerUUID);
+                SuperiorPlayer superiorPlayer = SuperiorSkyblockAPI.getPlayers().getPlayersContainer().getSuperiorPlayer(playerUUID);
+
+                if (superiorPlayer == null)
+                    throw new RequestHandlerException("Received update for an invalid island: \"" + playerUUID + "\"");
+
                 disableDatabaseBridge(superiorPlayer, () -> Islands.setMissionCompletedCount(superiorPlayer, columns));
                 break;
             }
             case "players_custom_data": {
-                SuperiorPlayer superiorPlayer = SuperiorSkyblockAPI.getPlayer(playerUUID);
+                SuperiorPlayer superiorPlayer = SuperiorSkyblockAPI.getPlayers().getPlayersContainer().getSuperiorPlayer(playerUUID);
+
+                if (superiorPlayer == null)
+                    throw new RequestHandlerException("Received update for an invalid island: \"" + playerUUID + "\"");
 
                 byte[] data = columns.get("data").getAsString().getBytes(StandardCharsets.UTF_8);
 
@@ -153,7 +171,11 @@ public class PlayerRequests {
             throw new RequestHandlerException("Cannot find a valid uuid of a player.");
         }
 
-        SuperiorPlayer superiorPlayer = SuperiorSkyblockAPI.getPlayer(playerUUID);
+        SuperiorPlayer superiorPlayer = SuperiorSkyblockAPI.getPlayers().getPlayersContainer().getSuperiorPlayer(playerUUID);
+
+        if (superiorPlayer == null)
+            throw new RequestHandlerException("Received update for an invalid island: \"" + playerUUID + "\"");
+
         disableDatabaseBridge(superiorPlayer, () -> {
             for (JsonElement columnElement : dataObject.get("columns").getAsJsonArray()) {
                 JsonObject column = columnElement.getAsJsonObject();
@@ -165,6 +187,81 @@ public class PlayerRequests {
                     throw new RequestHandlerException("Invalid update column: \"" + name + "\" for table \"" + table + "\"");
 
                 updateAction.apply(superiorPlayer, value);
+            }
+        });
+    }
+
+    private static void handleDelete(JsonObject dataObject) throws RequestHandlerException {
+        String table = dataObject.get("table").getAsString();
+
+        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
+        JsonObject filters = Requests.convertFilters(filtersArray);
+
+        UUID playerUUID;
+
+        if (filters.has("uuid")) {
+            playerUUID = UUID.fromString(filters.get("uuid").getAsString());
+        } else if (filters.has("player")) {
+            playerUUID = UUID.fromString(filters.get("player").getAsString());
+        } else {
+            throw new RequestHandlerException("Cannot find a valid uuid of a player.");
+        }
+
+        SuperiorPlayer superiorPlayer = SuperiorSkyblockAPI.getPlayers().getPlayersContainer().getSuperiorPlayer(playerUUID);
+
+        if (superiorPlayer == null)
+            throw new RequestHandlerException("Received update for an invalid island: \"" + playerUUID + "\"");
+
+        disableDatabaseBridge(superiorPlayer, () -> {
+            if (filtersArray.size() == 1) {
+                RequestAction<SuperiorPlayer, JsonElement> deleteAction = DELETE_ACTION_MAP.get(table);
+
+                if (deleteAction == null)
+                    throw new RequestHandlerException("Invalid delete table: \"" + table + "\"");
+
+                deleteAction.apply(superiorPlayer, null /* unused */);
+            } else {
+                StringBuilder actionMapKey = null;
+                JsonElement value = null;
+
+                if (filtersArray.size() == 2) {
+                    for (JsonElement filterElement : filtersArray) {
+                        JsonObject filter = filterElement.getAsJsonObject();
+
+                        String column = filter.get("column").getAsString();
+
+                        if (column.equals("uuid") || column.equals("island"))
+                            continue;
+
+                        actionMapKey = new StringBuilder(table + ":" + column);
+                        value = filter.get("value").getAsJsonPrimitive();
+                    }
+                } else {
+                    actionMapKey = new StringBuilder(table);
+                    value = new JsonObject();
+                    for (JsonElement filterElement : filtersArray) {
+                        JsonObject filter = filterElement.getAsJsonObject();
+
+                        String column = filter.get("column").getAsString();
+
+                        if (column.equals("uuid") || column.equals("island"))
+                            continue;
+
+                        actionMapKey.append(":").append(column);
+                        ((JsonObject) value).add(column, filter.get("value"));
+                    }
+                }
+
+                // Not possible.
+                assert actionMapKey != null;
+                assert value != null;
+
+                RequestAction<SuperiorPlayer, JsonElement> deleteAction = DELETE_ACTION_MAP.get(actionMapKey.toString());
+
+                if (deleteAction == null)
+                    throw new RequestHandlerException("Invalid delete table: \"" + table + "\"");
+
+                deleteAction.apply(superiorPlayer, value);
             }
         });
     }
