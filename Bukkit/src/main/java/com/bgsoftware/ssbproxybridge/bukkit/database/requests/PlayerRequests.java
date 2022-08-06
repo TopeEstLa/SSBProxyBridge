@@ -126,7 +126,7 @@ public class PlayerRequests {
             case "players_custom_data": {
                 SuperiorPlayer superiorPlayer = SuperiorSkyblockAPI.getPlayer(playerUUID);
 
-                byte[] data = dataObject.get("data").getAsString().getBytes(StandardCharsets.UTF_8);
+                byte[] data = columns.get("data").getAsString().getBytes(StandardCharsets.UTF_8);
 
                 disableDatabaseBridge(superiorPlayer, () -> {
                     superiorPlayer.getPersistentDataContainer().load(data);

@@ -50,6 +50,9 @@ public class OperationSerializer {
     private static JsonElement getJsonFromObject(Object object) {
         if (object instanceof String) {
             return new JsonPrimitive((String) object);
+        }
+        if (object instanceof byte[]) {
+            return new JsonPrimitive(new String((byte[]) object));
         } else if (object instanceof Number) {
             return new JsonPrimitive((Number) object);
         } else if (object instanceof Boolean) {

@@ -23,6 +23,7 @@ public class DatabaseBridgeListener implements IConnector.IListener {
             .put("players", PlayerRequests::handleRequest)
             .put("players_settings", PlayerRequests::handleRequest)
             .put("players_missions", PlayerRequests::handleRequest)
+            .put("players_custom_data", PlayerRequests::handleRequest)
             .put("islands", IslandRequests::handleRequest)
             .put("islands_members", IslandRequests::handleRequest)
             .put("islands_bans", IslandRequests::handleRequest)
