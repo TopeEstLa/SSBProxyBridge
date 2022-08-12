@@ -11,7 +11,7 @@ import io.lettuce.core.pubsub.api.sync.RedisPubSubCommands;
 
 import java.util.logging.Logger;
 
-public class RedisConnector extends ConnectorAbstract {
+public class RedisConnector extends ConnectorAbstract<RedisConnectionArguments> {
 
     private static final Singleton<RedisConnector> SINGLETON = new Singleton<RedisConnector>() {
         @Override
@@ -37,12 +37,12 @@ public class RedisConnector extends ConnectorAbstract {
     }
 
     @Override
-    public void connect(String host, int port, String password) throws ConnectionFailureException {
-        logger.info("Connecting to Redis (" + host + ":" + port + ")");
+    public void connect(RedisConnectionArguments args) throws ConnectionFailureException {
+        logger.info("Connecting to Redis (" + args.getHost() + ":" + args.getPort() + ")");
 
-        RedisURI.Builder builder = RedisURI.Builder.redis(host, port);
-        if (!password.isEmpty())
-            builder.withPassword(password.toCharArray());
+        RedisURI.Builder builder = RedisURI.Builder.redis(args.getHost(), args.getPort());
+        if (!args.getPassword().isEmpty())
+            builder.withPassword(args.getPassword().toCharArray());
 
         try {
             this.redisClient = RedisClient.create(builder.build());

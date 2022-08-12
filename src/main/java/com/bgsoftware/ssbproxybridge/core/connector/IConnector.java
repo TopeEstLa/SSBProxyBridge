@@ -1,8 +1,8 @@
 package com.bgsoftware.ssbproxybridge.core.connector;
 
-public interface IConnector {
+public interface IConnector<Args extends IConnectionArguments> {
 
-    void connect(String host, int port, String password) throws ConnectionFailureException;
+    void connect(Args args) throws ConnectionFailureException;
 
     void shutdown();
 

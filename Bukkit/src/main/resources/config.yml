@@ -20,12 +20,27 @@ spawn-server-name: 'spawn'
 # between the servers. In this section you should configure the options for the service.
 messaging-service:
   # The type of service to use for messaging.
-  # This type can be Redis.
+  # This type can be Redis or RabbitMQ.
   type: 'redis'
-  # The host name of the service to connect to.
-  host: 'localhost'
-  # The port of the service.
-  port: 6379
-  # The password to use in order to connect.
-  # If no password exists, set this to ''.
-  password: ''
+
+  # Connection settings for Redis
+  redis:
+    # The host name of the redis server to connect to.
+    host: 'localhost'
+    # The port of the redis server.
+    port: 6379
+    # The password for the redis client.
+    # If no password exists, set this to ''.
+    password: ''
+
+  # Connection settings for RabbitMQ
+  rabbitmq:
+    # The host name of the rabbitmq server to connect to.
+    host: 'localhost'
+    # The port of the rabbitmq server.
+    port: 5672
+    # The virtual host to use.
+    virtual-host: '/'
+    # The authentication credentials for the rabbitmq client.
+    username: 'guest'
+    password: 'guest'

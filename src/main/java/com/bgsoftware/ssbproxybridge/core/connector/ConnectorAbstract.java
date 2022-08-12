@@ -5,7 +5,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-public abstract class ConnectorAbstract implements IConnector {
+public abstract class ConnectorAbstract<Args extends IConnectionArguments> implements IConnector<Args> {
 
     private final Map<String, List<IListener>> listeners = new HashMap<>();
 

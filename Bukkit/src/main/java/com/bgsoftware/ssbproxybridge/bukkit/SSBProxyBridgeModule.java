@@ -8,7 +8,11 @@ import com.bgsoftware.ssbproxybridge.bukkit.proxy.ProxyPlayerBridge;
 import com.bgsoftware.ssbproxybridge.bukkit.teleport.ProxyPlayersFactory;
 import com.bgsoftware.ssbproxybridge.core.connector.ConnectionFailureException;
 import com.bgsoftware.ssbproxybridge.core.connector.EmptyConnector;
+import com.bgsoftware.ssbproxybridge.core.connector.IConnectionArguments;
 import com.bgsoftware.ssbproxybridge.core.connector.IConnector;
+import com.bgsoftware.ssbproxybridge.core.rabbitmq.RabbitMQConnectionArguments;
+import com.bgsoftware.ssbproxybridge.core.rabbitmq.RabbitMQConnector;
+import com.bgsoftware.ssbproxybridge.core.redis.RedisConnectionArguments;
 import com.bgsoftware.ssbproxybridge.core.redis.RedisConnector;
 import com.bgsoftware.superiorskyblock.api.SuperiorSkyblock;
 import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI;
@@ -18,6 +22,7 @@ import com.bgsoftware.superiorskyblock.api.modules.PluginModule;
 import org.bukkit.event.Listener;
 
 import javax.annotation.Nullable;
+import java.util.Locale;
 
 public class SSBProxyBridgeModule extends PluginModule {
 
@@ -29,6 +34,7 @@ public class SSBProxyBridgeModule extends PluginModule {
 
     private SettingsManager settingsManager;
 
+    @SuppressWarnings("rawtypes")
     private IConnector messagingConnector = EmptyConnector.getInstance();
 
     public SSBProxyBridgeModule() {
@@ -94,15 +100,32 @@ public class SSBProxyBridgeModule extends PluginModule {
         return settingsManager;
     }
 
-    public IConnector getMessaging() {
+    public IConnector<?> getMessaging() {
         return this.messagingConnector;
     }
 
     private void setupMessagingConnector() {
-        this.messagingConnector = RedisConnector.getConnector();
+        IConnectionArguments connectionArguments;
+
+        switch (settingsManager.messagingServiceType.toUpperCase(Locale.ENGLISH)) {
+            case "REDIS":
+                this.messagingConnector = RedisConnector.getConnector();
+                connectionArguments = new RedisConnectionArguments(settingsManager.messagingServiceRedisHost,
+                        settingsManager.messagingServiceRedisPort, settingsManager.messagingServiceRedisPassword);
+                break;
+            case "RABBITMQ":
+                this.messagingConnector = RabbitMQConnector.getConnector();
+                connectionArguments = new RabbitMQConnectionArguments(settingsManager.messagingServiceRabbitMQHost,
+                        settingsManager.messagingServiceRabbitMQPort, settingsManager.messagingServiceRabbitMQVirtualHost,
+                        settingsManager.messagingServiceRabbitMQUsername, settingsManager.messagingServiceRabbitMQPassword);
+                break;
+            default:
+                throw new RuntimeException("Invalid connector: " + settingsManager.messagingServiceType);
+        }
+
         try {
-            this.messagingConnector.connect(settingsManager.messagingServiceHost,
-                    settingsManager.messagingServicePort, settingsManager.messagingServicePassword);
+            // noinspection unchecked
+            this.messagingConnector.connect(connectionArguments);
             this.messagingConnector.registerListener(ProxyDatabaseBridge.CHANNEL_NAME, new DatabaseBridgeListener(this));
         } catch (ConnectionFailureException error) {
             getLogger().info("Failed to connect to messaging connector:");

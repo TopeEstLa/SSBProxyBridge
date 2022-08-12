@@ -1,6 +1,6 @@
 package com.bgsoftware.ssbproxybridge.core.connector;
 
-public class EmptyConnector implements IConnector {
+public class EmptyConnector implements IConnector<EmptyConnectionArguments> {
 
     private static final EmptyConnector INSTANCE = new EmptyConnector();
 
@@ -13,7 +13,7 @@ public class EmptyConnector implements IConnector {
     }
 
     @Override
-    public void connect(String host, int port, String password) {
+    public void connect(EmptyConnectionArguments unused) {
         // Do nothing.
     }
 
