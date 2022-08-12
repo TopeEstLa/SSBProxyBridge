@@ -2,7 +2,6 @@ package com.bgsoftware.ssbproxybridge.bukkit;
 
 import com.bgsoftware.ssbproxybridge.bukkit.config.SettingsManager;
 import com.bgsoftware.ssbproxybridge.bukkit.database.DatabaseBridgeListener;
-import com.bgsoftware.ssbproxybridge.bukkit.database.ProxyDatabaseBridge;
 import com.bgsoftware.ssbproxybridge.bukkit.database.ProxyDatabaseBridgeFactory;
 import com.bgsoftware.ssbproxybridge.bukkit.proxy.ProxyPlayerBridge;
 import com.bgsoftware.ssbproxybridge.bukkit.teleport.ProxyPlayersFactory;
@@ -126,7 +125,7 @@ public class SSBProxyBridgeModule extends PluginModule {
         try {
             // noinspection unchecked
             this.messagingConnector.connect(connectionArguments);
-            this.messagingConnector.registerListener(ProxyDatabaseBridge.CHANNEL_NAME, new DatabaseBridgeListener(this));
+            this.messagingConnector.registerListener(settingsManager.messagingServiceChannelName, new DatabaseBridgeListener(this));
         } catch (ConnectionFailureException error) {
             getLogger().info("Failed to connect to messaging connector:");
             error.printStackTrace();

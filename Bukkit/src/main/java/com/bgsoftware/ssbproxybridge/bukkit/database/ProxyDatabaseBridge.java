@@ -26,8 +26,6 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
 
     private static final SSBProxyBridgeModule module = SSBProxyBridgeModule.getModule();
 
-    public static String CHANNEL_NAME = "ssb-data";
-
     private static final Gson gson = new Gson();
 
     private DatabaseBridgeMode databaseBridgeMode = DatabaseBridgeMode.IDLE;
@@ -127,7 +125,7 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
         if (this.batchOperations != null) {
             this.batchOperations.add(data);
         } else {
-            module.getMessaging().sendData(CHANNEL_NAME, gson.toJson(data));
+            module.getMessaging().sendData(module.getSettings().messagingServiceChannelName, gson.toJson(data));
         }
     }
 

@@ -22,6 +22,9 @@ messaging-service:
   # The type of service to use for messaging.
   # This type can be Redis or RabbitMQ.
   type: 'redis'
+  # The name of the channel to use for messaging service.
+  # This should be a unique channel name that is not taken by any other consumers.
+  channel-name: 'ssbproxybridge-data'
 
   # Connection settings for Redis
   redis:
