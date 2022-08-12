@@ -90,6 +90,15 @@ public class RedisConnector extends ConnectorAbstract<RedisConnectionArguments> 
     }
 
     @Override
+    public boolean unregisterListeners(String channel) {
+        boolean res = super.unregisterListeners(channel);
+        if (res) {
+            subCommands.unsubscribe(channel);
+        }
+        return res;
+    }
+
+    @Override
     public void sendData(String channel, String data) {
         pubCommands.publish(channel, data);
     }

@@ -69,6 +69,7 @@ public class SSBProxyBridgeModule extends PluginModule {
 
     @Override
     public void onDisable(SuperiorSkyblock plugin) {
+        this.messagingConnector.unregisterListeners(settingsManager.messagingServiceChannelName);
         this.messagingConnector.shutdown();
     }
 

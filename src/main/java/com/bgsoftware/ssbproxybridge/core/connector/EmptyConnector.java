@@ -33,6 +33,11 @@ public class EmptyConnector implements IConnector<EmptyConnectionArguments> {
     }
 
     @Override
+    public boolean unregisterListeners(String channel) {
+        return false;
+    }
+
+    @Override
     public void sendData(String channel, String data) {
         // Do nothing.
     }

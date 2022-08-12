@@ -20,6 +20,11 @@ public abstract class ConnectorAbstract<Args extends IConnectionArguments> imple
         return listeners != null && listeners.remove(listener) && listeners.isEmpty();
     }
 
+    @Override
+    public boolean unregisterListeners(String channel) {
+        return this.listeners.get(channel) != null;
+    }
+
     protected void notifyListeners(String channel, String data) {
         List<IListener> listeners = this.listeners.get(channel);
         if (listeners != null)

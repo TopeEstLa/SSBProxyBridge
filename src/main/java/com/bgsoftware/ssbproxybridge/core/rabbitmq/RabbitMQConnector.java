@@ -75,12 +75,12 @@ public class RabbitMQConnector implements IConnector<RabbitMQConnectionArguments
     @Override
     public boolean registerListener(String channel, IListener listener) {
         try {
-            this.channel.exchangeDeclare(channel, "fanout");
+            this.channel.exchangeDeclareNoWait(channel, "fanout", false, false, false, null);
             String queueName = this.channel.queueDeclare().getQueue();
 
             QUEUES.computeIfAbsent(channel, s -> new LinkedList<>()).add(queueName);
 
-            this.channel.queueBind(queueName, channel, "");
+            this.channel.queueBindNoWait(queueName, channel, "", null);
             this.channel.basicConsume(queueName, true, (consumerTag, delivery) -> {
                 String data = new String(delivery.getBody(), StandardCharsets.UTF_8);
                 listener.onReceive(data);
@@ -96,6 +96,11 @@ public class RabbitMQConnector implements IConnector<RabbitMQConnectionArguments
 
     @Override
     public boolean unregisterListener(String channel, IListener listener) {
+        return this.unregisterListeners(channel);
+    }
+
+    @Override
+    public boolean unregisterListeners(String channel) {
         try {
             List<String> queues = QUEUES.remove(channel);
             if (queues != null) {
@@ -103,7 +108,7 @@ public class RabbitMQConnector implements IConnector<RabbitMQConnectionArguments
                     this.channel.queueUnbind(queueName, channel, "");
             }
 
-            this.channel.exchangeDelete(channel, true);
+            this.channel.exchangeDeleteNoWait(channel, true);
         } catch (IOException error) {
             error.printStackTrace();
             return false;

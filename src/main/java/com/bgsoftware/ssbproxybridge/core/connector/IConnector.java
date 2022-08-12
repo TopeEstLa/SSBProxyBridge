@@ -10,6 +10,8 @@ public interface IConnector<Args extends IConnectionArguments> {
 
     boolean unregisterListener(String channel, IListener listener);
 
+    boolean unregisterListeners(String channel);
+
     void sendData(String channel, String data);
 
     default void listenOnce(String channel, IListener listener) {
