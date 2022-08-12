@@ -21,7 +21,7 @@ import javax.annotation.Nullable;
 
 public class SSBProxyBridgeModule extends PluginModule {
 
-    private static final int API_VERSION = 2;
+    private static final int API_VERSION = 3;
 
     private static SSBProxyBridgeModule INSTANCE;
 

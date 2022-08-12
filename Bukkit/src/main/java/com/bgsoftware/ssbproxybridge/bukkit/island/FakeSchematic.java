@@ -1,10 +1,13 @@
 package com.bgsoftware.ssbproxybridge.bukkit.island;
 
 import com.bgsoftware.superiorskyblock.api.island.Island;
+import com.bgsoftware.superiorskyblock.api.key.Key;
 import com.bgsoftware.superiorskyblock.api.schematic.Schematic;
 import org.bukkit.Location;
 
 import javax.annotation.Nullable;
+import java.util.Collections;
+import java.util.Map;
 import java.util.function.Consumer;
 
 /**
@@ -38,6 +41,11 @@ public class FakeSchematic implements Schematic {
     public Location adjustRotation(Location location) {
         // We do not care about this.
         return location;
+    }
+
+    @Override
+    public Map<Key, Integer> getBlockCounts() {
+        return Collections.emptyMap();
     }
 
 }

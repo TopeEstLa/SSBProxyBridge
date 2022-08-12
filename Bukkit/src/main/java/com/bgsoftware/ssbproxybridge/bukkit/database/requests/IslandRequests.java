@@ -19,6 +19,7 @@ import com.bgsoftware.superiorskyblock.api.island.warps.IslandWarp;
 import com.bgsoftware.superiorskyblock.api.island.warps.WarpCategory;
 import com.bgsoftware.superiorskyblock.api.key.Key;
 import com.bgsoftware.superiorskyblock.api.key.KeyMap;
+import com.bgsoftware.superiorskyblock.api.missions.Mission;
 import com.bgsoftware.superiorskyblock.api.world.algorithm.IslandCreationAlgorithm;
 import com.bgsoftware.superiorskyblock.api.wrappers.SuperiorPlayer;
 import com.google.gson.Gson;
@@ -96,7 +97,15 @@ public class IslandRequests {
                     SuperiorSkyblockAPI.getPlayer(UUID.fromString(columns.get("player").getAsString())),
                     Rating.valueOf(columns.get("rating").getAsInt())
             ))
-            .put("islands_missions", Islands::setMissionCompletedCount)
+            .put("islands_missions", (island, columns) -> {
+                String missionName = columns.get("name").getAsString();
+                Mission<?> mission = SuperiorSkyblockAPI.getMissions().getMission(missionName);
+
+                if (mission == null)
+                    throw new RequestHandlerException("Cannot find a valid mission \"" + missionName + "\"");
+
+                island.setAmountMissionCompleted(mission, columns.get("finish_count").getAsInt());
+            })
             .put("islands_flags", (island, columns) -> {
                 IslandFlag islandFlag = IslandFlag.getByName(columns.get("name").getAsString());
                 if (columns.get("status").getAsBoolean()) {
@@ -211,7 +220,15 @@ public class IslandRequests {
             .put("islands_warps:name", (island, value) -> island.deleteWarp(value.getAsString()))
             .put("islands_ratings:player", (island, value) -> island.removeRating(SuperiorSkyblockAPI.getPlayer(UUID.fromString(value.getAsString()))))
             .put("islands_ratings", (island, unused) -> island.removeRatings())
-            .put("islands_missions:name", (island, value) -> Islands.setMissionCompletedCount(island, value.getAsString(), 0))
+            .put("islands_missions:name", (island, value) -> {
+                String missionName = value.getAsString();
+                Mission<?> mission = SuperiorSkyblockAPI.getMissions().getMission(missionName);
+
+                if (mission == null)
+                    throw new RequestHandlerException("Cannot find a valid mission \"" + missionName + "\"");
+
+                island.setAmountMissionCompleted(mission, 0);
+            })
             .put("islands_generators:environment:block", (island, filters) -> {
                 JsonObject value = filters.getAsJsonObject();
                 island.removeGeneratorAmount(Key.of(value.get("block").getAsString()), World.Environment.valueOf(value.get("environment").getAsString()));

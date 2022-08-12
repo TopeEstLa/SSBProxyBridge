@@ -61,6 +61,11 @@ public class RemoteSuperiorPlayer implements SuperiorPlayer {
     }
 
     @Override
+    public void setLastTimeStatus(long lastTimeStatus) {
+        this.handle.setLastTimeStatus(lastTimeStatus);
+    }
+
+    @Override
     public long getLastTimeStatus() {
         return this.handle.getLastTimeStatus();
     }
@@ -270,6 +275,11 @@ public class RemoteSuperiorPlayer implements SuperiorPlayer {
     }
 
     @Override
+    public void setWorldBorderEnabled(boolean worldBorderEnabled) {
+        this.handle.setWorldBorderEnabled(worldBorderEnabled);
+    }
+
+    @Override
     public boolean hasBlocksStackerEnabled() {
         return this.handle.hasWorldBorderEnabled();
     }
@@ -277,6 +287,11 @@ public class RemoteSuperiorPlayer implements SuperiorPlayer {
     @Override
     public void toggleBlocksStacker() {
         this.handle.toggleBlocksStacker();
+    }
+
+    @Override
+    public void setBlocksStacker(boolean blocksStackerEnabled) {
+        this.handle.setBlocksStacker(blocksStackerEnabled);
     }
 
     @Override
@@ -290,6 +305,11 @@ public class RemoteSuperiorPlayer implements SuperiorPlayer {
     }
 
     @Override
+    public void setSchematicMode(boolean schematicModeEnabled) {
+        this.handle.setSchematicMode(schematicModeEnabled);
+    }
+
+    @Override
     public boolean hasTeamChatEnabled() {
         return this.handle.hasTeamChatEnabled();
     }
@@ -300,6 +320,11 @@ public class RemoteSuperiorPlayer implements SuperiorPlayer {
     }
 
     @Override
+    public void setTeamChat(boolean teamChatEnabled) {
+        this.handle.setTeamChat(teamChatEnabled);
+    }
+
+    @Override
     public boolean hasBypassModeEnabled() {
         return this.handle.hasBypassModeEnabled();
     }
@@ -307,6 +332,11 @@ public class RemoteSuperiorPlayer implements SuperiorPlayer {
     @Override
     public void toggleBypassMode() {
         this.handle.toggleBypassMode();
+    }
+
+    @Override
+    public void setBypassMode(boolean bypassModeEnabled) {
+        this.handle.setBypassMode(bypassModeEnabled);
     }
 
     @Override
@@ -330,6 +360,11 @@ public class RemoteSuperiorPlayer implements SuperiorPlayer {
     }
 
     @Override
+    public void setIslandFly(boolean islandFlyEnabled) {
+        this.handle.setIslandFly(islandFlyEnabled);
+    }
+
+    @Override
     public boolean hasAdminSpyEnabled() {
         return this.handle.hasAdminSpyEnabled();
     }
@@ -337,6 +372,11 @@ public class RemoteSuperiorPlayer implements SuperiorPlayer {
     @Override
     public void toggleAdminSpy() {
         this.handle.toggleAdminSpy();
+    }
+
+    @Override
+    public void setAdminSpy(boolean adminSpyEnabled) {
+        this.handle.setAdminSpy(adminSpyEnabled);
     }
 
     @Override
@@ -428,6 +468,11 @@ public class RemoteSuperiorPlayer implements SuperiorPlayer {
     @Override
     public void resetMission(Mission<?> mission) {
         this.handle.resetMission(mission);
+    }
+
+    @Override
+    public void setAmountMissionCompleted(Mission<?> mission, int finishCount) {
+        this.handle.setAmountMissionCompleted(mission, finishCount);
     }
 
     @Override

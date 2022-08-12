@@ -2,12 +2,12 @@ package com.bgsoftware.ssbproxybridge.bukkit.database.requests;
 
 import com.bgsoftware.ssbproxybridge.bukkit.database.ProxyDatabaseBridge;
 import com.bgsoftware.ssbproxybridge.bukkit.database.ProxyDatabaseBridgeFactory;
-import com.bgsoftware.ssbproxybridge.bukkit.island.Islands;
 import com.bgsoftware.ssbproxybridge.bukkit.player.RemoteSuperiorPlayer;
 import com.bgsoftware.ssbproxybridge.core.MapBuilder;
 import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI;
 import com.bgsoftware.superiorskyblock.api.data.DatabaseBridgeMode;
 import com.bgsoftware.superiorskyblock.api.enums.BorderColor;
+import com.bgsoftware.superiorskyblock.api.missions.Mission;
 import com.bgsoftware.superiorskyblock.api.wrappers.SuperiorPlayer;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -23,30 +23,18 @@ public class PlayerRequests {
 
     private static final Map<String, RequestAction<SuperiorPlayer, JsonPrimitive>> UPDATE_ACTION_MAP = new MapBuilder<String, RequestAction<SuperiorPlayer, JsonPrimitive>>()
             .put("players:last_used_skin", (player, value) -> player.setTextureValue(value.getAsString()))
-            .put("players:last_used_name", (player, value) -> {
-                RemoteSuperiorPlayer remoteSuperiorPlayer = new RemoteSuperiorPlayer(player);
-                remoteSuperiorPlayer.setName(value.getAsString());
-            })
+            .put("players:last_used_name", (player, value) -> player.setName(value.getAsString()))
             .put("players:disbands", (player, value) -> player.setDisbands(value.getAsInt()))
-            .put("players:last_time_updated", (player, value) -> player.updateLastTimeStatus())
+            .put("players:last_time_updated", (player, value) -> player.setLastTimeStatus(value.getAsLong()))
 
             .put("players_settings:language", (player, value) -> {
                 String[] language = value.getAsString().split("-");
                 player.setUserLocale(new Locale(language[0], language[1]));
             })
-            .put("players_settings:toggled_border", (player, value) -> {
-                boolean currentlyToggled = player.hasWorldBorderEnabled();
-                if (currentlyToggled != value.getAsBoolean())
-                    player.toggleWorldBorder();
-            })
+            .put("players_settings:toggled_border", (player, value) -> player.setWorldBorderEnabled(value.getAsBoolean()))
             .put("players_settings:toggled_panel", (player, value) -> player.setToggledPanel(value.getAsBoolean()))
-            .put("players_settings:island_fly", (player, value) -> {
-                boolean currentlyToggled = player.hasIslandFlyEnabled();
-                if (currentlyToggled != value.getAsBoolean())
-                    player.toggleIslandFly();
-            })
-            .put("players_settings:border_color", (player, value) ->
-                    player.setBorderColor(BorderColor.valueOf(value.getAsString())))
+            .put("players_settings:island_fly", (player, value) -> player.setIslandFly(value.getAsBoolean()))
+            .put("players_settings:border_color", (player, value) -> player.setBorderColor(BorderColor.valueOf(value.getAsString())))
             .put("players_custom_data:data", (player, value) -> {
                 byte[] data = value.getAsString().getBytes(StandardCharsets.UTF_8);
                 player.getPersistentDataContainer().load(data);
@@ -54,7 +42,15 @@ public class PlayerRequests {
 
             .build();
     private static final Map<String, RequestAction<SuperiorPlayer, JsonElement>> DELETE_ACTION_MAP = new MapBuilder<String, RequestAction<SuperiorPlayer, JsonElement>>()
-            .put("players_missions:name", (superiorPlayer, value) -> Islands.setMissionCompletedCount(superiorPlayer, value.getAsString(), 0))
+            .put("players_missions:name", (superiorPlayer, value) -> {
+                String missionName = value.getAsString();
+                Mission<?> mission = SuperiorSkyblockAPI.getMissions().getMission(missionName);
+
+                if (mission == null)
+                    throw new RequestHandlerException("Cannot find a valid mission \"" + missionName + "\"");
+
+                superiorPlayer.setAmountMissionCompleted(mission, 0);
+            })
             .put("players_custom_data", (superiorPlayer, unused) -> { /* TODO */ })
             .put("players_missions", (superiorPlayer, unused) -> { /* Do nothing */ })
             .put("players", (superiorPlayer, unused) -> SuperiorSkyblockAPI.getPlayers().getPlayersContainer().removePlayer(superiorPlayer))
@@ -135,7 +131,15 @@ public class PlayerRequests {
                 if (superiorPlayer == null)
                     throw new RequestHandlerException("Received update for an invalid island: \"" + playerUUID + "\"");
 
-                disableDatabaseBridge(superiorPlayer, () -> Islands.setMissionCompletedCount(superiorPlayer, columns));
+                disableDatabaseBridge(superiorPlayer, () -> {
+                    String missionName = columns.get("name").getAsString();
+                    Mission<?> mission = SuperiorSkyblockAPI.getMissions().getMission(missionName);
+
+                    if (mission == null)
+                        throw new RequestHandlerException("Cannot find a valid mission \"" + missionName + "\"");
+
+                    superiorPlayer.setAmountMissionCompleted(mission, columns.get("finish_count").getAsInt());
+                });
                 break;
             }
             case "players_custom_data": {

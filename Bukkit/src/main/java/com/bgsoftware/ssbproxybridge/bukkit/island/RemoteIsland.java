@@ -277,8 +277,15 @@ public final class RemoteIsland implements Island {
 
     @Nullable
     @Override
+    @Deprecated
     public Location getVisitorsLocation() {
         return this.handle.getVisitorsLocation();
+    }
+
+    @Nullable
+    @Override
+    public Location getVisitorsLocation(World.Environment environment) {
+        return this.handle.getVisitorsLocation(environment);
     }
 
     @Override
@@ -1439,6 +1446,11 @@ public final class RemoteIsland implements Island {
     @Override
     public void resetMission(Mission<?> mission) {
         this.handle.resetMission(mission);
+    }
+
+    @Override
+    public void setAmountMissionCompleted(Mission<?> mission, int finishCount) {
+        this.handle.setAmountMissionCompleted(mission, finishCount);
     }
 
     @Override
