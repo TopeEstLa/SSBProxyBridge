@@ -487,6 +487,16 @@ public class IslandRequests {
 
         SuperiorSkyblockAPI.getGrid().setLastIslandLocation(result.getIslandLocation());
 
+        // We want to update the leader of the island with the new RemoteIsland
+        SuperiorPlayer islandLeader = remoteIsland.getOwner();
+
+        try {
+            islandLeader.getDatabaseBridge().setDatabaseBridgeMode(DatabaseBridgeMode.IDLE);
+            islandLeader.setIsland(remoteIsland);
+        } finally {
+            islandLeader.getDatabaseBridge().setDatabaseBridgeMode(DatabaseBridgeMode.SAVE_DATA);
+        }
+
         try {
             remoteIsland.getDatabaseBridge().setDatabaseBridgeMode(DatabaseBridgeMode.IDLE);
 
