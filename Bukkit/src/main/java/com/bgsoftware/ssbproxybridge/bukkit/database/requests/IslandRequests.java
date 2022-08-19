@@ -5,11 +5,11 @@ import com.bgsoftware.ssbproxybridge.bukkit.island.FakeSchematic;
 import com.bgsoftware.ssbproxybridge.bukkit.island.Islands;
 import com.bgsoftware.ssbproxybridge.bukkit.island.RemoteIsland;
 import com.bgsoftware.ssbproxybridge.bukkit.player.RemoteSuperiorPlayer;
+import com.bgsoftware.ssbproxybridge.bukkit.utils.DatabaseBridgeAccessor;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.Serializers;
 import com.bgsoftware.ssbproxybridge.core.MapBuilder;
 import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI;
 import com.bgsoftware.superiorskyblock.api.data.DatabaseBridgeMode;
-import com.bgsoftware.superiorskyblock.api.data.IDatabaseBridgeHolder;
 import com.bgsoftware.superiorskyblock.api.enums.BankAction;
 import com.bgsoftware.superiorskyblock.api.enums.Rating;
 import com.bgsoftware.superiorskyblock.api.island.Island;
@@ -204,7 +204,7 @@ public class IslandRequests {
                 ((RemoteIsland) island).removeIsland();
             }).put("islands_members:player", (island, value) -> {
                 SuperiorPlayer islandMember = SuperiorSkyblockAPI.getPlayer(UUID.fromString(value.getAsString()));
-                disableDatabaseBridge(islandMember, () -> island.kickMember(islandMember));
+                DatabaseBridgeAccessor.runWithoutDataSave(islandMember, (Runnable) () -> island.kickMember(islandMember));
             })
             .put("islands_bans:player", (island, value) -> island.unbanMember(SuperiorSkyblockAPI.getPlayer(UUID.fromString(value.getAsString()))))
             .put("islands_homes:environment", (island, value) -> island.setIslandHome(World.Environment.valueOf(value.getAsString()), null))
@@ -296,7 +296,7 @@ public class IslandRequests {
             return;
         }
 
-        disableDatabaseBridge(island, () -> {
+        DatabaseBridgeAccessor.runWithoutDataSave(island, (RequestHandlerAction) () -> {
             RequestAction<Island, JsonObject> insertAction = INSERT_ACTION_MAP.get(table);
 
             if (insertAction == null)
@@ -325,7 +325,7 @@ public class IslandRequests {
         if (island == null)
             throw new RequestHandlerException("Received update for an invalid island: \"" + islandUUID + "\"");
 
-        disableDatabaseBridge(island, () -> {
+        DatabaseBridgeAccessor.runWithoutDataSave(island, (RequestHandlerAction) () -> {
             JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
             JsonObject columns = Requests.convertColumns(columnsArray);
             if (table.equals("islands_members")) {
@@ -334,7 +334,7 @@ public class IslandRequests {
                 if (superiorPlayer == null)
                     throw new RequestHandlerException("Invalid roles update for player \"" + filters.get("player").getAsString() + "\"");
 
-                disableDatabaseBridge(superiorPlayer, () -> superiorPlayer.setPlayerRole(
+                DatabaseBridgeAccessor.runWithoutDataSave(superiorPlayer, (Runnable) () -> superiorPlayer.setPlayerRole(
                         SuperiorSkyblockAPI.getRoles().getPlayerRole(columns.get("role").getAsInt())));
             } else if (table.equals("islands_warps")) {
                 if (!filters.has("category")) { // category updates is ignored here.
@@ -375,7 +375,7 @@ public class IslandRequests {
         if (island == null)
             throw new RequestHandlerException("Received update for an invalid island: \"" + islandUUID + "\"");
 
-        disableDatabaseBridge(island, () -> {
+        DatabaseBridgeAccessor.runWithoutDataSave(island, (RequestHandlerAction) () -> {
             if (filtersArray.size() == 1) {
                 RequestAction<Island, JsonElement> deleteAction = DELETE_ACTION_MAP.get(table);
 
@@ -488,18 +488,10 @@ public class IslandRequests {
         SuperiorSkyblockAPI.getGrid().setLastIslandLocation(result.getIslandLocation());
 
         // We want to update the leader of the island with the new RemoteIsland
-        SuperiorPlayer islandLeader = remoteIsland.getOwner();
+        DatabaseBridgeAccessor.runWithoutDataSave(remoteIsland.getOwner(),
+                islandLeader -> islandLeader.setIsland(remoteIsland));
 
-        try {
-            islandLeader.getDatabaseBridge().setDatabaseBridgeMode(DatabaseBridgeMode.IDLE);
-            islandLeader.setIsland(remoteIsland);
-        } finally {
-            islandLeader.getDatabaseBridge().setDatabaseBridgeMode(DatabaseBridgeMode.SAVE_DATA);
-        }
-
-        try {
-            remoteIsland.getDatabaseBridge().setDatabaseBridgeMode(DatabaseBridgeMode.IDLE);
-
+        DatabaseBridgeAccessor.runWithoutDataSave(remoteIsland, (Runnable) () -> {
             remoteIsland.setBonusWorth(new BigDecimal(columns.get("worth_bonus").getAsString()));
             remoteIsland.setBonusLevel(new BigDecimal(columns.get("levels_bonus").getAsString()));
             remoteIsland.setDiscord(columns.get("discord").getAsString());
@@ -510,11 +502,9 @@ public class IslandRequests {
             remoteIsland.handleBlocksPlace(parseBlockCounts(columns.get("block_counts").getAsString()));
             Islands.setGeneratedSchematics(remoteIsland, columns.get("generated_schematics").getAsByte());
             Islands.setUnlockedWorlds(remoteIsland, columns.get("unlocked_worlds").getAsByte());
+        });
 
-            return true;
-        } finally {
-            remoteIsland.getDatabaseBridge().setDatabaseBridgeMode(DatabaseBridgeMode.SAVE_DATA);
-        }
+        return true;
     }
 
     private static KeyMap<Integer> parseBlockCounts(String blockCountsSerialized) {
@@ -531,15 +521,6 @@ public class IslandRequests {
         return blockCounts;
     }
 
-    private static void disableDatabaseBridge(IDatabaseBridgeHolder databaseBridgeHolder, IslandAction action) throws RequestHandlerException {
-        try {
-            databaseBridgeHolder.getDatabaseBridge().setDatabaseBridgeMode(DatabaseBridgeMode.IDLE);
-            action.run();
-        } finally {
-            databaseBridgeHolder.getDatabaseBridge().setDatabaseBridgeMode(DatabaseBridgeMode.SAVE_DATA);
-        }
-    }
-
     private static <K> void handleAction(JsonArray columnsArray, String table,
                                          Map<String, RequestAction<K, JsonPrimitive>> actionMap,
                                          K key) throws RequestHandlerException {
@@ -554,12 +535,6 @@ public class IslandRequests {
 
             updateAction.apply(key, value);
         }
-    }
-
-    interface IslandAction {
-
-        void run() throws RequestHandlerException;
-
     }
 
 }

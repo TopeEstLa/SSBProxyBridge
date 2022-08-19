@@ -3,9 +3,9 @@ package com.bgsoftware.ssbproxybridge.bukkit.database.requests;
 import com.bgsoftware.ssbproxybridge.bukkit.database.ProxyDatabaseBridge;
 import com.bgsoftware.ssbproxybridge.bukkit.database.ProxyDatabaseBridgeFactory;
 import com.bgsoftware.ssbproxybridge.bukkit.player.RemoteSuperiorPlayer;
+import com.bgsoftware.ssbproxybridge.bukkit.utils.DatabaseBridgeAccessor;
 import com.bgsoftware.ssbproxybridge.core.MapBuilder;
 import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI;
-import com.bgsoftware.superiorskyblock.api.data.DatabaseBridgeMode;
 import com.bgsoftware.superiorskyblock.api.enums.BorderColor;
 import com.bgsoftware.superiorskyblock.api.missions.Mission;
 import com.bgsoftware.superiorskyblock.api.wrappers.SuperiorPlayer;
@@ -131,7 +131,7 @@ public class PlayerRequests {
                 if (superiorPlayer == null)
                     throw new RequestHandlerException("Received update for an invalid island: \"" + playerUUID + "\"");
 
-                disableDatabaseBridge(superiorPlayer, () -> {
+                DatabaseBridgeAccessor.runWithoutDataSave(superiorPlayer, (RequestHandlerAction) () -> {
                     String missionName = columns.get("name").getAsString();
                     Mission<?> mission = SuperiorSkyblockAPI.getMissions().getMission(missionName);
 
@@ -150,7 +150,7 @@ public class PlayerRequests {
 
                 byte[] data = columns.get("data").getAsString().getBytes(StandardCharsets.UTF_8);
 
-                disableDatabaseBridge(superiorPlayer, () -> {
+                DatabaseBridgeAccessor.runWithoutDataSave(superiorPlayer, (Runnable) () -> {
                     superiorPlayer.getPersistentDataContainer().load(data);
                 });
 
@@ -180,7 +180,7 @@ public class PlayerRequests {
         if (superiorPlayer == null)
             throw new RequestHandlerException("Received update for an invalid island: \"" + playerUUID + "\"");
 
-        disableDatabaseBridge(superiorPlayer, () -> {
+        DatabaseBridgeAccessor.runWithoutDataSave(superiorPlayer, (RequestHandlerAction) () -> {
             for (JsonElement columnElement : dataObject.get("columns").getAsJsonArray()) {
                 JsonObject column = columnElement.getAsJsonObject();
                 String name = column.get("name").getAsString();
@@ -216,7 +216,7 @@ public class PlayerRequests {
         if (superiorPlayer == null)
             throw new RequestHandlerException("Received update for an invalid island: \"" + playerUUID + "\"");
 
-        disableDatabaseBridge(superiorPlayer, () -> {
+        DatabaseBridgeAccessor.runWithoutDataSave(superiorPlayer, (RequestHandlerAction) () -> {
             if (filtersArray.size() == 1) {
                 RequestAction<SuperiorPlayer, JsonElement> deleteAction = DELETE_ACTION_MAP.get(table);
 
@@ -268,21 +268,6 @@ public class PlayerRequests {
                 deleteAction.apply(superiorPlayer, value);
             }
         });
-    }
-
-    private static void disableDatabaseBridge(SuperiorPlayer superiorPlayer, PlayerAction action) throws RequestHandlerException {
-        try {
-            superiorPlayer.getDatabaseBridge().setDatabaseBridgeMode(DatabaseBridgeMode.IDLE);
-            action.run();
-        } finally {
-            superiorPlayer.getDatabaseBridge().setDatabaseBridgeMode(DatabaseBridgeMode.SAVE_DATA);
-        }
-    }
-
-    interface PlayerAction {
-
-        void run() throws RequestHandlerException;
-
     }
 
 }

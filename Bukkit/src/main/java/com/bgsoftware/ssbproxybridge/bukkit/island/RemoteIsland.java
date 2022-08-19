@@ -1,10 +1,10 @@
 package com.bgsoftware.ssbproxybridge.bukkit.island;
 
 import com.bgsoftware.ssbproxybridge.bukkit.proxy.ProxyPlayerBridge;
+import com.bgsoftware.ssbproxybridge.bukkit.utils.DatabaseBridgeAccessor;
 import com.bgsoftware.superiorskyblock.api.SuperiorSkyblock;
 import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI;
 import com.bgsoftware.superiorskyblock.api.data.DatabaseBridge;
-import com.bgsoftware.superiorskyblock.api.data.DatabaseBridgeMode;
 import com.bgsoftware.superiorskyblock.api.enums.Rating;
 import com.bgsoftware.superiorskyblock.api.island.Island;
 import com.bgsoftware.superiorskyblock.api.island.IslandChest;
@@ -544,13 +544,10 @@ public final class RemoteIsland implements Island {
         // Remove roles and island status from leader and members
 
         getIslandMembers(true).forEach(islandMember -> {
-            try {
-                islandMember.getDatabaseBridge().setDatabaseBridgeMode(DatabaseBridgeMode.IDLE);
+            DatabaseBridgeAccessor.runWithoutDataSave(islandMember, (Runnable) () -> {
                 islandMember.setIsland(null);
                 islandMember.setPlayerRole(plugin.getRoles().getGuestRole());
-            } finally {
-                islandMember.getDatabaseBridge().setDatabaseBridgeMode(DatabaseBridgeMode.SAVE_DATA);
-            }
+            });
         });
 
         plugin.getGrid().getIslandsContainer().removeIsland(this);
