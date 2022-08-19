@@ -12,7 +12,8 @@ public class SettingsManager {
     public final String spawnServerName;
 
     public final String messagingServiceType;
-    public final String messagingServiceChannelName;
+    public final String messagingServiceDataChannelName;
+    public final String messagingServiceActionsChannelName;
 
     public final String messagingServiceRedisHost;
     public final int messagingServiceRedisPort;
@@ -43,7 +44,8 @@ public class SettingsManager {
         this.spawnServerName = config.getString("spawn-server-name", "");
 
         this.messagingServiceType = config.getString("messaging-service.type", "redis");
-        this.messagingServiceChannelName = config.getString("messaging-service.channel-name", "ssbproxybridge-data");
+        this.messagingServiceDataChannelName = config.getString("messaging-service.channels.data", "ssbproxybridge-data");
+        this.messagingServiceActionsChannelName = config.getString("messaging-service.channels.actions", "ssbproxybridge-actions");
 
         this.messagingServiceRedisHost = config.getString("messaging-service.redis.host", "localhost");
         this.messagingServiceRedisPort = config.getInt("messaging-service.redis.port", 6379);

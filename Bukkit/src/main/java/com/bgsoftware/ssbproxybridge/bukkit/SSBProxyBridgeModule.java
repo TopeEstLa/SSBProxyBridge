@@ -1,8 +1,10 @@
 package com.bgsoftware.ssbproxybridge.bukkit;
 
+import com.bgsoftware.ssbproxybridge.bukkit.action.ActionsListener;
 import com.bgsoftware.ssbproxybridge.bukkit.config.SettingsManager;
 import com.bgsoftware.ssbproxybridge.bukkit.database.DatabaseBridgeListener;
 import com.bgsoftware.ssbproxybridge.bukkit.database.ProxyDatabaseBridgeFactory;
+import com.bgsoftware.ssbproxybridge.bukkit.listener.PlayersListener;
 import com.bgsoftware.ssbproxybridge.bukkit.proxy.ProxyPlayerBridge;
 import com.bgsoftware.ssbproxybridge.bukkit.teleport.ProxyPlayersFactory;
 import com.bgsoftware.ssbproxybridge.core.connector.ConnectionFailureException;
@@ -69,14 +71,15 @@ public class SSBProxyBridgeModule extends PluginModule {
 
     @Override
     public void onDisable(SuperiorSkyblock plugin) {
-        this.messagingConnector.unregisterListeners(settingsManager.messagingServiceChannelName);
+        this.messagingConnector.unregisterListeners(settingsManager.messagingServiceDataChannelName);
+        this.messagingConnector.unregisterListeners(settingsManager.messagingServiceActionsChannelName);
         this.messagingConnector.shutdown();
     }
 
     @Nullable
     @Override
     public Listener[] getModuleListeners(SuperiorSkyblock plugin) {
-        return new Listener[0];
+        return new Listener[]{new PlayersListener()};
     }
 
     @Nullable
@@ -127,7 +130,8 @@ public class SSBProxyBridgeModule extends PluginModule {
         try {
             // noinspection unchecked
             this.messagingConnector.connect(connectionArguments);
-            this.messagingConnector.registerListener(settingsManager.messagingServiceChannelName, new DatabaseBridgeListener(this));
+            this.messagingConnector.registerListener(settingsManager.messagingServiceDataChannelName, new DatabaseBridgeListener(this));
+            this.messagingConnector.registerListener(settingsManager.messagingServiceActionsChannelName, new ActionsListener(this));
         } catch (ConnectionFailureException error) {
             getLogger().info("Failed to connect to messaging connector:");
             error.printStackTrace();

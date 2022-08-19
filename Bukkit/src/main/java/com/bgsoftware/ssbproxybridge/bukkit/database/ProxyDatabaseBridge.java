@@ -118,6 +118,7 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
     private JsonObject finishData(JsonObject dataObject, String type) {
         dataObject.addProperty("type", type);
         dataObject.addProperty("sender", module.getSettings().serverName);
+        dataObject.addProperty("channel", module.getSettings().messagingServiceDataChannelName);
         return dataObject;
     }
 
@@ -125,7 +126,7 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
         if (this.batchOperations != null) {
             this.batchOperations.add(data);
         } else {
-            module.getMessaging().sendData(module.getSettings().messagingServiceChannelName, gson.toJson(data));
+            module.getMessaging().sendData(module.getSettings().messagingServiceDataChannelName, gson.toJson(data));
         }
     }
 
