@@ -537,7 +537,7 @@ public final class RemoteIsland implements Island {
 
     @Override
     public void disbandIsland() {
-        // TODO
+        this.handle.disbandIsland();
     }
 
     public void removeIsland() {

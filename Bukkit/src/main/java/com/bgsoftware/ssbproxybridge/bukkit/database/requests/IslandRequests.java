@@ -1,5 +1,6 @@
 package com.bgsoftware.ssbproxybridge.bukkit.database.requests;
 
+import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
 import com.bgsoftware.ssbproxybridge.bukkit.island.BankTransactionImpl;
 import com.bgsoftware.ssbproxybridge.bukkit.island.FakeSchematic;
 import com.bgsoftware.ssbproxybridge.bukkit.island.Islands;
@@ -27,6 +28,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
+import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.potion.PotionEffectType;
 
@@ -36,6 +38,8 @@ import java.util.Map;
 import java.util.UUID;
 
 public class IslandRequests {
+
+    private static final SSBProxyBridgeModule module = SSBProxyBridgeModule.getModule();
 
     private static final Gson gson = new Gson();
 
@@ -198,18 +202,33 @@ public class IslandRequests {
 
     private static final Map<String, RequestAction<Island, JsonElement>> DELETE_ACTION_MAP = new MapBuilder<String, RequestAction<Island, JsonElement>>()
             .put("islands", (island, unused) -> {
-                if (!(island instanceof RemoteIsland))
-                    throw new RequestHandlerException("Tried to delete invalid island: \"" + island.getUniqueId() + "\"");
-
-                ((RemoteIsland) island).removeIsland();
-            }).put("islands_members:player", (island, value) -> {
+                if (island instanceof RemoteIsland) {
+                    ((RemoteIsland) island).removeIsland();
+                } else {
+                    Bukkit.getScheduler().runTask(module.getPlugin(), () ->
+                            DatabaseBridgeAccessor.runWithoutDataSave(island, (Runnable) island::disbandIsland));
+                }
+            })
+            .put("islands_banks", (unused1, unused2) -> { /* Do nothing */ })
+            .put("islands_custom_data", (unused1, unused2) -> { /* Do nothing */ })
+            .put("islands_chests", (unused1, unused2) -> { /* Do nothing */ })
+            .put("islands_flags", (unused1, unused2) -> { /* Do nothing */ })
+            .put("islands_settings", (unused1, unused2) -> { /* Do nothing */ })
+            .put("islands_upgrades", (unused1, unused2) -> { /* Do nothing */ })
+            .put("islands_visitors", (unused1, unused2) -> { /* Do nothing */ })
+            .put("islands_members:player", (island, value) -> {
                 SuperiorPlayer islandMember = SuperiorSkyblockAPI.getPlayer(UUID.fromString(value.getAsString()));
                 DatabaseBridgeAccessor.runWithoutDataSave(islandMember, (Runnable) () -> island.kickMember(islandMember));
             })
+            .put("islands_members", (unused1, unused2) -> { /* Do nothing */ })
             .put("islands_bans:player", (island, value) -> island.unbanMember(SuperiorSkyblockAPI.getPlayer(UUID.fromString(value.getAsString()))))
+            .put("islands_bans", (unused1, unused2) -> { /* Do nothing */ })
             .put("islands_homes:environment", (island, value) -> island.setIslandHome(World.Environment.valueOf(value.getAsString()), null))
+            .put("islands_homes", (unused1, unused2) -> { /* Do nothing */ })
             .put("islands_visitor_homes:environment", (island, value) -> island.setVisitorsLocation(null))
+            .put("islands_visitor_homes", (unused1, unused2) -> { /* Do nothing */ })
             .put("islands_player_permissions:player", (island, value) -> island.resetPermissions(SuperiorSkyblockAPI.getPlayer(UUID.fromString(value.getAsString()))))
+            .put("islands_player_permissions", (unused1, unused2) -> { /* Do nothing */ })
             .put("islands_role_permissions", (island, unused) -> island.resetPermissions())
             .put("islands_block_limits", (island, unused) -> island.clearBlockLimits())
             .put("islands_block_limits:block", (island, value) -> island.removeBlockLimit(Key.of(value.getAsString())))
@@ -217,7 +236,9 @@ public class IslandRequests {
             .put("islands_effects:effect_type", (island, value) -> island.removePotionEffect(PotionEffectType.getByName(value.getAsString())))
             .put("islands_effects", (island, unused) -> island.clearEffects())
             .put("islands_role_limits:role", (island, value) -> island.removeRoleLimit(SuperiorSkyblockAPI.getRoles().getPlayerRole(value.getAsInt())))
+            .put("islands_role_limits", (unused1, unused2) -> { /* Do nothing */ })
             .put("islands_warps:name", (island, value) -> island.deleteWarp(value.getAsString()))
+            .put("islands_warps", (unused1, unused2) -> { /* Do nothing */ })
             .put("islands_ratings:player", (island, value) -> island.removeRating(SuperiorSkyblockAPI.getPlayer(UUID.fromString(value.getAsString()))))
             .put("islands_ratings", (island, unused) -> island.removeRatings())
             .put("islands_missions:name", (island, value) -> {
@@ -229,12 +250,15 @@ public class IslandRequests {
 
                 island.setAmountMissionCompleted(mission, 0);
             })
+            .put("islands_missions", (unused1, unused2) -> { /* Do nothing */ })
             .put("islands_generators:environment:block", (island, filters) -> {
                 JsonObject value = filters.getAsJsonObject();
                 island.removeGeneratorAmount(Key.of(value.get("block").getAsString()), World.Environment.valueOf(value.get("environment").getAsString()));
             })
             .put("islands_generators:environment", (island, value) -> island.clearGeneratorAmounts(World.Environment.valueOf(value.getAsString())))
+            .put("islands_generators", (unused1, unused2) -> { /* Do nothing */ })
             .put("islands_warp_categories:name", (island, value) -> island.deleteCategory(island.getWarpCategory(value.getAsString())))
+            .put("islands_warp_categories", (unused1, unused2) -> { /* Do nothing */ })
             .build();
 
     private IslandRequests() {
@@ -373,7 +397,7 @@ public class IslandRequests {
         Island island = SuperiorSkyblockAPI.getIslandByUUID(islandUUID);
 
         if (island == null)
-            throw new RequestHandlerException("Received update for an invalid island: \"" + islandUUID + "\"");
+            return; // We ignore deletion of invalid islands.
 
         DatabaseBridgeAccessor.runWithoutDataSave(island, (RequestHandlerAction) () -> {
             if (filtersArray.size() == 1) {
