@@ -41,8 +41,13 @@ public class RedisConnector extends ConnectorAbstract<RedisConnectionArguments> 
         logger.info("Connecting to Redis (" + args.getHost() + ":" + args.getPort() + ")");
 
         RedisURI.Builder builder = RedisURI.Builder.redis(args.getHost(), args.getPort());
-        if (!args.getPassword().isEmpty())
-            builder.withPassword(args.getPassword().toCharArray());
+        if (!args.getPassword().isEmpty()) {
+            if (args.getUsername().isEmpty()) {
+                builder.withPassword(args.getPassword().toCharArray());
+            } else {
+                builder.withAuthentication(args.getUsername(), args.getPassword().toCharArray());
+            }
+        }
 
         try {
             this.redisClient = RedisClient.create(builder.build());

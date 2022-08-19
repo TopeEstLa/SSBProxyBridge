@@ -32,8 +32,8 @@ messaging-service:
     host: 'localhost'
     # The port of the redis server.
     port: 6379
-    # The password for the redis client.
-    # If no password exists, set this to ''.
+    # The authentication credentials for the redis client.
+    username: ''
     password: ''
 
   # Connection settings for RabbitMQ

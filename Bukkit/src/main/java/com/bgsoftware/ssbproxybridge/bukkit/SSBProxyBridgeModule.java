@@ -111,7 +111,8 @@ public class SSBProxyBridgeModule extends PluginModule {
             case "REDIS":
                 this.messagingConnector = RedisConnector.getConnector();
                 connectionArguments = new RedisConnectionArguments(settingsManager.messagingServiceRedisHost,
-                        settingsManager.messagingServiceRedisPort, settingsManager.messagingServiceRedisPassword);
+                        settingsManager.messagingServiceRedisPort, settingsManager.messagingServiceRedisUsername,
+                        settingsManager.messagingServiceRedisPassword);
                 break;
             case "RABBITMQ":
                 this.messagingConnector = RabbitMQConnector.getConnector();

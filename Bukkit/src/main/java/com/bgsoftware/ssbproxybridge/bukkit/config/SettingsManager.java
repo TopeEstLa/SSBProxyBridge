@@ -16,6 +16,7 @@ public class SettingsManager {
 
     public final String messagingServiceRedisHost;
     public final int messagingServiceRedisPort;
+    public final String messagingServiceRedisUsername;
     public final String messagingServiceRedisPassword;
 
     public final String messagingServiceRabbitMQHost;
@@ -46,7 +47,8 @@ public class SettingsManager {
 
         this.messagingServiceRedisHost = config.getString("messaging-service.redis.host", "localhost");
         this.messagingServiceRedisPort = config.getInt("messaging-service.redis.port", 6379);
-        this.messagingServiceRedisPassword = config.getString("messaging-service.password", "");
+        this.messagingServiceRedisUsername = config.getString("messaging-service.redis.username", "");
+        this.messagingServiceRedisPassword = config.getString("messaging-service.redis.password", "");
 
         this.messagingServiceRabbitMQHost = config.getString("messaging-service.rabbitmq.host", "localhost");
         this.messagingServiceRabbitMQPort = config.getInt("messaging-service.rabbitmq.port", 5672);
