@@ -7,7 +7,7 @@ import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
 import io.lettuce.core.pubsub.RedisPubSubAdapter;
 import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
-import io.lettuce.core.pubsub.api.sync.RedisPubSubCommands;
+import io.lettuce.core.pubsub.api.async.RedisPubSubAsyncCommands;
 
 import java.util.logging.Logger;
 
@@ -23,8 +23,8 @@ public class RedisConnector extends ConnectorAbstract<RedisConnectionArguments> 
     private static final Logger logger = Logger.getLogger("SSBProxyBridge");
 
     private RedisClient redisClient;
-    private RedisPubSubCommands<String, String> subCommands;
-    private RedisPubSubCommands<String, String> pubCommands;
+    private RedisPubSubAsyncCommands<String, String> subCommands;
+    private RedisPubSubAsyncCommands<String, String> pubCommands;
     private StatefulRedisPubSubConnection<String, String> subConnection;
     private StatefulRedisPubSubConnection<String, String> pubConnection;
 
@@ -65,8 +65,8 @@ public class RedisConnector extends ConnectorAbstract<RedisConnectionArguments> 
             }
         });
 
-        this.subCommands = this.subConnection.sync();
-        this.pubCommands = this.pubConnection.sync();
+        this.subCommands = this.subConnection.async();
+        this.pubCommands = this.pubConnection.async();
     }
 
     @Override
