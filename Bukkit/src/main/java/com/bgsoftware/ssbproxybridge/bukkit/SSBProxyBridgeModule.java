@@ -4,6 +4,7 @@ import com.bgsoftware.ssbproxybridge.bukkit.action.ActionsListener;
 import com.bgsoftware.ssbproxybridge.bukkit.config.SettingsManager;
 import com.bgsoftware.ssbproxybridge.bukkit.database.DatabaseBridgeListener;
 import com.bgsoftware.ssbproxybridge.bukkit.database.ProxyDatabaseBridgeFactory;
+import com.bgsoftware.ssbproxybridge.bukkit.island.creation.RemoteIslandCreationAlgorithm;
 import com.bgsoftware.ssbproxybridge.bukkit.listener.PlayersListener;
 import com.bgsoftware.ssbproxybridge.bukkit.manager.ModuleManager;
 import com.bgsoftware.ssbproxybridge.bukkit.proxy.ProxyPlayerBridge;
@@ -21,6 +22,7 @@ import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI;
 import com.bgsoftware.superiorskyblock.api.commands.SuperiorCommand;
 import com.bgsoftware.superiorskyblock.api.modules.ModuleLoadTime;
 import com.bgsoftware.superiorskyblock.api.modules.PluginModule;
+import com.bgsoftware.superiorskyblock.api.world.algorithm.IslandCreationAlgorithm;
 import org.bukkit.event.Listener;
 
 import javax.annotation.Nullable;
@@ -68,6 +70,9 @@ public class SSBProxyBridgeModule extends PluginModule {
         // Setup outgoing plugin channel for BungeeCord
         // Used to teleport the player, send messages, etc.
         ProxyPlayerBridge.register(plugin);
+
+        // We register the IslandCreationAlgorithm on the first tick, as we need the default one to load first.
+        plugin.getServer().getScheduler().runTask(plugin, this::setupIslandCreationAlgorithm);
     }
 
     @Override
@@ -154,6 +159,11 @@ public class SSBProxyBridgeModule extends PluginModule {
 
     private void setupPlayersFactory() {
         plugin.getFactory().registerPlayersFactory(ProxyPlayersFactory.getInstance());
+    }
+
+    private void setupIslandCreationAlgorithm() {
+        IslandCreationAlgorithm original = plugin.getGrid().getIslandCreationAlgorithm();
+        plugin.getGrid().setIslandCreationAlgorithm(new RemoteIslandCreationAlgorithm(original));
     }
 
     public static SSBProxyBridgeModule getModule() {

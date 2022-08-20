@@ -1,18 +1,22 @@
 package com.bgsoftware.ssbproxybridge.bukkit.manager;
 
 import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
+import com.bgsoftware.ssbproxybridge.core.connector.ConnectionFailureException;
 import com.bgsoftware.ssbproxybridge.core.connector.EmptyConnector;
+import com.bgsoftware.ssbproxybridge.core.connector.IConnectionArguments;
 import com.bgsoftware.ssbproxybridge.core.connector.IConnector;
+import com.bgsoftware.ssbproxybridge.core.http.HttpConnectionArguments;
+import com.bgsoftware.ssbproxybridge.core.http.HttpConnector;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonSyntaxException;
 
+import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 public class ModuleManager {
-
-    private static final String MANAGER_CHANNEL = "ssbproxybridge-manager"; // TODO - Actual configurable
 
     private static final Gson gson = new Gson();
 
@@ -28,35 +32,51 @@ public class ModuleManager {
     }
 
     public void setupManager() {
-        // TODO - Setup connector
-        this.sendPing();
+        IConnectionArguments connectionArguments;
+
+        boolean sendHello = false;
+
+        switch (module.getSettings().managerType.toUpperCase(Locale.ENGLISH)) {
+            case "REST":
+                this.connector = HttpConnector.getConnector();
+                connectionArguments = new HttpConnectionArguments(module.getSettings().managerRestUrl,
+                        module.getSettings().managerRestSecret);
+                sendHello = true;
+                break;
+            case "PROXY":
+                // TODO
+                return;
+            default:
+                throw new RuntimeException("Invalid connector: " + module.getSettings().managerType);
+        }
+
+        try {
+            // noinspection unchecked
+            this.connector.connect(connectionArguments);
+            if (sendHello)
+                sendPing();
+        } catch (ConnectionFailureException error) {
+            module.getLogger().info("Failed to connect to manager connector:");
+            error.printStackTrace();
+        }
     }
 
     public boolean isLocalIsland(UUID islandUUID) {
-        JsonObject request = new JsonObject();
-        request.addProperty("island", islandUUID.toString());
-
-        JsonObject response = sendRequest(RequestType.CHECK_ISLAND, request).join();
-
-        return response.get("result").getAsBoolean();
+        JsonObject response = sendRequest(RequestType.CHECK_ISLAND, islandUUID.toString()).join();
+        return module.getSettings().serverName.equals(response.get("result").getAsString());
     }
 
-    public String getServerForNextIsland() {
-        JsonObject request = new JsonObject();
-
-        JsonObject response = sendRequest(RequestType.CREATE_ISLAND, request).join();
-
-        return response.get("result").getAsString();
+    public CompletableFuture<JsonObject> getServerForNextIsland(UUID islandUUID) {
+        return sendRequest(RequestType.CREATE_ISLAND, islandUUID.toString());
     }
 
     public void sendPing() {
-        JsonObject helloRequest = new JsonObject();
-
-        CompletableFuture<JsonObject> responseFuture = sendRequest(RequestType.HELLO, helloRequest);
+        CompletableFuture<JsonObject> responseFuture = sendRequest(RequestType.HELLO, "");
 
         try {
             // Should block until we get a response.
             JsonObject response = responseFuture.get(10, TimeUnit.SECONDS);
+            System.out.println(response);
             if (response.has("error"))
                 throw new RuntimeException("Failed to register to the manager: " + response.get("error").getAsString());
         } catch (Exception error) {
@@ -64,25 +84,29 @@ public class ModuleManager {
         }
     }
 
-    private CompletableFuture<JsonObject> sendRequest(RequestType requestType, JsonObject requestBody) {
-        requestBody.addProperty("type", requestType.name());
-        requestBody.addProperty("server", module.getSettings().serverName);
+    private CompletableFuture<JsonObject> sendRequest(RequestType requestType, String params) {
+        JsonObject args = new JsonObject();
 
         long requestId = this.requestIds++;
 
-        requestBody.addProperty("id", requestId);
+        args.addProperty("method", requestType.getMethod());
+        args.addProperty("id", requestId);
+        args.addProperty("route", requestType.getRoute() + params);
+        args.addProperty("server", module.getSettings().serverName);
 
-        this.connector.sendData(MANAGER_CHANNEL, gson.toJson(requestBody));
+        this.connector.sendData(requestType.name(), gson.toJson(args));
 
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
 
-        this.connector.listenOnce(MANAGER_CHANNEL, responseData -> {
-            JsonObject responseBody = gson.fromJson(responseData, JsonObject.class);
-
-            long responseId = responseBody.get("id").getAsLong();
-
-            if (responseId == requestId)
-                response.complete(responseBody);
+        this.connector.listenOnce(requestType.name(), responseData -> {
+            try {
+                JsonObject responseBody = gson.fromJson(responseData, JsonObject.class);
+                if (requestId == responseBody.get("id").getAsLong())
+                    response.complete(responseBody);
+            } catch (JsonSyntaxException error) {
+                System.out.println(responseData);
+                error.printStackTrace();
+            }
         });
 
         return response;

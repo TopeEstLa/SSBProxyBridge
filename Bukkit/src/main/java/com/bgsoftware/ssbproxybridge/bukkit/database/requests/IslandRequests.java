@@ -5,6 +5,7 @@ import com.bgsoftware.ssbproxybridge.bukkit.island.BankTransactionImpl;
 import com.bgsoftware.ssbproxybridge.bukkit.island.FakeSchematic;
 import com.bgsoftware.ssbproxybridge.bukkit.island.Islands;
 import com.bgsoftware.ssbproxybridge.bukkit.island.RemoteIsland;
+import com.bgsoftware.ssbproxybridge.bukkit.island.creation.RemoteIslandCreationAlgorithm;
 import com.bgsoftware.ssbproxybridge.bukkit.player.RemoteSuperiorPlayer;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.DatabaseBridgeAccessor;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.Serializers;
@@ -310,12 +311,14 @@ public class IslandRequests {
 
         Island island = SuperiorSkyblockAPI.getIslandByUUID(islandUUID);
 
-        if (island == null) {
+        if (table.equals("islands") || island == null) {
             if (!table.equals("islands"))
                 throw new RequestHandlerException("Received update for an invalid island: \"" + islandUUID + "\"");
 
-            // Create our new island.
-            createIsland(dataObject, columns);
+            if (island == null) {
+                // Create our new island.
+                createIsland(dataObject, columns);
+            }
 
             return;
         }
@@ -460,7 +463,11 @@ public class IslandRequests {
         islandLeader.getDatabaseBridge().setDatabaseBridgeMode(DatabaseBridgeMode.IDLE);
 
         // We create our RemoteIsland
-        SuperiorSkyblockAPI.getGrid().getIslandCreationAlgorithm().createIsland(
+        IslandCreationAlgorithm islandCreationAlgorithm = SuperiorSkyblockAPI.getGrid().getIslandCreationAlgorithm();
+        if (islandCreationAlgorithm instanceof RemoteIslandCreationAlgorithm)
+            islandCreationAlgorithm = ((RemoteIslandCreationAlgorithm) islandCreationAlgorithm).getOriginal();
+
+        islandCreationAlgorithm.createIsland(
                 UUID.fromString(columns.get("uuid").getAsString()),
                 islandLeader,
                 SuperiorSkyblockAPI.getFactory().createBlockPosition(SuperiorSkyblockAPI.getGrid().getLastIslandLocation()),

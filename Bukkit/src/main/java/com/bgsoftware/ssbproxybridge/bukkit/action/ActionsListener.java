@@ -2,13 +2,20 @@ package com.bgsoftware.ssbproxybridge.bukkit.action;
 
 import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
 import com.bgsoftware.ssbproxybridge.bukkit.connector.JsonConnectorListener;
+import com.bgsoftware.ssbproxybridge.bukkit.island.creation.RemoteIslandCreationAlgorithm;
+import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI;
 import com.bgsoftware.superiorskyblock.api.island.Island;
+import com.bgsoftware.superiorskyblock.api.world.algorithm.IslandCreationAlgorithm;
+import com.bgsoftware.superiorskyblock.api.wrappers.BlockPosition;
 import com.bgsoftware.superiorskyblock.api.wrappers.SuperiorPlayer;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.JsonObject;
 import org.bukkit.Bukkit;
+import org.bukkit.World;
+import org.bukkit.block.Biome;
 import org.bukkit.entity.Player;
 
+import java.math.BigDecimal;
 import java.util.Map;
 import java.util.UUID;
 
@@ -16,6 +23,9 @@ public class ActionsListener extends JsonConnectorListener {
 
     private final Map<String, IAction<Player>> PLAYER_ACTIONS = new ImmutableMap.Builder<String, IAction<Player>>()
             .put("teleport", this::handlePlayerTeleport)
+            .build();
+    private final Map<String, IAction<Void>> GENERAL_ACTIONS = new ImmutableMap.Builder<String, IAction<Void>>()
+            .put("create_island", this::handleIslandCreation)
             .build();
 
     public ActionsListener(SSBProxyBridgeModule module) {
@@ -41,6 +51,12 @@ public class ActionsListener extends JsonConnectorListener {
 
         }
 
+        IAction<Void> generalAction = GENERAL_ACTIONS.get(action);
+        if (generalAction != null) {
+            generalAction.run(dataObject, null);
+            return;
+        }
+
         this.module.getLogger().warning("Received an unknown action to handle: \"" + action + "\":");
         this.module.getLogger().warning(dataObject + "");
     }
@@ -61,6 +77,53 @@ public class ActionsListener extends JsonConnectorListener {
 
         SuperiorPlayer superiorPlayer = module.getPlugin().getPlayers().getSuperiorPlayer(player);
         superiorPlayer.teleport(targetIsland);
+
+        return true;
+    }
+
+    private boolean handleIslandCreation(JsonObject dataObject, Void unused) {
+        UUID islandUUID = UUID.fromString(dataObject.get("uuid").getAsString());
+        SuperiorPlayer islandLeader = SuperiorSkyblockAPI.getPlayer(UUID.fromString(dataObject.get("leader").getAsString()));
+
+        JsonObject position = dataObject.get("position").getAsJsonObject();
+
+        BlockPosition blockPosition = module.getPlugin().getFactory().createBlockPosition(position.get("world").getAsString(),
+                position.get("x").getAsInt(), position.get("y").getAsInt(), position.get("z").getAsInt());
+
+        String name = dataObject.get("name").getAsString();
+        String schematic = dataObject.get("schematic").getAsString();
+        int responseId = dataObject.get("response-id").getAsInt();
+
+        IslandCreationAlgorithm islandCreationAlgorithm = module.getPlugin().getGrid().getIslandCreationAlgorithm();
+        if (islandCreationAlgorithm instanceof RemoteIslandCreationAlgorithm) {
+            RemoteIslandCreationAlgorithm.IslandCreationArguments arguments = new RemoteIslandCreationAlgorithm
+                    .IslandCreationArguments(islandUUID, islandLeader, blockPosition, name,
+                    module.getPlugin().getSchematics().getSchematic(schematic), responseId);
+            ((RemoteIslandCreationAlgorithm) islandCreationAlgorithm).createWithArguments(arguments);
+        }
+
+        boolean offset;
+        Biome biome;
+
+        World.Environment environment = module.getPlugin().getSettings().getWorlds().getDefaultWorld();
+        switch (environment) {
+            case NORMAL:
+                offset = module.getPlugin().getSettings().getWorlds().getNormal().isSchematicOffset();
+                biome = Biome.valueOf(module.getPlugin().getSettings().getWorlds().getNormal().getBiome());
+                break;
+            case NETHER:
+                offset = module.getPlugin().getSettings().getWorlds().getNether().isSchematicOffset();
+                biome = Biome.valueOf(module.getPlugin().getSettings().getWorlds().getNether().getBiome());
+                break;
+            case THE_END:
+                offset = module.getPlugin().getSettings().getWorlds().getEnd().isSchematicOffset();
+                biome = Biome.valueOf(module.getPlugin().getSettings().getWorlds().getEnd().getBiome());
+                break;
+            default:
+                return false;
+        }
+
+        module.getPlugin().getGrid().createIsland(islandLeader, schematic, BigDecimal.ZERO, BigDecimal.ZERO, biome, name, offset);
 
         return true;
     }

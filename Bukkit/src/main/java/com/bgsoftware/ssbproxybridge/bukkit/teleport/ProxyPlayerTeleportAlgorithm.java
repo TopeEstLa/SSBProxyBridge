@@ -1,7 +1,7 @@
 package com.bgsoftware.ssbproxybridge.bukkit.teleport;
 
 import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
-import com.bgsoftware.ssbproxybridge.bukkit.action.PlayerActions;
+import com.bgsoftware.ssbproxybridge.bukkit.action.ServerActions;
 import com.bgsoftware.ssbproxybridge.bukkit.island.RemoteIsland;
 import com.bgsoftware.ssbproxybridge.bukkit.proxy.ProxyPlayerBridge;
 import com.bgsoftware.superiorskyblock.api.island.Island;
@@ -37,7 +37,7 @@ public class ProxyPlayerTeleportAlgorithm implements PlayerTeleportAlgorithm {
             return false;
 
         if (!ignoredOtherServersTeleportations.remove(player.getUniqueId())) {
-            PlayerActions.teleportToIsland(player, islandServer, island.getUniqueId());
+            ServerActions.teleportToIsland(player, islandServer, island.getUniqueId());
             ProxyPlayerBridge.teleportPlayer(player, islandServer);
         }
 

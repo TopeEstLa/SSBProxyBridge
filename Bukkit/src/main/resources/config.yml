@@ -50,3 +50,18 @@ messaging-service:
     # The authentication credentials for the rabbitmq client.
     username: 'guest'
     password: 'guest'
+
+# The module has an external manager that manages all the skyblock instances.
+# It handles tracking of islands, creation of islands, etc.
+manager:
+  # The type of service to use as a manager.
+  # This type can be Rest or Proxy.
+  type: 'rest'
+
+  # Connection settings for the manager Rest-API
+  rest:
+    # The url of the rest-api to connect to.
+    url: 'http://localhost:8080/'
+    # The secret of the rest-api.
+    # Should be the exact same as the one provided by the Rest-API.
+    secret: ''
