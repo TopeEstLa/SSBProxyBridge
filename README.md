@@ -11,14 +11,16 @@ A more detailed documentation about the module can be found [here](https://docs.
 You can join our discord and help with the development [here](https://discord.gg/UcQ3Uerz9N). <br>
 
 ## Tasks
-- [ ] Create a basic synchronization between servers
+- [X] Create a basic synchronization between servers
   - [X] Create a simple DatabaseBridge that will send data to a message broker.
-  - [ ] Listen to messages from the message broker and process them.
-- [ ] Handle teleports between servers
+  - [X] Listen to messages from the message broker and process them.
+- [X] Handle teleports between servers
   - [X] Create a custom communication between the proxy and the module to handle teleports.
-  - [ ] Create a custom PlayerTeleportAlgorithm that will handle teleports between servers.
-- [ ] Handle new island creations to be forwarded to other servers.
+  - [X] Create a custom PlayerTeleportAlgorithm that will handle teleports between servers.
+- [X] Handle new island creations to be forwarded to other servers.
   - This will require a 3rd-party service to handle the requests.
+- [ ] Handle processing of messages between servers.
+- [ ] Testing
 
 
 ## Donation
