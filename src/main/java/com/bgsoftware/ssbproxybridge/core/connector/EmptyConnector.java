@@ -38,6 +38,11 @@ public class EmptyConnector implements IConnector<EmptyConnectionArguments> {
     }
 
     @Override
+    public void listenOnce(String channel, IListener listener) {
+        listener.onReceive("");
+    }
+
+    @Override
     public void sendData(String channel, String data) {
         // Do nothing.
     }

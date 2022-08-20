@@ -60,6 +60,8 @@ dependencies {
     implementation 'com.rabbitmq:amqp-client:5.15.0'
     // Gson
     compileOnly 'com.google.code.gson:gson:2.9.0'
+    // Google commons
+    compileOnly 'com.google.guava:guava:31.1-jre'
 }
 
 jar {

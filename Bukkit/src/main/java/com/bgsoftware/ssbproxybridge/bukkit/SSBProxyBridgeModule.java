@@ -5,6 +5,7 @@ import com.bgsoftware.ssbproxybridge.bukkit.config.SettingsManager;
 import com.bgsoftware.ssbproxybridge.bukkit.database.DatabaseBridgeListener;
 import com.bgsoftware.ssbproxybridge.bukkit.database.ProxyDatabaseBridgeFactory;
 import com.bgsoftware.ssbproxybridge.bukkit.listener.PlayersListener;
+import com.bgsoftware.ssbproxybridge.bukkit.manager.ModuleManager;
 import com.bgsoftware.ssbproxybridge.bukkit.proxy.ProxyPlayerBridge;
 import com.bgsoftware.ssbproxybridge.bukkit.teleport.ProxyPlayersFactory;
 import com.bgsoftware.ssbproxybridge.core.connector.ConnectionFailureException;
@@ -35,6 +36,8 @@ public class SSBProxyBridgeModule extends PluginModule {
 
     private SettingsManager settingsManager;
 
+    private ModuleManager moduleManager;
+
     @SuppressWarnings("rawtypes")
     private IConnector messagingConnector = EmptyConnector.getInstance();
 
@@ -51,7 +54,10 @@ public class SSBProxyBridgeModule extends PluginModule {
             throw new RuntimeException("SuperiorSkyblock2 API version is not supported: " + SuperiorSkyblockAPI.getAPIVersion() + " < " + API_VERSION);
 
         this.settingsManager = new SettingsManager(this);
+        this.moduleManager = new ModuleManager(this);
 
+        // Setup manager connector first, so we know data can be loaded from it.
+        this.moduleManager.setupManager();
         // Setup messaging connector so the modules can talk with each other.
         setupMessagingConnector();
 
@@ -101,6 +107,10 @@ public class SSBProxyBridgeModule extends PluginModule {
 
     public SettingsManager getSettings() {
         return settingsManager;
+    }
+
+    public ModuleManager getManager() {
+        return this.moduleManager;
     }
 
     public IConnector<?> getMessaging() {
