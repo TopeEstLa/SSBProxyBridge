@@ -391,22 +391,26 @@ public final class RemoteIsland implements Island {
 
     @Override
     public boolean isInside(Location location) {
-        return this.handle.isInside(location);
+        // On another server, therefore not inside.
+        return false;
     }
 
     @Override
     public boolean isInsideRange(Location location) {
-        return this.handle.isInsideRange(location);
+        // On another server, therefore not inside.
+        return false;
     }
 
     @Override
     public boolean isInsideRange(Location location, int extra) {
-        return this.handle.isInsideRange(location, extra);
+        // On another server, therefore not inside.
+        return false;
     }
 
     @Override
     public boolean isInsideRange(Chunk chunk) {
-        return this.handle.isInsideRange(chunk);
+        // On another server, therefore not inside.
+        return false;
     }
 
     @Override
