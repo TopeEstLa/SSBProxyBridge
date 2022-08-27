@@ -16,6 +16,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 public class HttpConnector extends ConnectorAbstract<HttpConnectionArguments> {
@@ -53,6 +54,7 @@ public class HttpConnector extends ConnectorAbstract<HttpConnectionArguments> {
         try {
             // Try to make a connection
             HttpURLConnection connection = (HttpURLConnection) new URL(this.url).openConnection();
+            connection.setConnectTimeout((int) TimeUnit.SECONDS.toMillis(10));
             connection.setRequestMethod("GET");
             connection.setRequestProperty("Authorization", this.secret);
             connection.getResponseCode();

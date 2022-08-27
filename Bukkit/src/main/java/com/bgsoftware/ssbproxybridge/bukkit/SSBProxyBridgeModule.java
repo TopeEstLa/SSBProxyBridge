@@ -148,8 +148,7 @@ public class SSBProxyBridgeModule extends PluginModule {
             this.messagingConnector.registerListener(settingsManager.messagingServiceDataChannelName, new DataSyncListener(this));
             this.messagingConnector.registerListener(settingsManager.messagingServiceActionsChannelName, new ActionsListener(this));
         } catch (ConnectionFailureException error) {
-            getLogger().info("Failed to connect to messaging connector:");
-            error.printStackTrace();
+            throw new RuntimeException("Failed to connect to messaging connector:", error);
         }
     }
 

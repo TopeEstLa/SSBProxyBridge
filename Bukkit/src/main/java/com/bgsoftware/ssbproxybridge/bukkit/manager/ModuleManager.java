@@ -56,8 +56,7 @@ public class ModuleManager {
             if (sendHello)
                 sendPing();
         } catch (ConnectionFailureException error) {
-            module.getLogger().info("Failed to connect to manager connector:");
-            error.printStackTrace();
+            throw new RuntimeException("Failed to connect to manager connector:", error);
         }
     }
 
