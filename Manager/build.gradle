@@ -1,0 +1,35 @@
+plugins {
+    id 'org.springframework.boot' version '2.4.5'
+    id 'io.spring.dependency-management' version '1.0.11.RELEASE'
+    id 'java'
+    id 'application'
+}
+
+group 'Manager'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.13.3'
+}
+
+shadowJar {
+    dependsOn(jar)
+
+    if (System.getenv("BUILD_NUMBER") == null) {
+        archiveName = rootProject.name + "-" + project.name + "-" + rootProject.version + "_standalone.jar"
+    } else {
+        archiveName = rootProject.name + "-" + project.name + "-" + rootProject.version + "-b" + System.getenv("BUILD_NUMBER") + "_standalone.jar"
+    }
+
+    destinationDir = file("../target/")
+    from sourceSets.getByName("main").output
+    configurations = [project.configurations.getByName("runtimeClasspath")]
+}
+
+application {
+    mainClassName = 'com.bgsoftware.ssbproxybridge.manager.Main'
+}
