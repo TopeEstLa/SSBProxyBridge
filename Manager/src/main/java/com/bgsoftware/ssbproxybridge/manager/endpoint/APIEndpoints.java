@@ -1,6 +1,7 @@
 package com.bgsoftware.ssbproxybridge.manager.endpoint;
 
 import com.bgsoftware.ssbproxybridge.manager.Main;
+import com.bgsoftware.ssbproxybridge.manager.tracker.ServerInfo;
 import com.bgsoftware.ssbproxybridge.manager.tracker.ServersTracker;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.Nullable;
@@ -38,6 +39,63 @@ public class APIEndpoints {
 
         return Response.RESULT.newBuilder(headers)
                 .set("result", "hello")
+                .set("keep-alive", Main.getInstance().getConfig().keepAlive)
+                .build();
+    }
+
+    @RequestMapping(value = "/sleep", method = {RequestMethod.GET, RequestMethod.POST}, produces = "application/json")
+    public @ResponseBody ResponseEntity<String> sleep(@RequestHeader Map<String, String> headers) {
+        if (!checkSecret(headers.get(Headers.AUTHORIZATION)))
+            return Response.UNAUTHORIZED.build(headers);
+
+        String serverName = headers.get(Headers.SERVER);
+
+        if (serverName == null) {
+            return Response.BAD_REQUEST.newBuilder(headers)
+                    .set("error", "MISSING_HEADER")
+                    .set("header", Headers.SERVER)
+                    .build();
+        }
+
+        ServersTracker serversTracker = Main.getInstance().getServersTracker();
+
+        ServerInfo serverInfo = serversTracker.getServerInfo(serverName);
+
+        if (serverInfo == null)
+            return Response.INVALID_SERVER.build(headers);
+
+        serverInfo.sleep();
+
+        return Response.RESULT.newBuilder(headers)
+                .set("result", "OK")
+                .build();
+    }
+
+    @RequestMapping(value = "/keep-alive", method = {RequestMethod.GET, RequestMethod.POST}, produces = "application/json")
+    public @ResponseBody ResponseEntity<String> keepAlive(@RequestHeader Map<String, String> headers) {
+        if (!checkSecret(headers.get(Headers.AUTHORIZATION)))
+            return Response.UNAUTHORIZED.build(headers);
+
+        String serverName = headers.get(Headers.SERVER);
+
+        if (serverName == null) {
+            return Response.BAD_REQUEST.newBuilder(headers)
+                    .set("error", "MISSING_HEADER")
+                    .set("header", Headers.SERVER)
+                    .build();
+        }
+
+        ServersTracker serversTracker = Main.getInstance().getServersTracker();
+
+        ServerInfo serverInfo = serversTracker.getServerInfo(serverName);
+
+        if (serverInfo == null)
+            return Response.INVALID_SERVER.build(headers);
+
+        serverInfo.updateLastPingTime();
+
+        return Response.RESULT.newBuilder(headers)
+                .set("result", "OK")
                 .build();
     }
 
@@ -47,6 +105,24 @@ public class APIEndpoints {
         if (!checkSecret(headers.get(Headers.AUTHORIZATION)))
             return Response.UNAUTHORIZED.build(headers);
 
+        String serverName = headers.get(Headers.SERVER);
+
+        if (serverName == null) {
+            return Response.BAD_REQUEST.newBuilder(headers)
+                    .set("error", "MISSING_HEADER")
+                    .set("header", Headers.SERVER)
+                    .build();
+        }
+
+        ServersTracker serversTracker = Main.getInstance().getServersTracker();
+
+        ServerInfo serverInfo = serversTracker.getServerInfo(serverName);
+
+        if (serverInfo == null)
+            return Response.INVALID_SERVER.build(headers);
+
+        serverInfo.updateLastPingTime();
+
         UUID islandUUID;
 
         try {
@@ -54,8 +130,6 @@ public class APIEndpoints {
         } catch (IllegalArgumentException error) {
             return Response.INVALID_ISLAND_UUID.build(headers);
         }
-
-        ServersTracker serversTracker = Main.getInstance().getServersTracker();
 
         if (serversTracker.getServerOfIsland(islandUUID) != null)
             return Response.ISLAND_ALREADY_EXISTS.build(headers);
@@ -76,10 +150,26 @@ public class APIEndpoints {
     }
 
     @RequestMapping(value = "/island/{islandUUID}", method = RequestMethod.GET, produces = "application/json")
-    public @ResponseBody ResponseEntity<String> getIslandSErver(@RequestHeader Map<String, String> headers,
+    public @ResponseBody ResponseEntity<String> getIslandServer(@RequestHeader Map<String, String> headers,
                                                                 @PathVariable(value = "islandUUID") String islandUUIDParam) {
         if (!checkSecret(headers.get(Headers.AUTHORIZATION)))
             return Response.UNAUTHORIZED.build(headers);
+
+        String serverName = headers.get(Headers.SERVER);
+
+        if (serverName == null) {
+            return Response.BAD_REQUEST.newBuilder(headers)
+                    .set("error", "MISSING_HEADER")
+                    .set("header", Headers.SERVER)
+                    .build();
+        }
+
+        ServersTracker serversTracker = Main.getInstance().getServersTracker();
+
+        ServerInfo serverInfo = serversTracker.getServerInfo(serverName);
+
+        if (serverInfo == null)
+            return Response.INVALID_SERVER.build(headers);
 
         UUID islandUUID;
 
@@ -89,7 +179,7 @@ public class APIEndpoints {
             return Response.INVALID_ISLAND_UUID.build(headers);
         }
 
-        String server = Main.getInstance().getServersTracker().getServerOfIsland(islandUUID);
+        String server = serversTracker.getServerOfIsland(islandUUID);
 
         if (server == null)
             return Response.ISLAND_DOES_NOT_EXIST.build(headers);

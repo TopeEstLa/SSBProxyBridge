@@ -17,6 +17,10 @@ public enum Response {
             .httpStatus(HttpStatus.BAD_REQUEST)
             .set("error", "INVALID_ISLAND_UUID")),
 
+    INVALID_SERVER(responseBuilder -> responseBuilder
+            .httpStatus(HttpStatus.BAD_REQUEST)
+            .set("error", "INVALID_SERVER")),
+
     ISLAND_ALREADY_EXISTS(responseBuilder -> responseBuilder
             .httpStatus(HttpStatus.BAD_REQUEST)
             .set("error", "ISLAND_ALREADY_EXISTS")),

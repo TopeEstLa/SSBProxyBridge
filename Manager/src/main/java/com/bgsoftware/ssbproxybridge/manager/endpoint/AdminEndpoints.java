@@ -1,7 +1,7 @@
 package com.bgsoftware.ssbproxybridge.manager.endpoint;
 
 import com.bgsoftware.ssbproxybridge.manager.Main;
-import com.bgsoftware.ssbproxybridge.manager.tracker.Counter;
+import com.bgsoftware.ssbproxybridge.manager.tracker.ServerInfo;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,8 +19,8 @@ public class AdminEndpoints {
     public @ResponseBody ResponseEntity<String> getInfo(@RequestHeader Map<String, String> headers) {
         ResponseBuilder responseBuilder = Response.RESULT.newBuilder(headers);
 
-        Map<String, Counter> servers = Main.getInstance().getServersTracker().getServers();
-        servers.forEach((serverName, islandsCount) -> responseBuilder.set(serverName, islandsCount.get()));
+        Map<String, ServerInfo> servers = Main.getInstance().getServersTracker().getServers();
+        servers.forEach((serverName, islandsCount) -> responseBuilder.set(serverName, islandsCount.getIslandsCount()));
 
         return responseBuilder.build();
     }

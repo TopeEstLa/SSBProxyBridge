@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.LongNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import org.springframework.http.HttpStatus;
@@ -31,6 +32,11 @@ public class ResponseBuilder {
 
     public ResponseBuilder set(String field, int value) {
         this.responseNode.set(field, IntNode.valueOf(value));
+        return this;
+    }
+
+    public ResponseBuilder set(String field, long value) {
+        this.responseNode.set(field, LongNode.valueOf(value));
         return this;
     }
 
