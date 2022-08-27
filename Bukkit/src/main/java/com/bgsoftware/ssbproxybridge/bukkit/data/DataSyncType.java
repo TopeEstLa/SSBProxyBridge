@@ -43,6 +43,8 @@ public enum DataSyncType {
 
     /* Delete Operations */
 
+    DELETE_GRID(unused -> { /* Do nothing */ }),
+
     DELETE_ISLANDS(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
         optionalIsland(JsonMethods.convertFilters(filtersArray), island -> {
@@ -246,6 +248,8 @@ public enum DataSyncType {
 
     DELETE_PLAYERS_SETTINGS(unused -> { /* Do nothing */ }),
 
+    DELETE_STACKED_BLOCKS(unused -> { /* Do nothing */ }),
+
     /* Insert Operations */
 
     INSERT_BANK_TRANSACTIONS(dataObject -> {
@@ -260,6 +264,8 @@ public enum DataSyncType {
                 new BigDecimal(columns.get("amount").getAsString())
         )));
     }),
+
+    INSERT_GRID(unused -> { /* Do nothing */ }),
 
     INSERT_ISLANDS(dataObject -> {
         JsonObject columns = JsonMethods.convertColumns(dataObject.get("columns").getAsJsonArray());
@@ -559,7 +565,11 @@ public enum DataSyncType {
 
     INSERT_PLAYERS_SETTINGS(unused -> { /* Do nothing */ }),
 
+    INSERT_STACKED_BLOCKS(unused -> { /* Do nothing */ }),
+
     /* Updates Operations */
+
+    UPDATE_GRID_LAST_ISLAND(unused -> { /* Last islands are updated when new islands are created */ }),
 
     UPDATE_ISLANDS_BANKS_BALANCE(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
