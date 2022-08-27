@@ -1,4 +1,4 @@
-package com.bgsoftware.ssbproxybridge.bukkit.database.requests;
+package com.bgsoftware.ssbproxybridge.core.requests;
 
 public interface RequestHandlerAction {
 

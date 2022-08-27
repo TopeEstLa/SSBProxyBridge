@@ -1,7 +1,7 @@
 package com.bgsoftware.ssbproxybridge.bukkit.utils;
 
-import com.bgsoftware.ssbproxybridge.bukkit.database.requests.RequestHandlerAction;
-import com.bgsoftware.ssbproxybridge.bukkit.database.requests.RequestHandlerException;
+import com.bgsoftware.ssbproxybridge.core.requests.RequestHandlerAction;
+import com.bgsoftware.ssbproxybridge.core.requests.RequestHandlerException;
 import com.bgsoftware.superiorskyblock.api.data.DatabaseBridgeMode;
 import com.bgsoftware.superiorskyblock.api.data.IDatabaseBridgeHolder;
 

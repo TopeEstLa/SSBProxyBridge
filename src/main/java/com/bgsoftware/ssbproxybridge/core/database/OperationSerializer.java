@@ -14,7 +14,7 @@ public class OperationSerializer {
 
     }
 
-    public static JsonObject serializeOperation(String table, Collection<Filter> filters, Column... columns) {
+    public static JsonObject serializeOperation(String operationType, Collection<Filter> filters, Column... columns) {
         JsonObject operation = new JsonObject();
         JsonArray filtersArray = new JsonArray();
         JsonArray columnsData = new JsonArray();
@@ -39,7 +39,7 @@ public class OperationSerializer {
             }
         }
 
-        operation.addProperty("table", table);
+        operation.addProperty("type", operationType);
         operation.add("filters", filtersArray);
         operation.add("columns", columnsData);
 

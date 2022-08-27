@@ -1,4 +1,4 @@
-package com.bgsoftware.ssbproxybridge.bukkit.database;
+package com.bgsoftware.ssbproxybridge.bukkit.bridge;
 
 import com.bgsoftware.superiorskyblock.api.data.DatabaseBridge;
 import com.bgsoftware.superiorskyblock.api.factory.DatabaseBridgeFactory;

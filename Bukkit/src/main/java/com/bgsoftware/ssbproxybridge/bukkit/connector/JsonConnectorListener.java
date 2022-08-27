@@ -63,9 +63,17 @@ public abstract class JsonConnectorListener implements IConnector.IListener {
 
     protected abstract void processRequest(JsonObject dataObject);
 
+    protected abstract String getFallbackMessage();
+
     protected void handleRequestsFallback(JsonObject dataObject) {
-        this.module.getLogger().warning("Received data without an appropriate handler:");
+        this.module.getLogger().warning(getFallbackMessage());
         this.module.getLogger().warning(dataObject + "");
+    }
+
+    protected void handleFailureRequest(JsonObject dataObject, Throwable error) {
+        this.module.getLogger().warning("Received an unexpected error while handling request:");
+        this.module.getLogger().warning(dataObject + "");
+        error.printStackTrace();
     }
 
 }

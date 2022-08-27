@@ -1,5 +1,6 @@
-package com.bgsoftware.ssbproxybridge.bukkit.database.requests;
+package com.bgsoftware.ssbproxybridge.core.requests;
 
+import com.bgsoftware.ssbproxybridge.core.requests.RequestHandlerException;
 import com.google.gson.JsonElement;
 
 public interface RequestAction<E, V extends JsonElement> {

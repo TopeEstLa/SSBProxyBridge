@@ -1,4 +1,4 @@
-package com.bgsoftware.ssbproxybridge.bukkit.action;
+package com.bgsoftware.ssbproxybridge.bukkit.data;
 
 import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
 import com.bgsoftware.ssbproxybridge.bukkit.connector.JsonConnectorListener;
@@ -9,26 +9,26 @@ import com.google.gson.JsonPrimitive;
 
 import java.util.Locale;
 
-public class ActionsListener extends JsonConnectorListener {
+public class DataSyncListener extends JsonConnectorListener {
 
-    public ActionsListener(SSBProxyBridgeModule module) {
-        super(module, module.getSettings().messagingServiceActionsChannelName);
+    public DataSyncListener(SSBProxyBridgeModule module) {
+        super(module, module.getSettings().messagingServiceDataChannelName);
     }
 
     @Override
     protected void processRequest(JsonObject dataObject) {
-        JsonElement actionElement = dataObject.get("action");
+        JsonElement typeElement = dataObject.get("type");
 
-        if (!(actionElement instanceof JsonPrimitive)) {
-            handleFailureRequest(dataObject, new RequestHandlerException("Missing field \"action\""));
+        if (!(typeElement instanceof JsonPrimitive)) {
+            handleFailureRequest(dataObject, new RequestHandlerException("Missing field \"type\""));
             return;
         }
 
-        String action = actionElement.getAsString();
+        String type = typeElement.getAsString();
 
         try {
-            ActionType actionType = ActionType.valueOf(action.toUpperCase(Locale.ENGLISH));
-            actionType.getHandler().handle(dataObject);
+            DataSyncType dataSyncType = DataSyncType.valueOf(type.toUpperCase(Locale.ENGLISH));
+            dataSyncType.getHandler().handle(dataObject);
         } catch (IllegalArgumentException error) {
             handleRequestsFallback(dataObject);
         } catch (Throwable error) {
@@ -38,7 +38,7 @@ public class ActionsListener extends JsonConnectorListener {
 
     @Override
     protected String getFallbackMessage() {
-        return "Received an action without an appropriate handler:";
+        return "Received data without an appropriate handler:";
     }
 
 }

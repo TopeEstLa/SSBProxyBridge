@@ -1,9 +1,9 @@
 package com.bgsoftware.ssbproxybridge.bukkit;
 
 import com.bgsoftware.ssbproxybridge.bukkit.action.ActionsListener;
+import com.bgsoftware.ssbproxybridge.bukkit.bridge.ProxyDatabaseBridgeFactory;
 import com.bgsoftware.ssbproxybridge.bukkit.config.SettingsManager;
-import com.bgsoftware.ssbproxybridge.bukkit.database.DatabaseBridgeListener;
-import com.bgsoftware.ssbproxybridge.bukkit.database.ProxyDatabaseBridgeFactory;
+import com.bgsoftware.ssbproxybridge.bukkit.data.DataSyncListener;
 import com.bgsoftware.ssbproxybridge.bukkit.island.creation.RemoteIslandCreationAlgorithm;
 import com.bgsoftware.ssbproxybridge.bukkit.listener.PlayersListener;
 import com.bgsoftware.ssbproxybridge.bukkit.manager.ModuleManager;
@@ -90,7 +90,7 @@ public class SSBProxyBridgeModule extends PluginModule {
     @Nullable
     @Override
     public Listener[] getModuleListeners(SuperiorSkyblock plugin) {
-        return new Listener[]{new PlayersListener()};
+        return new Listener[]{new PlayersListener(this)};
     }
 
     @Nullable
@@ -145,7 +145,7 @@ public class SSBProxyBridgeModule extends PluginModule {
         try {
             // noinspection unchecked
             this.messagingConnector.connect(connectionArguments);
-            this.messagingConnector.registerListener(settingsManager.messagingServiceDataChannelName, new DatabaseBridgeListener(this));
+            this.messagingConnector.registerListener(settingsManager.messagingServiceDataChannelName, new DataSyncListener(this));
             this.messagingConnector.registerListener(settingsManager.messagingServiceActionsChannelName, new ActionsListener(this));
         } catch (ConnectionFailureException error) {
             getLogger().info("Failed to connect to messaging connector:");
