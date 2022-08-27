@@ -11,8 +11,12 @@ public class BukkitExecutor {
 
     }
 
-    public static void runTask(Runnable runnable) {
-        Bukkit.getScheduler().runTask(module.getPlugin(), runnable);
+    public static void runTask(Runnable task) {
+        Bukkit.getScheduler().runTask(module.getPlugin(), task);
+    }
+
+    public static void runTaskTimer(Runnable task, long delay, long period) {
+        Bukkit.getScheduler().runTaskTimer(module.getPlugin(), task, delay, period);
     }
 
 }

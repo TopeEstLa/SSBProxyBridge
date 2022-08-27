@@ -1,6 +1,7 @@
 package com.bgsoftware.ssbproxybridge.bukkit.manager;
 
 import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
+import com.bgsoftware.ssbproxybridge.bukkit.utils.BukkitExecutor;
 import com.bgsoftware.ssbproxybridge.core.connector.ConnectionFailureException;
 import com.bgsoftware.ssbproxybridge.core.connector.EmptyConnector;
 import com.bgsoftware.ssbproxybridge.core.connector.IConnectionArguments;
@@ -26,6 +27,7 @@ public class ModuleManager {
 
     @SuppressWarnings("rawtypes")
     private IConnector connector = EmptyConnector.getInstance();
+    private long keepAlive = 0;
 
     public ModuleManager(SSBProxyBridgeModule module) {
         this.module = module;
@@ -53,8 +55,12 @@ public class ModuleManager {
         try {
             // noinspection unchecked
             this.connector.connect(connectionArguments);
+
             if (sendHello)
                 sendPing();
+
+            if (this.keepAlive > 0)
+                BukkitExecutor.runTaskTimer(() -> sendRequest(RequestType.KEEP_ALIVE, ""), this.keepAlive, this.keepAlive);
         } catch (ConnectionFailureException error) {
             throw new RuntimeException("Failed to connect to manager connector:", error);
         }
@@ -75,9 +81,11 @@ public class ModuleManager {
         try {
             // Should block until we get a response.
             JsonObject response = responseFuture.get(10, TimeUnit.SECONDS);
-            System.out.println(response);
+
             if (response.has("error"))
                 throw new RuntimeException("Failed to register to the manager: " + response.get("error").getAsString());
+
+            this.keepAlive = response.get("keep-alive").getAsLong() / 50; // Converting milliseconds to ticks
         } catch (Exception error) {
             throw new RuntimeException("Failed to connect to the manager, aborting.", error);
         }
