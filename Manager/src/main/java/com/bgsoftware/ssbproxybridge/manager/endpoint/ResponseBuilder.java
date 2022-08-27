@@ -45,6 +45,11 @@ public class ResponseBuilder {
         return this;
     }
 
+    public ResponseBuilder set(String field, JsonNode value) {
+        this.responseNode.set(field, value);
+        return this;
+    }
+
     public ResponseEntity<String> build() {
         return ResponseEntity.status(this.httpStatus).body(this.responseNode.toPrettyString());
     }
