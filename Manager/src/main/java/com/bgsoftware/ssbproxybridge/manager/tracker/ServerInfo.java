@@ -2,11 +2,18 @@ package com.bgsoftware.ssbproxybridge.manager.tracker;
 
 public class ServerInfo {
 
+    private final String serverName;
     private int islandsCount = 0;
     private long lastPingTime;
 
-    public ServerInfo() {
+
+    public ServerInfo(String serverName) {
+        this.serverName = serverName;
         this.updateLastPingTime();
+    }
+
+    public String getServerName() {
+        return serverName;
     }
 
     public void increaseIslandsCount() {

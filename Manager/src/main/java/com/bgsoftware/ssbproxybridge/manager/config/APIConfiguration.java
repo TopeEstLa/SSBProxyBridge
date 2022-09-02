@@ -1,14 +1,16 @@
 package com.bgsoftware.ssbproxybridge.manager.config;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class APIConfiguration {
 
-    public final String spawnServerName;
+    public final List<String> excludedServers;
     public final long keepAlive;
 
     public APIConfiguration() {
-        this.spawnServerName = "spawn";
+        this.excludedServers = Arrays.asList("spawn");
         this.keepAlive = TimeUnit.MINUTES.toMillis(1);
     }
 

@@ -3,8 +3,11 @@ package com.bgsoftware.ssbproxybridge.manager.tracker;
 import com.bgsoftware.ssbproxybridge.manager.Main;
 import org.springframework.lang.Nullable;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -14,7 +17,7 @@ public class ServersTracker {
     private final Map<String, ServerInfo> servers = new HashMap<>();
 
     public void registerNewServer(String serverName) {
-        servers.put(serverName, new ServerInfo());
+        servers.put(serverName, new ServerInfo(serverName));
     }
 
     @Nullable
@@ -35,18 +38,15 @@ public class ServersTracker {
 
     @Nullable
     public String getServerForNewIsland() {
-        String chosenServer = null;
-        int chosenServerIslandsCount = 0;
+        List<ServerInfo> serverInfoList = new ArrayList<>(servers.values());
+        serverInfoList.sort(Comparator.comparingInt(ServerInfo::getIslandsCount));
 
-        for (Map.Entry<String, ServerInfo> entry : servers.entrySet()) {
-            if (checkLastPing(entry.getValue()) && (chosenServer == null ||
-                    entry.getValue().getIslandsCount() > chosenServerIslandsCount)) {
-                chosenServer = entry.getKey();
-                chosenServerIslandsCount = entry.getValue().getIslandsCount();
-            }
+        for (ServerInfo serverInfo : serverInfoList) {
+            if (checkLastPing(serverInfo) && !Main.getInstance().getConfig().excludedServers.contains(serverInfo.getServerName()))
+                return serverInfo.getServerName();
         }
 
-        return chosenServer;
+        return null;
     }
 
     @Nullable

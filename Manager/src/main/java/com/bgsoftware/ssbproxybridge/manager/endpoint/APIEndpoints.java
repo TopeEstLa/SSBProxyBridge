@@ -34,8 +34,7 @@ public class APIEndpoints {
                     .build();
         }
 
-        if (!Main.getInstance().getConfig().spawnServerName.equals(serverName))
-            Main.getInstance().getServersTracker().registerNewServer(serverName);
+        Main.getInstance().getServersTracker().registerNewServer(serverName);
 
         return Response.RESULT.newBuilder(headers)
                 .set("result", "hello")
