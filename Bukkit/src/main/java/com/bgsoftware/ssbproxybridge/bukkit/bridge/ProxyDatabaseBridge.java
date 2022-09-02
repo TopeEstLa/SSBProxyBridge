@@ -59,7 +59,7 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
     }
 
     @Override
-    public void updateObject(String table, @Nullable DatabaseFilter databaseFilter, Pair<String, Object>... pairs) {
+    public void updateObject(String table, @Nullable DatabaseFilter databaseFilter, Pair<String, Object>[] pairs) {
         if (isActivated && databaseBridgeMode == DatabaseBridgeMode.SAVE_DATA) {
             String type = buildDataSyncType("update", table, pairs);
             JsonObject operation = OperationSerializer.serializeOperation(type, createFilters(databaseFilter), createColumns(pairs));
@@ -69,9 +69,9 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
     }
 
     @Override
-    public void insertObject(String table, Pair<String, Object>... pairs) {
+    public void insertObject(String table, Pair<String, Object>[] pairs) {
         if (isActivated && databaseBridgeMode == DatabaseBridgeMode.SAVE_DATA) {
-            String type = buildDataSyncType("insert", table);
+            String type = buildDataSyncType("insert", table, null);
             JsonObject operation = OperationSerializer.serializeOperation(type, Collections.emptyList(), createColumns(pairs));
             commitData(finishData(operation));
             original.insertObject(table, pairs);
@@ -81,7 +81,7 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
     @Override
     public void deleteObject(String table, @Nullable DatabaseFilter databaseFilter) {
         if (isActivated && databaseBridgeMode == DatabaseBridgeMode.SAVE_DATA) {
-            String type = buildDataSyncType("delete", table, databaseFilter.getFilters().toArray(new Pair[0]));
+            String type = buildDataSyncType("delete", table, null);
             JsonObject operation = OperationSerializer.serializeOperation(type, createFilters(databaseFilter));
             commitData(finishData(operation));
             original.deleteObject(table, databaseFilter);
@@ -132,7 +132,7 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
                 });
     }
 
-    private static Column[] createColumns(Pair<String, Object>... pairs) {
+    private static Column[] createColumns(Pair<String, Object>[] pairs) {
         Column[] columns = new Column[pairs.length];
         for (int i = 0; i < pairs.length; ++i) {
             Pair<String, Object> pair = pairs[i];
@@ -141,12 +141,14 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
         return columns;
     }
 
-    private static String buildDataSyncType(String operationType, String table, Pair<String, Object>... actionIdentifiers) {
+    private static String buildDataSyncType(String operationType, String table, @Nullable Pair<String, Object>[] actionIdentifiers) {
         StringBuilder dataSyncType = new StringBuilder()
                 .append(operationType).append("_").append(table);
 
-        for (Pair<String, Object> identifier : actionIdentifiers) {
-            dataSyncType.append("_").append(identifier.getKey());
+        if (actionIdentifiers != null) {
+            for (Pair<String, Object> identifier : actionIdentifiers) {
+                dataSyncType.append("_").append(identifier.getKey());
+            }
         }
 
         return dataSyncType.toString();
