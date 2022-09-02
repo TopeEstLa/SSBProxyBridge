@@ -197,7 +197,7 @@ public enum DataSyncType {
 
     DELETE_ISLANDS_VISITORS(unused -> { /* Do nothing */ }),
 
-    DELETE_ISLANDS_VISITORS_HOMES(unused -> { /* Do nothing */ }),
+    DELETE_ISLANDS_VISITOR_HOMES(unused -> { /* Do nothing */ }),
 
     DELETE_ISLANDS_VISITOR_HOMES_ENVIRONMENT(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
@@ -875,20 +875,18 @@ public enum DataSyncType {
 
     UPDATE_PLAYERS_CUSTOM_DATA_DATA(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonObject columns = JsonMethods.convertColumns(dataObject.get("columns").getAsJsonArray());
-        requirePlayer(JsonMethods.convertFilters(filtersArray), superiorPlayer -> {
-            byte[] data = columns.get("data").getAsString().getBytes(StandardCharsets.UTF_8);
-            superiorPlayer.getPersistentDataContainer().load(data);
-        });
-    }),
-
-    UPDATE_PLAYERS_DISBANDS(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
         JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
         requirePlayer(JsonMethods.convertFilters(filtersArray), superiorPlayer -> JsonMethods.forEach(columnsArray, value -> {
             byte[] data = value.getAsString().getBytes(StandardCharsets.UTF_8);
             superiorPlayer.getPersistentDataContainer().load(data);
         }));
+    }),
+
+    UPDATE_PLAYERS_DISBANDS(dataObject -> {
+        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
+        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
+        requirePlayer(JsonMethods.convertFilters(filtersArray), superiorPlayer -> JsonMethods.forEach(columnsArray, value ->
+                superiorPlayer.setDisbands(value.getAsInt())));
     }),
 
     UPDATE_PLAYERS_LAST_TIME_UPDATED(dataObject -> {
