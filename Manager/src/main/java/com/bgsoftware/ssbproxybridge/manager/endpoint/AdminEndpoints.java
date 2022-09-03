@@ -1,6 +1,6 @@
 package com.bgsoftware.ssbproxybridge.manager.endpoint;
 
-import com.bgsoftware.ssbproxybridge.manager.Main;
+import com.bgsoftware.ssbproxybridge.manager.ManagerServer;
 import com.bgsoftware.ssbproxybridge.manager.tracker.ServerInfo;
 import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -24,11 +24,13 @@ public class AdminEndpoints {
 
     private static final DateFormat DATE_FORMAT = new SimpleDateFormat("HH:mm:ss");
 
+    private static final ManagerServer managerServer = ManagerServer.getInstance();
+
     @RequestMapping(value = "/info", method = RequestMethod.GET, produces = "application/json")
     public @ResponseBody ResponseEntity<String> getInfo(@RequestHeader Map<String, String> headers) {
         ResponseBuilder responseBuilder = Response.RESULT.newBuilder(headers);
 
-        Map<String, ServerInfo> servers = Main.getInstance().getServersTracker().getServers();
+        Map<String, ServerInfo> servers = managerServer.getServersTracker().getServers();
         servers.forEach((serverName, serverInfo) -> {
             ObjectNode serverNode = new ObjectNode(JsonNodeFactory.instance);
             serverNode.set("islands", IntNode.valueOf(serverInfo.getIslandsCount()));
@@ -41,7 +43,7 @@ public class AdminEndpoints {
 
     @RequestMapping(value = "/clear", method = RequestMethod.GET, produces = "application/json")
     public RedirectView clear() {
-        Main.getInstance().getServersTracker().clear();
+        managerServer.getServersTracker().clear();
         return new RedirectView("/info");
     }
 

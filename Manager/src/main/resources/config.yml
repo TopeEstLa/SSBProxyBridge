@@ -1,0 +1,21 @@
+######################################################
+##                                                  ##
+##              SSBProxyBridge Manager              ##
+##                Developed by Ome_R                ##
+##                                                  ##
+######################################################
+
+# Settings related to the server.
+server:
+  # The address to listen for connections.
+  address: '0.0.0.0'
+  # The port to listen to.
+  port: 5000
+
+# The interval the servers should send keep-alives, in seconds.
+# If a server fails to send a keep-alive packet twice, the server is considered shutdown.
+keep-alive: 60
+
+# A list of servers that should not have islands created in them.
+excluded-servers:
+  - 'spawn'

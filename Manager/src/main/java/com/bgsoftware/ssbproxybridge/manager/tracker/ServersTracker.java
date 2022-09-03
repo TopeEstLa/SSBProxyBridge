@@ -1,6 +1,6 @@
 package com.bgsoftware.ssbproxybridge.manager.tracker;
 
-import com.bgsoftware.ssbproxybridge.manager.Main;
+import com.bgsoftware.ssbproxybridge.manager.ManagerServer;
 import org.springframework.lang.Nullable;
 
 import java.util.ArrayList;
@@ -15,6 +15,12 @@ public class ServersTracker {
 
     private final Map<UUID, String> islandsToServers = new HashMap<>();
     private final Map<String, ServerInfo> servers = new HashMap<>();
+
+    private final ManagerServer managerServer;
+
+    public ServersTracker(ManagerServer managerServer) {
+        this.managerServer = managerServer;
+    }
 
     public void registerNewServer(String serverName) {
         servers.put(serverName, new ServerInfo(serverName));
@@ -42,7 +48,7 @@ public class ServersTracker {
         serverInfoList.sort(Comparator.comparingInt(ServerInfo::getIslandsCount));
 
         for (ServerInfo serverInfo : serverInfoList) {
-            if (checkLastPing(serverInfo) && !Main.getInstance().getConfig().excludedServers.contains(serverInfo.getServerName()))
+            if (checkLastPing(serverInfo) && !managerServer.getConfig().excludedServers.contains(serverInfo.getServerName()))
                 return serverInfo.getServerName();
         }
 
@@ -65,7 +71,7 @@ public class ServersTracker {
 
     private boolean checkLastPing(ServerInfo serverInfo) {
         long timeFromLastPing = System.currentTimeMillis() - serverInfo.getLastPingTime();
-        return timeFromLastPing <= Main.getInstance().getConfig().keepAlive * 2;
+        return timeFromLastPing <= managerServer.getConfig().keepAlive * 2;
     }
 
 }

@@ -1,6 +1,6 @@
 package com.bgsoftware.ssbproxybridge.manager.endpoint;
 
-import com.bgsoftware.ssbproxybridge.manager.Main;
+import com.bgsoftware.ssbproxybridge.manager.ManagerServer;
 import com.bgsoftware.ssbproxybridge.manager.tracker.ServerInfo;
 import com.bgsoftware.ssbproxybridge.manager.tracker.ServersTracker;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +20,8 @@ public class APIEndpoints {
 
     private static final String SERVER_SECRET = "SECRET";
 
+    private static final ManagerServer managerServer = ManagerServer.getInstance();
+
     @RequestMapping(value = "/", method = {RequestMethod.GET, RequestMethod.POST}, produces = "application/json")
     public @ResponseBody ResponseEntity<String> hello(@RequestHeader Map<String, String> headers) {
         if (!checkSecret(headers.get(Headers.AUTHORIZATION)))
@@ -34,11 +36,11 @@ public class APIEndpoints {
                     .build();
         }
 
-        Main.getInstance().getServersTracker().registerNewServer(serverName);
+        managerServer.getServersTracker().registerNewServer(serverName);
 
         return Response.RESULT.newBuilder(headers)
                 .set("result", "hello")
-                .set("keep-alive", Main.getInstance().getConfig().keepAlive)
+                .set("keep-alive", managerServer.getConfig().keepAlive)
                 .build();
     }
 
@@ -56,9 +58,7 @@ public class APIEndpoints {
                     .build();
         }
 
-        ServersTracker serversTracker = Main.getInstance().getServersTracker();
-
-        ServerInfo serverInfo = serversTracker.getServerInfo(serverName);
+        ServerInfo serverInfo = managerServer.getServersTracker().getServerInfo(serverName);
 
         if (serverInfo == null)
             return Response.INVALID_SERVER.build(headers);
@@ -84,9 +84,7 @@ public class APIEndpoints {
                     .build();
         }
 
-        ServersTracker serversTracker = Main.getInstance().getServersTracker();
-
-        ServerInfo serverInfo = serversTracker.getServerInfo(serverName);
+        ServerInfo serverInfo = managerServer.getServersTracker().getServerInfo(serverName);
 
         if (serverInfo == null)
             return Response.INVALID_SERVER.build(headers);
@@ -113,7 +111,7 @@ public class APIEndpoints {
                     .build();
         }
 
-        ServersTracker serversTracker = Main.getInstance().getServersTracker();
+        ServersTracker serversTracker = managerServer.getServersTracker();
 
         ServerInfo serverInfo = serversTracker.getServerInfo(serverName);
 
@@ -163,7 +161,7 @@ public class APIEndpoints {
                     .build();
         }
 
-        ServersTracker serversTracker = Main.getInstance().getServersTracker();
+        ServersTracker serversTracker = managerServer.getServersTracker();
 
         ServerInfo serverInfo = serversTracker.getServerInfo(serverName);
 
