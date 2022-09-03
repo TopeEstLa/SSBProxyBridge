@@ -18,8 +18,6 @@ import java.util.UUID;
 @RestController
 public class APIEndpoints {
 
-    private static final String SERVER_SECRET = "SECRET";
-
     private static final ManagerServer managerServer = ManagerServer.getInstance();
 
     @RequestMapping(value = "/", method = {RequestMethod.GET, RequestMethod.POST}, produces = "application/json")
@@ -187,7 +185,7 @@ public class APIEndpoints {
     }
 
     private static boolean checkSecret(@Nullable String secret) {
-        return SERVER_SECRET.equals(secret);
+        return managerServer.getSecret().equals(secret);
     }
 
 }
