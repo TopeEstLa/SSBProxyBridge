@@ -1,5 +1,6 @@
 package com.bgsoftware.ssbproxybridge.bukkit.data;
 
+import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
 import com.bgsoftware.ssbproxybridge.bukkit.bridge.ProxyDatabaseBridge;
 import com.bgsoftware.ssbproxybridge.bukkit.bridge.ProxyDatabaseBridgeFactory;
 import com.bgsoftware.ssbproxybridge.bukkit.island.BankTransactionImpl;
@@ -36,6 +37,7 @@ import org.bukkit.potion.PotionEffectType;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.util.EnumMap;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -954,6 +956,9 @@ public enum DataSyncType {
         ));
     });
 
+    private static final SSBProxyBridgeModule module = SSBProxyBridgeModule.getModule();
+    private static final EnumMap<DataSyncType, Long> SEQUENCE_NUMBERS = new EnumMap<>(DataSyncType.class);
+
     private final IRequestHandler requestHandler;
 
     DataSyncType(IRequestHandler requestHandler) {
@@ -962,6 +967,22 @@ public enum DataSyncType {
 
     public IRequestHandler getHandler() {
         return requestHandler;
+    }
+
+    public boolean onSent(JsonObject data) {
+        long sequenceNumber = System.currentTimeMillis();
+        data.addProperty("sender", module.getSettings().serverName);
+        data.addProperty("channel", module.getSettings().messagingServiceDataChannelName);
+        data.addProperty("sequenceNumber", sequenceNumber);
+        Long oldSequenceNumber = SEQUENCE_NUMBERS.put(this, sequenceNumber);
+        // We make sure the old sequence number is lower than the current one
+        // Because we use times for sequence number this situation should never occur, however better being safe.
+        return oldSequenceNumber == null || oldSequenceNumber < sequenceNumber;
+    }
+
+    public boolean onReceive(JsonObject data) {
+        long sequenceNumber = data.get("sequenceNumber").getAsLong();
+        return sequenceNumber > SEQUENCE_NUMBERS.getOrDefault(this, 0L);
     }
 
     private static void requireIsland(JsonObject data, RequestHandlerConsumer<Island> consumer) throws RequestHandlerException {

@@ -1,6 +1,7 @@
 package com.bgsoftware.ssbproxybridge.bukkit.bridge;
 
 import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
+import com.bgsoftware.ssbproxybridge.bukkit.data.DataSyncType;
 import com.bgsoftware.ssbproxybridge.core.database.Column;
 import com.bgsoftware.ssbproxybridge.core.database.Filter;
 import com.bgsoftware.ssbproxybridge.core.database.OperationSerializer;
@@ -19,6 +20,7 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -61,9 +63,13 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
     @Override
     public void updateObject(String table, @Nullable DatabaseFilter databaseFilter, Pair<String, Object>[] pairs) {
         if (isActivated && databaseBridgeMode == DatabaseBridgeMode.SAVE_DATA) {
-            String type = buildDataSyncType("update", table, pairs);
-            JsonObject operation = OperationSerializer.serializeOperation(type, createFilters(databaseFilter), createColumns(pairs));
-            commitData(finishData(operation));
+            DataSyncType type = buildDataSyncType("update", table, pairs);
+
+            JsonObject operation = OperationSerializer.serializeOperation(type.name(), createFilters(databaseFilter), createColumns(pairs));
+
+            if (type.onSent(operation))
+                commitData(operation);
+
             original.updateObject(table, databaseFilter, pairs);
         }
     }
@@ -71,9 +77,13 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
     @Override
     public void insertObject(String table, Pair<String, Object>[] pairs) {
         if (isActivated && databaseBridgeMode == DatabaseBridgeMode.SAVE_DATA) {
-            String type = buildDataSyncType("insert", table, null);
-            JsonObject operation = OperationSerializer.serializeOperation(type, Collections.emptyList(), createColumns(pairs));
-            commitData(finishData(operation));
+            DataSyncType type = buildDataSyncType("insert", table, null);
+
+            JsonObject operation = OperationSerializer.serializeOperation(type.name(), Collections.emptyList(), createColumns(pairs));
+
+            if (type.onSent(operation))
+                commitData(operation);
+
             original.insertObject(table, pairs);
         }
     }
@@ -81,9 +91,13 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
     @Override
     public void deleteObject(String table, @Nullable DatabaseFilter databaseFilter) {
         if (isActivated && databaseBridgeMode == DatabaseBridgeMode.SAVE_DATA) {
-            String type = buildDataSyncType("delete", table, null);
-            JsonObject operation = OperationSerializer.serializeOperation(type, createFilters(databaseFilter));
-            commitData(finishData(operation));
+            DataSyncType type = buildDataSyncType("delete", table, null);
+
+            JsonObject operation = OperationSerializer.serializeOperation(type.name(), createFilters(databaseFilter));
+
+            if (type.onSent(operation))
+                commitData(operation);
+
             original.deleteObject(table, databaseFilter);
         }
     }
@@ -105,12 +119,6 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
 
     public void activate() {
         isActivated = true;
-    }
-
-    private JsonObject finishData(JsonObject dataObject) {
-        dataObject.addProperty("sender", module.getSettings().serverName);
-        dataObject.addProperty("channel", module.getSettings().messagingServiceDataChannelName);
-        return dataObject;
     }
 
     private void commitData(JsonElement data) {
@@ -141,7 +149,7 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
         return columns;
     }
 
-    private static String buildDataSyncType(String operationType, String table, @Nullable Pair<String, Object>[] actionIdentifiers) {
+    private static DataSyncType buildDataSyncType(String operationType, String table, @Nullable Pair<String, Object>[] actionIdentifiers) {
         StringBuilder dataSyncType = new StringBuilder()
                 .append(operationType).append("_").append(table);
 
@@ -151,7 +159,7 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
             }
         }
 
-        return dataSyncType.toString();
+        return DataSyncType.valueOf(dataSyncType.toString().toUpperCase(Locale.ENGLISH));
     }
 
     private static void tryLoadData(String table, Map<String, Object> loadedData, Consumer<Map<String, Object>> original) {
