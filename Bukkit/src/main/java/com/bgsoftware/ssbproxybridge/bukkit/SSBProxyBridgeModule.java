@@ -23,6 +23,7 @@ import com.bgsoftware.superiorskyblock.api.commands.SuperiorCommand;
 import com.bgsoftware.superiorskyblock.api.modules.ModuleLoadTime;
 import com.bgsoftware.superiorskyblock.api.modules.PluginModule;
 import com.bgsoftware.superiorskyblock.api.world.algorithm.IslandCreationAlgorithm;
+import org.bukkit.Bukkit;
 import org.bukkit.event.Listener;
 
 import javax.annotation.Nullable;
@@ -43,6 +44,8 @@ public class SSBProxyBridgeModule extends PluginModule {
     @SuppressWarnings("rawtypes")
     private IConnector messagingConnector = EmptyConnector.getInstance();
 
+    private boolean enabled = false;
+
     public SSBProxyBridgeModule() {
         super("SSBProxyBridge", "Ome_R");
         INSTANCE = this;
@@ -50,29 +53,36 @@ public class SSBProxyBridgeModule extends PluginModule {
 
     @Override
     public void onEnable(SuperiorSkyblock plugin) {
-        this.plugin = plugin;
+        try {
+            this.plugin = plugin;
 
-        if (SuperiorSkyblockAPI.getAPIVersion() < API_VERSION)
-            throw new RuntimeException("SuperiorSkyblock2 API version is not supported: " + SuperiorSkyblockAPI.getAPIVersion() + " < " + API_VERSION);
+            if (SuperiorSkyblockAPI.getAPIVersion() < API_VERSION)
+                throw new RuntimeException("SuperiorSkyblock2 API version is not supported: " + SuperiorSkyblockAPI.getAPIVersion() + " < " + API_VERSION);
 
-        this.settingsManager = new SettingsManager(this);
-        this.moduleManager = new ModuleManager(this);
+            this.settingsManager = new SettingsManager(this);
+            this.moduleManager = new ModuleManager(this);
 
-        // Setup manager connector first, so we know data can be loaded from it.
-        this.moduleManager.setupManager();
-        // Setup messaging connector so the modules can talk with each other.
-        setupMessagingConnector();
+            // Setup manager connector first, so we know data can be loaded from it.
+            this.moduleManager.setupManager();
+            // Setup messaging connector so the modules can talk with each other.
+            setupMessagingConnector();
 
-        // Setup the custom factories for SuperiorSkyblock2
-        setupDatabaseBridgeFactory();
-        setupPlayersFactory();
+            // Setup the custom factories for SuperiorSkyblock2
+            setupDatabaseBridgeFactory();
+            setupPlayersFactory();
 
-        // Setup outgoing plugin channel for BungeeCord
-        // Used to teleport the player, send messages, etc.
-        ProxyPlayerBridge.register(plugin);
+            // Setup outgoing plugin channel for BungeeCord
+            // Used to teleport the player, send messages, etc.
+            ProxyPlayerBridge.register(plugin);
 
-        // We register the IslandCreationAlgorithm on the first tick, as we need the default one to load first.
-        plugin.getServer().getScheduler().runTask(plugin, this::setupIslandCreationAlgorithm);
+            // We register the IslandCreationAlgorithm on the first tick, as we need the default one to load first.
+            plugin.getServer().getScheduler().runTask(plugin, this::setupIslandCreationAlgorithm);
+
+            enabled = true;
+        } finally {
+            if (!enabled)
+                Bukkit.shutdown();
+        }
     }
 
     @Override
