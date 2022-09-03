@@ -101,7 +101,8 @@ public class HttpConnector extends ConnectorAbstract<HttpConnectionArguments> {
 
                 StringBuilder body = new StringBuilder();
 
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(
+                        connection.getResponseCode() == 200 ? connection.getInputStream() : connection.getErrorStream()))) {
                     String line;
                     while ((line = reader.readLine()) != null) {
                         if (body.length() > 0)
