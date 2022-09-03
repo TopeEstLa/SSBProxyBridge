@@ -32,7 +32,8 @@ public class DataSyncListener extends JsonConnectorListener {
             if (!dataSyncType.onReceive(dataObject))
                 throw new IllegalStateException("Cannot receive the packet " + dataSyncType);
 
-            dataSyncType.getHandler().handle(dataObject);
+            if (dataSyncType.getHandler() != null)
+                dataSyncType.getHandler().handle(dataObject);
         } catch (IllegalArgumentException error) {
             handleRequestsFallback(dataObject);
         } catch (Throwable error) {

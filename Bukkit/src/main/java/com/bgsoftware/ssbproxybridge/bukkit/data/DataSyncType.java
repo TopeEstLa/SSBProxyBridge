@@ -35,6 +35,7 @@ import com.google.gson.JsonObject;
 import org.bukkit.World;
 import org.bukkit.potion.PotionEffectType;
 
+import javax.annotation.Nullable;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.EnumMap;
@@ -45,7 +46,7 @@ public enum DataSyncType {
 
     /* Delete Operations */
 
-    DELETE_GRID(unused -> { /* Do nothing */ }),
+    DELETE_GRID(),
 
     DELETE_ISLANDS(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
@@ -58,9 +59,9 @@ public enum DataSyncType {
         });
     }),
 
-    DELETE_ISLANDS_BANKS(unused -> { /* Do nothing */ }),
+    DELETE_ISLANDS_BANKS(),
 
-    DELETE_ISLANDS_BANS(unused -> { /* Do nothing */ }),
+    DELETE_ISLANDS_BANS(),
 
     DELETE_ISLANDS_BANS_PLAYER(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
@@ -81,9 +82,9 @@ public enum DataSyncType {
         ));
     }),
 
-    DELETE_ISLANDS_CHESTS(unused -> { /* Do nothing */ }),
+    DELETE_ISLANDS_CHESTS(),
 
-    DELETE_ISLANDS_CUSTOM_DATA(unused -> { /* Do nothing */ }),
+    DELETE_ISLANDS_CUSTOM_DATA(),
 
     DELETE_ISLANDS_EFFECTS(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
@@ -97,9 +98,9 @@ public enum DataSyncType {
         ));
     }),
 
-    DELETE_ISLANDS_FLAGS(unused -> { /* Do nothing */ }),
+    DELETE_ISLANDS_FLAGS(),
 
-    DELETE_ISLANDS_GENERATORS(unused -> { /* Do nothing */ }),
+    DELETE_ISLANDS_GENERATORS(),
 
     DELETE_ISLANDS_GENERATORS_ENVIRONMENT(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
@@ -117,7 +118,7 @@ public enum DataSyncType {
         ));
     }),
 
-    DELETE_ISLANDS_HOMES(unused -> { /* Do nothing */ }),
+    DELETE_ISLANDS_HOMES(),
 
     DELETE_ISLANDS_HOMES_ENVIRONMENT(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
@@ -133,7 +134,7 @@ public enum DataSyncType {
         ));
     }),
 
-    DELETE_ISLANDS_MEMBERS(unused -> { /* Do nothing */ }),
+    DELETE_ISLANDS_MEMBERS(),
 
     DELETE_ISLANDS_MEMBERS_PLAYER(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
@@ -143,7 +144,7 @@ public enum DataSyncType {
         }));
     }),
 
-    DELETE_ISLANDS_MISSIONS(unused -> { /* Do nothing */ }),
+    DELETE_ISLANDS_MISSIONS(),
 
     DELETE_ISLANDS_MISSIONS_NAME(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
@@ -158,7 +159,7 @@ public enum DataSyncType {
         }));
     }),
 
-    DELETE_ISLANDS_PLAYER_PERMISSIONS(unused -> { /* Do nothing */ }),
+    DELETE_ISLANDS_PLAYER_PERMISSIONS(),
 
     DELETE_ISLANDS_PLAYER_PERMISSIONS_PLAYER(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
@@ -179,7 +180,7 @@ public enum DataSyncType {
         ));
     }),
 
-    DELETE_ISLANDS_ROLE_LIMITS(unused -> { /* Do nothing */ }),
+    DELETE_ISLANDS_ROLE_LIMITS(),
 
     DELETE_ISLANDS_ROLE_LIMITS_ROLE(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
@@ -193,20 +194,20 @@ public enum DataSyncType {
         optionalIsland(JsonMethods.convertFilters(filtersArray), Island::resetPermissions);
     }),
 
-    DELETE_ISLANDS_SETTINGS(unused -> { /* Do nothing */ }),
+    DELETE_ISLANDS_SETTINGS(),
 
-    DELETE_ISLANDS_UPGRADES(unused -> { /* Do nothing */ }),
+    DELETE_ISLANDS_UPGRADES(),
 
-    DELETE_ISLANDS_VISITORS(unused -> { /* Do nothing */ }),
+    DELETE_ISLANDS_VISITORS(),
 
-    DELETE_ISLANDS_VISITOR_HOMES(unused -> { /* Do nothing */ }),
+    DELETE_ISLANDS_VISITOR_HOMES(),
 
     DELETE_ISLANDS_VISITOR_HOMES_ENVIRONMENT(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
         optionalIsland(JsonMethods.convertFilters(filtersArray), island -> island.setVisitorsLocation(null));
     }),
 
-    DELETE_ISLANDS_WARPS(unused -> { /* Do nothing */ }),
+    DELETE_ISLANDS_WARPS(),
 
     DELETE_ISLANDS_WARPS_NAME(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
@@ -215,7 +216,7 @@ public enum DataSyncType {
         ));
     }),
 
-    DELETE_ISLANDS_WARP_CATEGORIES(unused -> { /* Do nothing */ }),
+    DELETE_ISLANDS_WARP_CATEGORIES(),
 
     DELETE_ISLANDS_WARP_CATEGORIES_NAME(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
@@ -231,9 +232,9 @@ public enum DataSyncType {
         );
     }),
 
-    DELETE_PLAYERS_CUSTOM_DATA(unused -> { /* Do nothing */ }),
+    DELETE_PLAYERS_CUSTOM_DATA(),
 
-    DELETE_PLAYERS_MISSIONS(unused -> { /* Do nothing */ }),
+    DELETE_PLAYERS_MISSIONS(),
 
     DELETE_PLAYERS_MISSIONS_NAME(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
@@ -248,9 +249,9 @@ public enum DataSyncType {
         }));
     }),
 
-    DELETE_PLAYERS_SETTINGS(unused -> { /* Do nothing */ }),
+    DELETE_PLAYERS_SETTINGS(),
 
-    DELETE_STACKED_BLOCKS(unused -> { /* Do nothing */ }),
+    DELETE_STACKED_BLOCKS(),
 
     /* Insert Operations */
 
@@ -267,7 +268,7 @@ public enum DataSyncType {
         )));
     }),
 
-    INSERT_GRID(unused -> { /* Do nothing */ }),
+    INSERT_GRID(),
 
     INSERT_ISLANDS(dataObject -> {
         JsonObject columns = JsonMethods.convertColumns(dataObject.get("columns").getAsJsonArray());
@@ -343,7 +344,8 @@ public enum DataSyncType {
         ));
     }),
 
-    INSERT_ISLANDS_CHESTS(unused -> { /* We do not update chests */ }),
+    /* We do not update chests */
+    INSERT_ISLANDS_CHESTS(),
 
     INSERT_ISLANDS_CUSTOM_DATA(dataObject -> {
         JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
@@ -464,7 +466,8 @@ public enum DataSyncType {
         ));
     }),
 
-    INSERT_ISLANDS_SETTINGS(unused -> { /* Do nothing, as upgrades will not be synced otherwise */ }),
+    /* Do nothing, as upgrades will not be synced otherwise */
+    INSERT_ISLANDS_SETTINGS(),
 
     INSERT_ISLANDS_UPGRADES(dataObject -> {
         JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
@@ -565,13 +568,14 @@ public enum DataSyncType {
         });
     }),
 
-    INSERT_PLAYERS_SETTINGS(unused -> { /* Do nothing */ }),
+    INSERT_PLAYERS_SETTINGS(),
 
-    INSERT_STACKED_BLOCKS(unused -> { /* Do nothing */ }),
+    INSERT_STACKED_BLOCKS(),
 
     /* Updates Operations */
 
-    UPDATE_GRID_LAST_ISLAND(unused -> { /* Last islands are updated when new islands are created */ }),
+    /* Last islands are updated when new islands are created */
+    UPDATE_GRID_LAST_ISLAND(),
 
     UPDATE_ISLANDS_BANKS_BALANCE(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
@@ -606,7 +610,8 @@ public enum DataSyncType {
         ));
     }),
 
-    UPDATE_ISLANDS_DIRTY_CHUNKS(unused -> { /* We do not care about dirty chunks */ }),
+    /* We do not care about dirty chunks */
+    UPDATE_ISLANDS_DIRTY_CHUNKS(),
 
     UPDATE_ISLANDS_DISCORD(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
@@ -965,6 +970,11 @@ public enum DataSyncType {
         this.requestHandler = requestHandler;
     }
 
+    DataSyncType() {
+        this(null);
+    }
+
+    @Nullable
     public IRequestHandler getHandler() {
         return requestHandler;
     }
@@ -982,7 +992,14 @@ public enum DataSyncType {
 
     public boolean onReceive(JsonObject data) {
         long sequenceNumber = data.get("sequenceNumber").getAsLong();
-        return sequenceNumber > SEQUENCE_NUMBERS.getOrDefault(this, 0L);
+
+        if (sequenceNumber <= SEQUENCE_NUMBERS.getOrDefault(this, 0L)) {
+            System.out.println("Seq Number of packet: " + sequenceNumber);
+            System.out.println("Cached Seq Number: " + SEQUENCE_NUMBERS.getOrDefault(this, 0L));
+            return false;
+        }
+
+        return true;
     }
 
     private static void requireIsland(JsonObject data, RequestHandlerConsumer<Island> consumer) throws RequestHandlerException {

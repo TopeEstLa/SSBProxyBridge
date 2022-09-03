@@ -67,7 +67,7 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
 
             JsonObject operation = OperationSerializer.serializeOperation(type.name(), createFilters(databaseFilter), createColumns(pairs));
 
-            if (type.onSent(operation))
+            if (type.getHandler() != null && type.onSent(operation))
                 commitData(operation);
 
             original.updateObject(table, databaseFilter, pairs);
@@ -81,7 +81,7 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
 
             JsonObject operation = OperationSerializer.serializeOperation(type.name(), Collections.emptyList(), createColumns(pairs));
 
-            if (type.onSent(operation))
+            if (type.getHandler() != null && type.onSent(operation))
                 commitData(operation);
 
             original.insertObject(table, pairs);
@@ -95,7 +95,7 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
 
             JsonObject operation = OperationSerializer.serializeOperation(type.name(), createFilters(databaseFilter));
 
-            if (type.onSent(operation))
+            if (type.getHandler() != null && type.onSent(operation))
                 commitData(operation);
 
             original.deleteObject(table, databaseFilter);
