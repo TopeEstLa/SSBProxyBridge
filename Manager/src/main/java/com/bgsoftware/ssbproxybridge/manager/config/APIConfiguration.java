@@ -19,8 +19,8 @@ public class APIConfiguration {
     public final String serverAddress;
     public final int serverPort;
 
-    public final List<String> excludedServers;
     public final long keepAlive;
+    public final List<String> excludedServers;
 
     public APIConfiguration() throws IOException {
         File file = new File("config.yml");
@@ -32,8 +32,8 @@ public class APIConfiguration {
 
         this.serverAddress = configReader.get("server.address", "0.0.0.0");
         this.serverPort = configReader.get("server.port", 5000);
-        this.excludedServers = configReader.get("excluded-servers", Collections.singletonList("spawn"));
         this.keepAlive = TimeUnit.SECONDS.toMillis(configReader.get("keep-alive", 60));
+        this.excludedServers = configReader.get("excluded-servers", Collections.singletonList("spawn"));
     }
 
 }
