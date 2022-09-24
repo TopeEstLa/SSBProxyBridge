@@ -42,6 +42,17 @@ public class ServersTracker {
         islandsToServers.put(islandUUID, serverName);
     }
 
+    public void untrackIsland(UUID islandUUID) {
+        String serverName = islandsToServers.remove(islandUUID);
+        if (serverName != null) {
+            ServerInfo serverInfo = servers.get(serverName);
+            if (serverInfo != null) {
+                serverInfo.decreaseIslandsCount();
+                serverInfo.updateLastPingTime();
+            }
+        }
+    }
+
     @Nullable
     public String getServerForNewIsland() {
         List<ServerInfo> serverInfoList = new ArrayList<>(servers.values());

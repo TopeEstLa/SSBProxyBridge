@@ -20,6 +20,10 @@ public class ServerInfo {
         ++this.islandsCount;
     }
 
+    public void decreaseIslandsCount() {
+        --this.islandsCount;
+    }
+
     public int getIslandsCount() {
         return islandsCount;
     }

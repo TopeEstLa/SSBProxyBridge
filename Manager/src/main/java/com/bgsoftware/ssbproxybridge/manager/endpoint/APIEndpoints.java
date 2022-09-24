@@ -144,6 +144,38 @@ public class APIEndpoints {
         }
     }
 
+    @RequestMapping(value = "/island/{islandUUID}", method = RequestMethod.DELETE, produces = "application/json")
+    public @ResponseBody ResponseEntity<String> deleteIsland(@RequestHeader Map<String, String> headers,
+                                                             @PathVariable(value = "islandUUID") String islandUUIDParam) {
+        if (!checkSecret(headers.get(Headers.AUTHORIZATION)))
+            return Response.UNAUTHORIZED.build(headers);
+
+        String serverName = headers.get(Headers.SERVER);
+
+        if (serverName == null) {
+            return Response.BAD_REQUEST.newBuilder(headers)
+                    .set("error", "MISSING_HEADER")
+                    .set("header", Headers.SERVER)
+                    .build();
+        }
+
+        UUID islandUUID;
+
+        try {
+            islandUUID = UUID.fromString(islandUUIDParam);
+        } catch (IllegalArgumentException error) {
+            return Response.INVALID_ISLAND_UUID.build(headers);
+        }
+
+        ServersTracker serversTracker = managerServer.getServersTracker();
+
+        serversTracker.untrackIsland(islandUUID);
+
+        return Response.RESULT.newBuilder(headers)
+                .set("result", "OK")
+                .build();
+    }
+
     @RequestMapping(value = "/island/{islandUUID}", method = RequestMethod.GET, produces = "application/json")
     public @ResponseBody ResponseEntity<String> getIslandServer(@RequestHeader Map<String, String> headers,
                                                                 @PathVariable(value = "islandUUID") String islandUUIDParam) {

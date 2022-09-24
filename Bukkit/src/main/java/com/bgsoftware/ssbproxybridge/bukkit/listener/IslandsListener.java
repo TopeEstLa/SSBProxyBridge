@@ -4,6 +4,7 @@ import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
 import com.bgsoftware.ssbproxybridge.bukkit.bridge.ProxyDatabaseBridge;
 import com.bgsoftware.superiorskyblock.api.data.DatabaseBridge;
 import com.bgsoftware.superiorskyblock.api.data.DatabaseFilter;
+import com.bgsoftware.superiorskyblock.api.events.IslandDisbandEvent;
 import com.bgsoftware.superiorskyblock.api.events.IslandInviteEvent;
 import com.bgsoftware.superiorskyblock.api.objects.Pair;
 import org.bukkit.event.EventHandler;
@@ -29,6 +30,11 @@ public class IslandsListener implements Listener {
         proxyDatabaseBridge.customOperation("islands",
                 DatabaseFilter.fromFilter("uuid", event.getIsland().getUniqueId().toString()),
                 new Pair[]{new Pair<>("invite_player", event.getTarget().getUniqueId().toString())});
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onIslandDisband(IslandDisbandEvent event) {
+        module.getManager().deleteIsland(event.getIsland().getUniqueId());
     }
 
 }

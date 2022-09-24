@@ -5,7 +5,8 @@ public enum RequestType {
     HELLO("GET", ""),
     CHECK_ISLAND("GET", "island/"),
     KEEP_ALIVE("GET", "keep-alive"),
-    CREATE_ISLAND("POST", "island/");
+    CREATE_ISLAND("POST", "island/"),
+    DELETE_ISLAND("DELETE", "island/");
 
     private final String method;
     private final String route;
