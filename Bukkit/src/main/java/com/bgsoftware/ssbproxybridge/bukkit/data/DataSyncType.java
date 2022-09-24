@@ -637,6 +637,14 @@ public enum DataSyncType {
         ));
     }),
 
+    UPDATE_ISLANDS_INVITE_PLAYER(dataObject -> {
+        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
+        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
+        requireIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(columnsArray, value ->
+                island.inviteMember(SuperiorSkyblockAPI.getPlayer(UUID.fromString(value.getAsString())))
+        ));
+    }),
+
     UPDATE_ISLANDS_LAST_TIME_UPDATED(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
         JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
@@ -691,6 +699,7 @@ public enum DataSyncType {
                 island.setPaypal(value.getAsString())
         ));
     }),
+
 
     UPDATE_ISLANDS_SETTINGS_BANK_LIMIT(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();

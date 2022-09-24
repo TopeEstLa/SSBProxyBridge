@@ -5,6 +5,7 @@ import com.bgsoftware.ssbproxybridge.bukkit.bridge.ProxyDatabaseBridgeFactory;
 import com.bgsoftware.ssbproxybridge.bukkit.config.SettingsManager;
 import com.bgsoftware.ssbproxybridge.bukkit.data.DataSyncListener;
 import com.bgsoftware.ssbproxybridge.bukkit.island.creation.RemoteIslandCreationAlgorithm;
+import com.bgsoftware.ssbproxybridge.bukkit.listener.IslandsListener;
 import com.bgsoftware.ssbproxybridge.bukkit.listener.PlayersListener;
 import com.bgsoftware.ssbproxybridge.bukkit.manager.ModuleManager;
 import com.bgsoftware.ssbproxybridge.bukkit.proxy.ProxyPlayerBridge;
@@ -100,7 +101,7 @@ public class SSBProxyBridgeModule extends PluginModule {
     @Nullable
     @Override
     public Listener[] getModuleListeners(SuperiorSkyblock plugin) {
-        return new Listener[]{new PlayersListener(this)};
+        return new Listener[]{new PlayersListener(this), new IslandsListener(this)};
     }
 
     @Nullable

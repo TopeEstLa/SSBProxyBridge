@@ -88,6 +88,17 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
         }
     }
 
+    public void customOperation(String table, DatabaseFilter databaseFilter, Pair<String, Object>[] pairs) {
+        if (isActivated && databaseBridgeMode == DatabaseBridgeMode.SAVE_DATA) {
+            DataSyncType type = buildDataSyncType("update", table, pairs);
+
+            JsonObject operation = OperationSerializer.serializeOperation(type.name(), createFilters(databaseFilter), createColumns(pairs));
+
+            if (type.getHandler() != null && type.onSent(operation))
+                commitData(operation);
+        }
+    }
+
     @Override
     public void deleteObject(String table, @Nullable DatabaseFilter databaseFilter) {
         if (isActivated && databaseBridgeMode == DatabaseBridgeMode.SAVE_DATA) {
