@@ -1485,6 +1485,16 @@ public final class RemoteIsland implements Island {
     }
 
     @Override
+    public boolean isPersistentDataContainerEmpty() {
+        return this.handle.isPersistentDataContainerEmpty();
+    }
+
+    @Override
+    public void savePersistentDataContainer() {
+        this.handle.savePersistentDataContainer();
+    }
+
+    @Override
     @SuppressWarnings("all")
     public int compareTo(Island other) {
         return this.handle.compareTo(other);

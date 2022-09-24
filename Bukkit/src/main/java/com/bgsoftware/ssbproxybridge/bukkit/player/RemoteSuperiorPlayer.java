@@ -505,4 +505,14 @@ public class RemoteSuperiorPlayer implements SuperiorPlayer {
         return this.handle.getPersistentDataContainer();
     }
 
+    @Override
+    public boolean isPersistentDataContainerEmpty() {
+        return this.handle.isPersistentDataContainerEmpty();
+    }
+
+    @Override
+    public void savePersistentDataContainer() {
+        this.handle.savePersistentDataContainer();
+    }
+
 }
