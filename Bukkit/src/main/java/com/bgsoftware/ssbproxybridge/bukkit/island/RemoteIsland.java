@@ -47,7 +47,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
-public final class RemoteIsland implements Island {
+public class RemoteIsland implements Island {
 
     private static final SuperiorSkyblock plugin = SuperiorSkyblockAPI.getSuperiorSkyblock();
 
@@ -150,7 +150,12 @@ public final class RemoteIsland implements Island {
 
     @Override
     public void addMember(SuperiorPlayer superiorPlayer, PlayerRole playerRole) {
-        this.handle.addMember(superiorPlayer, playerRole);
+        try {
+            this.handle.addMember(superiorPlayer, playerRole);
+        } finally {
+            // We want the RemoteIsland instance to be saved as the island of the player, and not the actual handle.
+            superiorPlayer.setIsland(this);
+        }
     }
 
     @Override
