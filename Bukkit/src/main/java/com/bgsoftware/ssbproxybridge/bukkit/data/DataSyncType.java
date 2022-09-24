@@ -661,6 +661,13 @@ public enum DataSyncType {
         ));
     }),
 
+    UPDATE_ISLANDS_MEMBERS_ROLE(dataObject -> {
+        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
+        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
+        requirePlayer(JsonMethods.convertFilters(filtersArray), superiorPlayer -> JsonMethods.forEach(columnsArray, value ->
+                superiorPlayer.setPlayerRole(SuperiorSkyblockAPI.getRoles().getPlayerRole(value.getAsInt()))));
+    }),
+
     UPDATE_ISLANDS_NAME(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
         JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
