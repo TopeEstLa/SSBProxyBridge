@@ -16,6 +16,11 @@ server:
 # If a server fails to send a keep-alive packet twice, the server is considered shutdown.
 keep-alive: 60
 
+# Time until a server is considered inactive, in seconds.
+# Inactive islands will not be counted when looking for the best server to create a new island.
+# Can be disabled by setting the value to a negative number.
+inactive-time: 1209600
+
 # A list of servers that should not have islands created in them.
 excluded-servers:
   - 'spawn'

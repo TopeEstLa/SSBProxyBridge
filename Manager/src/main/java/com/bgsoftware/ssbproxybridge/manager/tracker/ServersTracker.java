@@ -1,6 +1,7 @@
 package com.bgsoftware.ssbproxybridge.manager.tracker;
 
 import com.bgsoftware.ssbproxybridge.manager.ManagerServer;
+import com.bgsoftware.ssbproxybridge.manager.util.Pair;
 import org.springframework.lang.Nullable;
 
 import java.util.ArrayList;
@@ -13,7 +14,7 @@ import java.util.UUID;
 
 public class ServersTracker {
 
-    private final Map<UUID, String> islandsToServers = new HashMap<>();
+    private final Map<UUID, IslandInfo> islands = new HashMap<>();
     private final Map<String, ServerInfo> servers = new HashMap<>();
 
     private final ManagerServer managerServer;
@@ -37,38 +38,53 @@ public class ServersTracker {
         if (serverInfo == null)
             throw new IllegalStateException("Cannot track island for invalid server \"" + serverName + "\"");
 
-        serverInfo.increaseIslandsCount();
-        serverInfo.updateLastPingTime();
-        islandsToServers.put(islandUUID, serverName);
+        IslandInfo islandInfo = new IslandInfo(serverName, islandUUID);
+
+        serverInfo.addIsland(islandInfo);
+        islands.put(islandUUID, islandInfo);
     }
 
     public void untrackIsland(UUID islandUUID) {
-        String serverName = islandsToServers.remove(islandUUID);
-        if (serverName != null) {
-            ServerInfo serverInfo = servers.get(serverName);
+        IslandInfo islandInfo = islands.remove(islandUUID);
+        if (islandInfo != null) {
+            ServerInfo serverInfo = servers.get(islandInfo.getServerName());
             if (serverInfo != null) {
-                serverInfo.decreaseIslandsCount();
-                serverInfo.updateLastPingTime();
+                serverInfo.removeIsland(islandInfo);
             }
         }
     }
 
     @Nullable
     public String getServerForNewIsland() {
-        List<ServerInfo> serverInfoList = new ArrayList<>(servers.values());
-        serverInfoList.sort(Comparator.comparingInt(ServerInfo::getIslandsCount));
+        List<Pair<ServerInfo, Integer>> serverInfoList = new ArrayList<>();
 
-        for (ServerInfo serverInfo : serverInfoList) {
-            if (checkLastPing(serverInfo) && !managerServer.getConfig().excludedServers.contains(serverInfo.getServerName()))
-                return serverInfo.getServerName();
+        servers.values().forEach(serverInfo -> {
+            if (!checkLastPing(serverInfo) || managerServer.getConfig().excludedServers.contains(serverInfo.getServerName()))
+                return;
+
+            int activeIslandsCount = 0;
+
+            for (IslandInfo islandInfo : serverInfo.getServerIslands()) {
+                if (checkIfActive(islandInfo))
+                    ++activeIslandsCount;
+            }
+
+            serverInfoList.add(new Pair<>(serverInfo, activeIslandsCount));
+        });
+
+        if (serverInfoList.isEmpty()) {
+            return null;
         }
 
-        return null;
+        if (serverInfoList.size() > 1)
+            serverInfoList.sort(Comparator.comparingInt(o -> o.second));
+
+        return serverInfoList.get(0).first.getServerName();
     }
 
     @Nullable
-    public String getServerOfIsland(UUID islandUUID) {
-        return islandsToServers.get(islandUUID);
+    public IslandInfo getIslandInfo(UUID islandUUID) {
+        return islands.get(islandUUID);
     }
 
     public Map<String, ServerInfo> getServers() {
@@ -77,12 +93,20 @@ public class ServersTracker {
 
     public void clear() {
         this.servers.clear();
-        this.islandsToServers.clear();
+        this.islands.clear();
     }
 
     private boolean checkLastPing(ServerInfo serverInfo) {
         long timeFromLastPing = System.currentTimeMillis() - serverInfo.getLastPingTime();
         return timeFromLastPing <= managerServer.getConfig().keepAlive * 2;
+    }
+
+    private boolean checkIfActive(IslandInfo islandInfo) {
+        if (managerServer.getConfig().inactiveTime < 0)
+            return true;
+
+        long timeFromLastUpdate = System.currentTimeMillis() - islandInfo.getLastUpdateTime();
+        return timeFromLastUpdate <= managerServer.getConfig().inactiveTime;
     }
 
 }

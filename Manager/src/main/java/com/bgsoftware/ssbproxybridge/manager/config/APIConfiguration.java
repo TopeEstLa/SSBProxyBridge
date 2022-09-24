@@ -20,6 +20,7 @@ public class APIConfiguration {
     public final int serverPort;
 
     public final long keepAlive;
+    public final long inactiveTime;
     public final List<String> excludedServers;
 
     public APIConfiguration() throws IOException {
@@ -33,6 +34,7 @@ public class APIConfiguration {
         this.serverAddress = configReader.get("server.address", "0.0.0.0");
         this.serverPort = configReader.get("server.port", 5000);
         this.keepAlive = TimeUnit.SECONDS.toMillis(configReader.get("keep-alive", 60));
+        this.inactiveTime = TimeUnit.SECONDS.toMillis(configReader.get("inactive-time", 1209600));
         this.excludedServers = configReader.get("excluded-servers", Collections.singletonList("spawn"));
     }
 

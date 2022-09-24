@@ -1,7 +1,9 @@
 package com.bgsoftware.ssbproxybridge.manager.endpoint;
 
 import com.bgsoftware.ssbproxybridge.manager.ManagerServer;
+import com.bgsoftware.ssbproxybridge.manager.tracker.IslandInfo;
 import com.bgsoftware.ssbproxybridge.manager.tracker.ServerInfo;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -33,8 +35,17 @@ public class AdminEndpoints {
         Map<String, ServerInfo> servers = managerServer.getServersTracker().getServers();
         servers.forEach((serverName, serverInfo) -> {
             ObjectNode serverNode = new ObjectNode(JsonNodeFactory.instance);
-            serverNode.set("islands", IntNode.valueOf(serverInfo.getIslandsCount()));
+            serverNode.set("islands_count", IntNode.valueOf(serverInfo.getIslandsCount()));
             serverNode.set("last_ping", TextNode.valueOf(DATE_FORMAT.format(new Date(serverInfo.getLastPingTime()))));
+            ArrayNode islands = new ArrayNode(JsonNodeFactory.instance);
+            for (IslandInfo islandInfo : serverInfo.getServerIslands()) {
+                ObjectNode islandNode = new ObjectNode(JsonNodeFactory.instance);
+                islandNode.set("server", TextNode.valueOf(islandInfo.getServerName()));
+                islandNode.set("uuid", TextNode.valueOf(islandInfo.getUniqueId().toString()));
+                islandNode.set("last_update_time", TextNode.valueOf(DATE_FORMAT.format(new Date(islandInfo.getLastUpdateTime()))));
+                islands.add(islandNode);
+            }
+            serverNode.set("islands", islands);
             responseBuilder.set(serverName, serverNode);
         });
 

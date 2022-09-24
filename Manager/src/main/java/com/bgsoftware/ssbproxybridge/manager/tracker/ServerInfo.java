@@ -1,9 +1,13 @@
 package com.bgsoftware.ssbproxybridge.manager.tracker;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 public class ServerInfo {
 
+    private final List<IslandInfo> serverIslands = new ArrayList<>();
     private final String serverName;
-    private int islandsCount = 0;
     private long lastPingTime;
 
 
@@ -16,16 +20,22 @@ public class ServerInfo {
         return serverName;
     }
 
-    public void increaseIslandsCount() {
-        ++this.islandsCount;
+    public void addIsland(IslandInfo islandInfo) {
+        serverIslands.add(islandInfo);
+        updateLastPingTime();
     }
 
-    public void decreaseIslandsCount() {
-        --this.islandsCount;
+    public void removeIsland(IslandInfo islandInfo) {
+        serverIslands.remove(islandInfo);
+        updateLastPingTime();
     }
 
     public int getIslandsCount() {
-        return islandsCount;
+        return serverIslands.size();
+    }
+
+    public List<IslandInfo> getServerIslands() {
+        return Collections.unmodifiableList(serverIslands);
     }
 
     public void updateLastPingTime() {

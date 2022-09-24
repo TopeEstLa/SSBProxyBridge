@@ -79,6 +79,10 @@ public class ModuleManager {
         sendRequest(RequestType.DELETE_ISLAND, islandUUID.toString());
     }
 
+    public void updateIsland(UUID islandUUID) {
+        sendRequest(RequestType.UPDATE_ISLAND, islandUUID.toString());
+    }
+
     public void sendPing() {
         CompletableFuture<JsonObject> responseFuture = sendRequest(RequestType.HELLO, "");
 

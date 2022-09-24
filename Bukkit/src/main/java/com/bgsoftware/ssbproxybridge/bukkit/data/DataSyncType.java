@@ -648,9 +648,10 @@ public enum DataSyncType {
     UPDATE_ISLANDS_LAST_TIME_UPDATED(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
         JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requireIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(columnsArray, value ->
-                island.setLastTimeUpdate(value.getAsLong())
-        ));
+        requireIsland(JsonMethods.convertFilters(filtersArray), island -> {
+            JsonMethods.forEach(columnsArray, value -> island.setLastTimeUpdate(value.getAsLong()));
+            SSBProxyBridgeModule.getModule().getManager().updateIsland(island.getUniqueId());
+        });
     }),
 
     UPDATE_ISLANDS_LEVELS_BONUS(dataObject -> {
