@@ -1,6 +1,5 @@
 package com.bgsoftware.ssbproxybridge.bukkit.island;
 
-import com.bgsoftware.ssbproxybridge.bukkit.proxy.ProxyPlayerBridge;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.DatabaseBridgeAccessor;
 import com.bgsoftware.superiorskyblock.api.SuperiorSkyblock;
 import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI;
@@ -39,7 +38,6 @@ import org.bukkit.potion.PotionEffectType;
 import javax.annotation.Nullable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -669,24 +667,17 @@ public class RemoteIsland implements Island {
 
     @Override
     public void sendMessage(String message, UUID... ignoredMembers) {
-        // TODO: null recipient
-        List<UUID> ignoredList = Arrays.asList(ignoredMembers);
-        getIslandMembers(true).stream()
-                .filter(superiorPlayer -> !ignoredList.contains(superiorPlayer.getUniqueId()))
-                .forEach(superiorPlayer -> ProxyPlayerBridge.sendMessage(null, superiorPlayer.getName(), message));
+        this.handle.sendMessage(message, ignoredMembers);
     }
 
     @Override
     public void sendMessage(IMessageComponent messageComponent, Object... args) {
-        this.sendMessage(messageComponent, Collections.emptyList(), args);
+        this.handle.sendMessage(messageComponent, args);
     }
 
     @Override
     public void sendMessage(IMessageComponent messageComponent, List<UUID> ignoredMembers, Object... args) {
-        // TODO: null recipient
-        getIslandMembers(true).stream()
-                .filter(superiorPlayer -> !ignoredMembers.contains(superiorPlayer.getUniqueId()))
-                .forEach(superiorPlayer -> ProxyPlayerBridge.sendMessage(null, superiorPlayer.getName(), messageComponent.getMessage()));
+        this.handle.sendMessage(messageComponent, ignoredMembers, args);
     }
 
     @Override
