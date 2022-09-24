@@ -2,21 +2,30 @@ package com.bgsoftware.ssbproxybridge.bukkit.action;
 
 import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
 import com.bgsoftware.ssbproxybridge.bukkit.island.creation.RemoteIslandCreationAlgorithm;
+import com.bgsoftware.ssbproxybridge.bukkit.utils.Text;
+import com.bgsoftware.ssbproxybridge.core.JsonUtil;
 import com.bgsoftware.ssbproxybridge.core.requests.IRequestHandler;
 import com.bgsoftware.ssbproxybridge.core.requests.RequestHandlerConsumer;
 import com.bgsoftware.ssbproxybridge.core.requests.RequestHandlerException;
 import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI;
 import com.bgsoftware.superiorskyblock.api.island.Island;
+import com.bgsoftware.superiorskyblock.api.service.message.IMessageComponent;
+import com.bgsoftware.superiorskyblock.api.service.message.MessagesService;
 import com.bgsoftware.superiorskyblock.api.world.algorithm.IslandCreationAlgorithm;
 import com.bgsoftware.superiorskyblock.api.wrappers.BlockPosition;
 import com.bgsoftware.superiorskyblock.api.wrappers.SuperiorPlayer;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.RegisteredServiceProvider;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 public enum ActionType {
@@ -86,6 +95,50 @@ public enum ActionType {
         }
 
         module.getPlugin().getGrid().createIsland(islandLeader, schematic, BigDecimal.ZERO, BigDecimal.ZERO, biome, name, offset);
+    }),
+
+    SEND_MESSAGE(dataObject -> {
+        UUID playerUUID = UUID.fromString(dataObject.get("player").getAsString());
+        Player player = Bukkit.getPlayer(playerUUID);
+
+        if (player == null)
+            return;
+
+        RegisteredServiceProvider<MessagesService> registeredServiceProvider = Bukkit.getServicesManager().getRegistration(MessagesService.class);
+
+        if (registeredServiceProvider == null)
+            return;
+
+        SSBProxyBridgeModule module = SSBProxyBridgeModule.getModule();
+
+        MessagesService messagesService = registeredServiceProvider.getProvider();
+        SuperiorPlayer superiorPlayer = module.getPlugin().getPlayers().getSuperiorPlayer(player);
+
+        IMessageComponent component = messagesService.getComponent(dataObject.get("type").getAsString(), superiorPlayer.getUserLocale());
+
+        JsonArray jsonArgs = dataObject.get("args").getAsJsonArray();
+
+        List<Object> arguments = new ArrayList<>();
+
+        for (JsonElement elementArgument : jsonArgs) {
+            Object value = elementArgument.isJsonPrimitive() ?
+                    JsonUtil.getValueFromPrimitive(elementArgument.getAsJsonPrimitive()) : null;
+            if (value != null)
+                arguments.add(value);
+        }
+
+        if (component != null) {
+            component.sendMessage(player, arguments.toArray(new Object[0]));
+        } else {
+            // We send the message raw to the player.
+            String message = arguments.isEmpty() || arguments.get(0) == null ? null : arguments.get(0).toString();
+            boolean translateColors = arguments.size() >= 2 && arguments.get(1) instanceof Boolean && (boolean) arguments.get(1);
+
+            MessagesService.Builder messageBuilder = messagesService.newBuilder();
+            messageBuilder.addRawMessage(translateColors ? Text.colorize(message) : message);
+
+            messageBuilder.build().sendMessage(player);
+        }
     });
 
     private final IRequestHandler requestHandler;

@@ -11,6 +11,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 
 import javax.annotation.Nullable;
 import java.util.UUID;
@@ -91,6 +92,24 @@ public class JsonMethods {
         });
 
         return blockCounts;
+    }
+
+    @Nullable
+    public static JsonElement getJsonFromObject(Object object) {
+        if (object instanceof String) {
+            return new JsonPrimitive((String) object);
+        }
+        if (object instanceof byte[]) {
+            return new JsonPrimitive(new String((byte[]) object));
+        } else if (object instanceof Number) {
+            return new JsonPrimitive((Number) object);
+        } else if (object instanceof Boolean) {
+            return new JsonPrimitive((Boolean) object);
+        } else if (object instanceof Character) {
+            return new JsonPrimitive((Character) object);
+        } else {
+            return null;
+        }
     }
 
     private static JsonObject convertArrayToObject(JsonArray array, String key, String value) {

@@ -2,6 +2,8 @@ package com.bgsoftware.ssbproxybridge.bukkit.listener;
 
 import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
 import com.bgsoftware.ssbproxybridge.bukkit.action.ActionsQueue;
+import com.bgsoftware.ssbproxybridge.bukkit.action.ServerActions;
+import com.bgsoftware.superiorskyblock.api.events.AttemptPlayerSendMessageEvent;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -24,6 +26,22 @@ public class PlayersListener implements Listener {
             this.module.getLogger().warning(request + "");
             error.printStackTrace();
         });
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onAttemptPlayerSendMessage(AttemptPlayerSendMessageEvent event) {
+        Player player = event.getReceiver().asPlayer();
+
+        if (player != null)
+            return;
+
+        event.setCancelled(true);
+
+        Object[] args = new Object[event.getArgumentsLength()];
+        for (int i = 0; i < args.length; ++i)
+            args[i] = event.getArgument(i);
+
+        ServerActions.sendMessage(event.getReceiver().getUniqueId(), event.getMessageType(), args);
     }
 
 }

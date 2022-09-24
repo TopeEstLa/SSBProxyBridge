@@ -2,6 +2,8 @@ package com.bgsoftware.ssbproxybridge.bukkit.action;
 
 import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.DatabaseBridgeAccessor;
+import com.bgsoftware.ssbproxybridge.core.JsonUtil;
+import com.bgsoftware.ssbproxybridge.core.database.OperationSerializer;
 import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI;
 import com.bgsoftware.superiorskyblock.api.island.Island;
 import com.bgsoftware.superiorskyblock.api.schematic.Schematic;
@@ -11,10 +13,12 @@ import com.bgsoftware.superiorskyblock.api.wrappers.SuperiorPlayer;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import org.bukkit.entity.Player;
 
+import javax.annotation.Nullable;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -35,10 +39,10 @@ public class ServerActions {
 
     public static void teleportToIsland(Player player, String targetServer, UUID islandUUID) {
         JsonObject data = new JsonObject();
-        data.addProperty("action", "teleport");
+        data.addProperty("action", ActionType.TELEPORT.name());
         data.addProperty("island", islandUUID.toString());
         data.addProperty("player", player.getUniqueId().toString());
-        sendData(targetServer, data);
+        sendData(data, targetServer);
     }
 
     public static CompletableFuture<IslandCreationAlgorithm.IslandCreationResult> createIsland(String targetServer, UUID islandUUID, SuperiorPlayer islandLeader,
@@ -52,7 +56,7 @@ public class ServerActions {
         position.addProperty("z", blockPosition.getZ());
 
         JsonObject data = new JsonObject();
-        data.addProperty("action", "create_island");
+        data.addProperty("action", ActionType.CREATE_ISLAND.name());
         data.addProperty("uuid", islandUUID.toString());
         data.addProperty("leader", islandLeader.getUniqueId().toString());
         data.add("position", position);
@@ -62,7 +66,7 @@ public class ServerActions {
         int responseId = new Random().nextInt();
         data.addProperty("response-id", responseId);
 
-        sendData(targetServer, data, response -> {
+        sendData(data, targetServer, response -> {
             if (response.has("error")) {
                 result.completeExceptionally(new RuntimeException("Failed to create island: " + response.get("error").getAsString()));
                 return;
@@ -98,22 +102,41 @@ public class ServerActions {
         return result;
     }
 
-    private static void sendData(String server, JsonObject data) {
+    public static void sendMessage(UUID playerUUID, String messageType, Object[] args) {
+        JsonObject data = new JsonObject();
+        data.addProperty("action", ActionType.SEND_MESSAGE.name());
+        data.addProperty("player", playerUUID.toString());
+        data.addProperty("type", messageType);
+
+        JsonArray jsonArgs = new JsonArray();
+        for (Object argument : args) {
+            JsonElement jsonArgument = JsonUtil.getJsonFromObject(argument);
+            if (jsonArgument != null)
+                jsonArgs.add(jsonArgument);
+        }
+        data.add("args", jsonArgs);
+
+        sendData(data, null);
+    }
+
+    private static void sendData(JsonObject data, @Nullable String recipient) {
         data.addProperty("sender", module.getSettings().serverName);
         data.addProperty("channel", module.getSettings().messagingServiceActionsChannelName);
 
-        JsonArray recipients = new JsonArray();
-        recipients.add(new JsonPrimitive(server));
-        data.add("recipients", recipients);
+        if (recipient != null) {
+            JsonArray recipients = new JsonArray();
+            recipients.add(new JsonPrimitive(recipient));
+            data.add("recipients", recipients);
+        }
 
         module.getMessaging().sendData(module.getSettings().messagingServiceActionsChannelName, gson.toJson(data));
     }
 
-    private static void sendData(String server, JsonObject data, Consumer<JsonObject> responseCallback) {
+    private static void sendData(JsonObject data, @Nullable String recipient, Consumer<JsonObject> responseCallback) {
         int responseId = random.nextInt();
         data.addProperty("response-id", responseId);
 
-        sendData(server, data);
+        sendData(data, recipient);
 
         module.getMessaging().listenOnce(module.getSettings().messagingServiceActionsChannelName + "_response", responseBody -> {
             JsonObject response = gson.fromJson(responseBody, JsonObject.class);
