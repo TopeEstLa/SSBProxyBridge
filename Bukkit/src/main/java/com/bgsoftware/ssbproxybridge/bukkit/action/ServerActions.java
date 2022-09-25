@@ -3,7 +3,6 @@ package com.bgsoftware.ssbproxybridge.bukkit.action;
 import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.DatabaseBridgeAccessor;
 import com.bgsoftware.ssbproxybridge.core.JsonUtil;
-import com.bgsoftware.ssbproxybridge.core.database.OperationSerializer;
 import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI;
 import com.bgsoftware.superiorskyblock.api.island.Island;
 import com.bgsoftware.superiorskyblock.api.schematic.Schematic;
@@ -111,8 +110,7 @@ public class ServerActions {
         JsonArray jsonArgs = new JsonArray();
         for (Object argument : args) {
             JsonElement jsonArgument = JsonUtil.getJsonFromObject(argument);
-            if (jsonArgument != null)
-                jsonArgs.add(jsonArgument);
+            jsonArgs.add(jsonArgument == null ? new JsonPrimitive(argument.toString()) : jsonArgument);
         }
         data.add("args", jsonArgs);
 
