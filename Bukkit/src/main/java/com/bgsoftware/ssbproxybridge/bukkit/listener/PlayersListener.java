@@ -4,6 +4,8 @@ import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
 import com.bgsoftware.ssbproxybridge.bukkit.action.ActionsQueue;
 import com.bgsoftware.ssbproxybridge.bukkit.action.ServerActions;
 import com.bgsoftware.ssbproxybridge.bukkit.bridge.ProxyDatabaseBridge;
+import com.bgsoftware.ssbproxybridge.bukkit.teleport.ProxyPlayerTeleportAlgorithm;
+import com.bgsoftware.ssbproxybridge.bukkit.teleport.ProxyPlayersFactory;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.MessagesSender;
 import com.bgsoftware.superiorskyblock.api.data.DatabaseBridge;
 import com.bgsoftware.superiorskyblock.api.data.DatabaseBridgeMode;
@@ -41,7 +43,7 @@ public class PlayersListener implements Listener {
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onAttemptPlayerSendMessage(AttemptPlayerSendMessageEvent event) {
+    public void onAttemptPlayerSendMessageHighest(AttemptPlayerSendMessageEvent event) {
         if (MessagesSender.isSilentMessage())
             return;
 
@@ -60,7 +62,7 @@ public class PlayersListener implements Listener {
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onSendMessageEvent(SendMessageEvent event) {
+    public void onConsoleSendMessageEvent(SendMessageEvent event) {
         if (MessagesSender.isSilentMessage() || event.getReceiver() instanceof Player)
             return;
 
@@ -71,6 +73,29 @@ public class PlayersListener implements Listener {
             args[i] = event.getArgument(i);
 
         ServerActions.sendMessage(null, event.getMessageType(), args);
+    }
+
+    private static boolean canMessageBeBlocked(String messageType) {
+        return messageType.equals("PLAYER_JOIN_ANNOUNCEMENT") || messageType.equals("PLAYER_QUIT_ANNOUNCEMENT");
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onAttemptPlayerSendMessage(AttemptPlayerSendMessageEvent event) {
+        /* When players join/leave the server, announcement messages are sent to the island members.
+        Because players can switch between servers, we want to prevent the messages from being sent. */
+
+        if (event.getArgumentsLength() < 1 || !canMessageBeBlocked(event.getMessageType()))
+            return;
+
+        SuperiorPlayer targetPlayer = module.getPlugin().getPlayers().getSuperiorPlayer((String) event.getArgument(0));
+
+        if (targetPlayer == null)
+            return;
+
+        ProxyPlayerTeleportAlgorithm teleportAlgorithm = ProxyPlayersFactory.getInstance().getPlayerTeleportAlgorithm(targetPlayer.getUniqueId());
+
+        if (teleportAlgorithm != null && teleportAlgorithm.hasPendingTeleportTask())
+            event.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -93,7 +118,7 @@ public class PlayersListener implements Listener {
         trySyncServers(event.getPlayer(), new Pair<>("admin_spy", !event.getPlayer().hasAdminSpyEnabled()));
     }
 
-    private void trySyncServers(SuperiorPlayer superiorPlayer, Pair<String, Object> data) {
+    private static void trySyncServers(SuperiorPlayer superiorPlayer, Pair<String, Object> data) {
         DatabaseBridge databaseBridge = superiorPlayer.getDatabaseBridge();
 
         if (!(databaseBridge instanceof ProxyDatabaseBridge) || databaseBridge.getDatabaseBridgeMode() != DatabaseBridgeMode.SAVE_DATA)

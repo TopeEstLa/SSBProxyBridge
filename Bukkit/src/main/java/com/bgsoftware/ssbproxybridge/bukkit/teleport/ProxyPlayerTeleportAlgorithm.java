@@ -4,6 +4,7 @@ import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
 import com.bgsoftware.ssbproxybridge.bukkit.action.ServerActions;
 import com.bgsoftware.ssbproxybridge.bukkit.island.RemoteIsland;
 import com.bgsoftware.ssbproxybridge.bukkit.proxy.ProxyPlayerBridge;
+import com.bgsoftware.ssbproxybridge.bukkit.utils.BukkitExecutor;
 import com.bgsoftware.superiorskyblock.api.island.Island;
 import com.bgsoftware.superiorskyblock.api.player.algorithm.PlayerTeleportAlgorithm;
 import org.bukkit.Location;
@@ -18,6 +19,7 @@ public class ProxyPlayerTeleportAlgorithm implements PlayerTeleportAlgorithm {
 
     private final PlayerTeleportAlgorithm original;
     private boolean hasPendingTeleportTask = false;
+    private boolean teleportedToServer = false;
 
     public ProxyPlayerTeleportAlgorithm(PlayerTeleportAlgorithm original) {
         this.original = original;
@@ -27,10 +29,23 @@ public class ProxyPlayerTeleportAlgorithm implements PlayerTeleportAlgorithm {
         this.hasPendingTeleportTask = hasPendingTeleportTask;
     }
 
+    public boolean hasPendingTeleportTask() {
+        return teleportedToServer || hasPendingTeleportTask;
+    }
+
+    private void setTeleportedToServer(boolean teleportedToServer) {
+        this.teleportedToServer = teleportedToServer;
+    }
+
     private boolean teleportToIsland(Player player, String islandServer, Island island) {
         if (module.getSettings().serverName.equals(islandServer))
             // Teleport regularly to the island.
             return false;
+
+        /* We set the teleportedToServer flag set to true.
+        This will prevent messages of joining/leaving the server. */
+        setTeleportedToServer(true);
+        BukkitExecutor.runTaskLater(() -> setTeleportedToServer(false), 5L);
 
         ServerActions.teleportToIsland(player, islandServer, island.getUniqueId());
         ProxyPlayerBridge.teleportPlayer(player, islandServer);

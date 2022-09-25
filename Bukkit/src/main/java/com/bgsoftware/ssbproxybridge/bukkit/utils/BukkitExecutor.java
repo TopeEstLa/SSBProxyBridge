@@ -19,4 +19,8 @@ public class BukkitExecutor {
         Bukkit.getScheduler().runTaskTimer(module.getPlugin(), task, delay, period);
     }
 
+    public static void runTaskLater(Runnable task, long delay) {
+        Bukkit.getScheduler().runTaskLater(module.getPlugin(), task, delay);
+    }
+
 }

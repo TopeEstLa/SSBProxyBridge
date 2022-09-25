@@ -4,6 +4,7 @@ import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
 import com.bgsoftware.ssbproxybridge.bukkit.island.creation.RemoteIslandCreationAlgorithm;
 import com.bgsoftware.ssbproxybridge.bukkit.teleport.ProxyPlayerTeleportAlgorithm;
 import com.bgsoftware.ssbproxybridge.bukkit.teleport.ProxyPlayersFactory;
+import com.bgsoftware.ssbproxybridge.bukkit.utils.BukkitExecutor;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.MessagesSender;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.PlayerLocales;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.Text;
@@ -187,11 +188,8 @@ public enum ActionType {
                 if (playerTeleportAlgorithm != null) {
                     playerTeleportAlgorithm.setHasPendingTeleportTask(true);
                     ActionsQueue.getPlayersQueue().addAction(data, playerUUID, playerAction -> {
-                        try {
-                            consumer.accept(playerAction);
-                        } finally {
-                            playerTeleportAlgorithm.setHasPendingTeleportTask(false);
-                        }
+                        consumer.accept(playerAction);
+                        BukkitExecutor.runTaskLater(() -> playerTeleportAlgorithm.setHasPendingTeleportTask(false), 1L);
                     });
 
                     return;
