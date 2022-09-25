@@ -10,25 +10,21 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 public class ProxyPlayerTeleportAlgorithm implements PlayerTeleportAlgorithm {
 
-    private static final Set<UUID> ignoredOtherServersTeleportations = new HashSet<>();
-
     private static final SSBProxyBridgeModule module = SSBProxyBridgeModule.getModule();
 
-    public static void setIgnoredOtherServersTeleportations(UUID uuid) {
-        ignoredOtherServersTeleportations.add(uuid);
-    }
-
     private final PlayerTeleportAlgorithm original;
+    private boolean hasPendingTeleportTask = false;
 
     public ProxyPlayerTeleportAlgorithm(PlayerTeleportAlgorithm original) {
         this.original = original;
+    }
+
+    public void setHasPendingTeleportTask(boolean hasPendingTeleportTask) {
+        this.hasPendingTeleportTask = hasPendingTeleportTask;
     }
 
     private boolean teleportToIsland(Player player, String islandServer, Island island) {
@@ -36,10 +32,8 @@ public class ProxyPlayerTeleportAlgorithm implements PlayerTeleportAlgorithm {
             // Teleport regularly to the island.
             return false;
 
-        if (!ignoredOtherServersTeleportations.remove(player.getUniqueId())) {
-            ServerActions.teleportToIsland(player, islandServer, island.getUniqueId());
-            ProxyPlayerBridge.teleportPlayer(player, islandServer);
-        }
+        ServerActions.teleportToIsland(player, islandServer, island.getUniqueId());
+        ProxyPlayerBridge.teleportPlayer(player, islandServer);
 
         return true;
     }
@@ -59,7 +53,7 @@ public class ProxyPlayerTeleportAlgorithm implements PlayerTeleportAlgorithm {
 
         CompletableFuture<Boolean> result = new CompletableFuture<>();
 
-        if (teleportToIsland(player, targetServer, island)) {
+        if (hasPendingTeleportTask || teleportToIsland(player, targetServer, island)) {
             result.complete(true);
         } else {
             original.teleport(player, island).whenComplete((originalTeleport, originalError) -> {
@@ -84,7 +78,7 @@ public class ProxyPlayerTeleportAlgorithm implements PlayerTeleportAlgorithm {
 
         CompletableFuture<Boolean> result = new CompletableFuture<>();
 
-        if (teleportToIsland(player, targetServer, island)) {
+        if (hasPendingTeleportTask || teleportToIsland(player, targetServer, island)) {
             result.complete(true);
         } else {
             original.teleport(player, island).whenComplete((originalTeleport, originalError) -> {

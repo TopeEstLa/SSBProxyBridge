@@ -2,6 +2,8 @@ package com.bgsoftware.ssbproxybridge.bukkit.action;
 
 import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
 import com.bgsoftware.ssbproxybridge.bukkit.island.creation.RemoteIslandCreationAlgorithm;
+import com.bgsoftware.ssbproxybridge.bukkit.teleport.ProxyPlayerTeleportAlgorithm;
+import com.bgsoftware.ssbproxybridge.bukkit.teleport.ProxyPlayersFactory;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.Text;
 import com.bgsoftware.ssbproxybridge.core.JsonUtil;
 import com.bgsoftware.ssbproxybridge.core.requests.IRequestHandler;
@@ -48,7 +50,7 @@ public enum ActionType {
 
         SuperiorPlayer superiorPlayer = module.getPlugin().getPlayers().getSuperiorPlayer(player);
         superiorPlayer.teleport(targetIsland);
-    })),
+    }, true)),
 
     CREATE_ISLAND(dataObject -> {
         SSBProxyBridgeModule module = SSBProxyBridgeModule.getModule();
@@ -151,12 +153,30 @@ public enum ActionType {
         return requestHandler;
     }
 
-    private static void requirePlayer(JsonObject data, RequestHandlerConsumer<Player> consumer) throws RequestHandlerException {
+    private static void requirePlayer(JsonObject data, RequestHandlerConsumer<Player> consumer, boolean addAsPendingTeleport) throws RequestHandlerException {
         UUID playerUUID = UUID.fromString(data.get("player").getAsString());
         Player player = Bukkit.getPlayer(playerUUID);
         if (player != null) {
             consumer.accept(player);
         } else {
+            if (addAsPendingTeleport) {
+                ProxyPlayerTeleportAlgorithm playerTeleportAlgorithm = ProxyPlayersFactory.getInstance()
+                        .getPlayerTeleportAlgorithm(playerUUID);
+
+                if (playerTeleportAlgorithm != null) {
+                    playerTeleportAlgorithm.setHasPendingTeleportTask(true);
+                    ActionsQueue.getPlayersQueue().addAction(data, playerUUID, playerAction -> {
+                        try {
+                            consumer.accept(playerAction);
+                        } finally {
+                            playerTeleportAlgorithm.setHasPendingTeleportTask(false);
+                        }
+                    });
+
+                    return;
+                }
+            }
+
             ActionsQueue.getPlayersQueue().addAction(data, playerUUID, consumer);
         }
     }
