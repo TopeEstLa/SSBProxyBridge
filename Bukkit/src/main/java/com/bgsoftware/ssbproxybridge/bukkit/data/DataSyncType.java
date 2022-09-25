@@ -134,9 +134,7 @@ public enum DataSyncType {
         ));
     }),
 
-    DELETE_ISLANDS_MEMBERS(),
-
-    DELETE_ISLANDS_MEMBERS_PLAYER(dataObject -> {
+    DELETE_ISLANDS_MEMBERS(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
         optionalIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(filtersArray, value -> {
             SuperiorPlayer islandMember = SuperiorSkyblockAPI.getPlayer(UUID.fromString(value.getAsString()));
@@ -144,9 +142,7 @@ public enum DataSyncType {
         }));
     }),
 
-    DELETE_ISLANDS_MISSIONS(),
-
-    DELETE_ISLANDS_MISSIONS_NAME(dataObject -> {
+    DELETE_ISLANDS_MISSIONS(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
         optionalIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEachOrThrow(filtersArray, value -> {
             String missionName = value.getAsString();
@@ -159,9 +155,7 @@ public enum DataSyncType {
         }));
     }),
 
-    DELETE_ISLANDS_PLAYER_PERMISSIONS(),
-
-    DELETE_ISLANDS_PLAYER_PERMISSIONS_PLAYER(dataObject -> {
+    DELETE_ISLANDS_PLAYER_PERMISSIONS(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
         optionalIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(filtersArray, value ->
                 island.resetPermissions(SuperiorSkyblockAPI.getPlayer(UUID.fromString(value.getAsString())))
@@ -170,19 +164,17 @@ public enum DataSyncType {
 
     DELETE_ISLANDS_RATINGS(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        optionalIsland(JsonMethods.convertFilters(filtersArray), Island::removeRatings);
+        JsonObject filters = JsonMethods.convertFilters(filtersArray);
+        optionalIsland(filters, island -> {
+            if(filters.has("player")) {
+                island.removeRating(SuperiorSkyblockAPI.getPlayer(UUID.fromString(filters.get("player").getAsString())));
+            } else {
+                island.removeRatings();
+            }
+        });
     }),
 
-    DELETE_ISLANDS_RATINGS_PLAYER(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        optionalIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(filtersArray, value ->
-                island.removeRating(SuperiorSkyblockAPI.getPlayer(UUID.fromString(value.getAsString())))
-        ));
-    }),
-
-    DELETE_ISLANDS_ROLE_LIMITS(),
-
-    DELETE_ISLANDS_ROLE_LIMITS_ROLE(dataObject -> {
+    DELETE_ISLANDS_ROLE_LIMITS(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
         optionalIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(filtersArray, value ->
                 island.removeRoleLimit(SuperiorSkyblockAPI.getRoles().getPlayerRole(value.getAsInt()))
