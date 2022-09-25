@@ -594,6 +594,14 @@ public enum DataSyncType {
         }));
     }),
 
+    UPDATE_ISLANDS_COOP_PLAYER(dataObject -> {
+        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
+        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
+        requireIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(columnsArray, value ->
+                island.addCoop(SuperiorSkyblockAPI.getPlayer(UUID.fromString(value.getAsString())))
+        ));
+    }),
+
     UPDATE_ISLANDS_DESCRIPTION(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
         JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
@@ -755,6 +763,14 @@ public enum DataSyncType {
         JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
         requireIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(columnsArray, value ->
                 island.setWarpsLimit(value.getAsInt())
+        ));
+    }),
+
+    UPDATE_ISLANDS_UNCOOP_PLAYER(dataObject -> {
+        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
+        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
+        requireIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(columnsArray, value ->
+                island.removeCoop(SuperiorSkyblockAPI.getPlayer(UUID.fromString(value.getAsString())))
         ));
     }),
 
