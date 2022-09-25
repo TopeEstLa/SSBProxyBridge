@@ -4,6 +4,8 @@ import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
 import com.bgsoftware.ssbproxybridge.bukkit.island.creation.RemoteIslandCreationAlgorithm;
 import com.bgsoftware.ssbproxybridge.bukkit.teleport.ProxyPlayerTeleportAlgorithm;
 import com.bgsoftware.ssbproxybridge.bukkit.teleport.ProxyPlayersFactory;
+import com.bgsoftware.ssbproxybridge.bukkit.utils.MessagesSender;
+import com.bgsoftware.ssbproxybridge.bukkit.utils.PlayerLocales;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.Text;
 import com.bgsoftware.ssbproxybridge.core.JsonUtil;
 import com.bgsoftware.ssbproxybridge.core.requests.IRequestHandler;
@@ -22,12 +24,14 @@ import com.google.gson.JsonObject;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.RegisteredServiceProvider;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 public enum ActionType {
@@ -100,10 +104,18 @@ public enum ActionType {
     }),
 
     SEND_MESSAGE(dataObject -> {
-        UUID playerUUID = UUID.fromString(dataObject.get("player").getAsString());
-        Player player = Bukkit.getPlayer(playerUUID);
+        CommandSender target;
 
-        if (player == null)
+        if (dataObject.has("player")) {
+            UUID playerUUID = UUID.fromString(dataObject.get("player").getAsString());
+            target = Bukkit.getPlayer(playerUUID);
+        } else if (dataObject.has("console")) {
+            target = Bukkit.getConsoleSender();
+        } else {
+            target = null;
+        }
+
+        if (target == null)
             return;
 
         RegisteredServiceProvider<MessagesService> registeredServiceProvider = Bukkit.getServicesManager().getRegistration(MessagesService.class);
@@ -114,9 +126,18 @@ public enum ActionType {
         SSBProxyBridgeModule module = SSBProxyBridgeModule.getModule();
 
         MessagesService messagesService = registeredServiceProvider.getProvider();
-        SuperiorPlayer superiorPlayer = module.getPlugin().getPlayers().getSuperiorPlayer(player);
 
-        IMessageComponent component = messagesService.getComponent(dataObject.get("type").getAsString(), superiorPlayer.getUserLocale());
+        Locale targetLocale;
+
+        if (target instanceof Player) {
+            SuperiorPlayer superiorPlayer = module.getPlugin().getPlayers().getSuperiorPlayer((Player) target);
+            targetLocale = superiorPlayer.getUserLocale();
+        } else {
+            String defaultLocale = module.getPlugin().getSettings().getDefaultLanguage();
+            targetLocale = PlayerLocales.getLocale(defaultLocale);
+        }
+
+        IMessageComponent component = messagesService.getComponent(dataObject.get("type").getAsString(), targetLocale);
 
         JsonArray jsonArgs = dataObject.get("args").getAsJsonArray();
 
@@ -130,7 +151,7 @@ public enum ActionType {
         }
 
         if (component != null) {
-            component.sendMessage(player, arguments.toArray(new Object[0]));
+            MessagesSender.sendMessageSilenty(component, target, arguments.toArray(new Object[0]));
         } else {
             // We send the message raw to the player.
             String message = arguments.isEmpty() || arguments.get(0) == null ? null : arguments.get(0).toString();
@@ -139,7 +160,7 @@ public enum ActionType {
             MessagesService.Builder messageBuilder = messagesService.newBuilder();
             messageBuilder.addRawMessage(translateColors ? Text.colorize(message) : message);
 
-            messageBuilder.build().sendMessage(player);
+            MessagesSender.sendMessageSilenty(messageBuilder.build(), target);
         }
     });
 

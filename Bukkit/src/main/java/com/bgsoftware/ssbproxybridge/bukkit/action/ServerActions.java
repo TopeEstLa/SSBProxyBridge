@@ -101,10 +101,16 @@ public class ServerActions {
         return result;
     }
 
-    public static void sendMessage(UUID playerUUID, String messageType, Object[] args) {
+    public static void sendMessage(@Nullable UUID playerUUID, String messageType, Object[] args) {
         JsonObject data = new JsonObject();
         data.addProperty("action", ActionType.SEND_MESSAGE.name());
-        data.addProperty("player", playerUUID.toString());
+
+        if (playerUUID != null) {
+            data.addProperty("player", playerUUID.toString());
+        } else {
+            data.addProperty("console", "");
+        }
+
         data.addProperty("type", messageType);
 
         JsonArray jsonArgs = new JsonArray();

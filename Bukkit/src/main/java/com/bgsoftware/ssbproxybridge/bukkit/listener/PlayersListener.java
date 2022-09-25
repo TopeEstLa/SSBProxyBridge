@@ -4,6 +4,7 @@ import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
 import com.bgsoftware.ssbproxybridge.bukkit.action.ActionsQueue;
 import com.bgsoftware.ssbproxybridge.bukkit.action.ServerActions;
 import com.bgsoftware.ssbproxybridge.bukkit.bridge.ProxyDatabaseBridge;
+import com.bgsoftware.ssbproxybridge.bukkit.utils.MessagesSender;
 import com.bgsoftware.superiorskyblock.api.data.DatabaseBridge;
 import com.bgsoftware.superiorskyblock.api.data.DatabaseBridgeMode;
 import com.bgsoftware.superiorskyblock.api.data.DatabaseFilter;
@@ -12,6 +13,7 @@ import com.bgsoftware.superiorskyblock.api.events.PlayerToggleBlocksStackerEvent
 import com.bgsoftware.superiorskyblock.api.events.PlayerToggleBypassEvent;
 import com.bgsoftware.superiorskyblock.api.events.PlayerToggleSpyEvent;
 import com.bgsoftware.superiorskyblock.api.events.PlayerToggleTeamChatEvent;
+import com.bgsoftware.superiorskyblock.api.events.SendMessageEvent;
 import com.bgsoftware.superiorskyblock.api.objects.Pair;
 import com.bgsoftware.superiorskyblock.api.wrappers.SuperiorPlayer;
 import org.bukkit.entity.Player;
@@ -40,6 +42,9 @@ public class PlayersListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onAttemptPlayerSendMessage(AttemptPlayerSendMessageEvent event) {
+        if (MessagesSender.isSilentMessage())
+            return;
+
         Player player = event.getReceiver().asPlayer();
 
         if (player != null)
@@ -52,6 +57,20 @@ public class PlayersListener implements Listener {
             args[i] = event.getArgument(i);
 
         ServerActions.sendMessage(event.getReceiver().getUniqueId(), event.getMessageType(), args);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onSendMessageEvent(SendMessageEvent event) {
+        if (MessagesSender.isSilentMessage() || event.getReceiver() instanceof Player)
+            return;
+
+        // Sending a message to console. We want to forward it to all the servers.
+
+        Object[] args = new Object[event.getArgumentsLength()];
+        for (int i = 0; i < args.length; ++i)
+            args[i] = event.getArgument(i);
+
+        ServerActions.sendMessage(null, event.getMessageType(), args);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
