@@ -470,6 +470,14 @@ public enum DataSyncType {
         ));
     }),
 
+    INSERT_ISLANDS_VISITOR_HOMES(dataObject -> {
+        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
+        JsonObject columns = JsonMethods.convertColumns(columnsArray);
+        requireIsland(columns, island -> island.setVisitorsLocation(
+                Serializers.deserializeLocation(columns.get("location").getAsString())
+        ));
+    }),
+
     INSERT_ISLANDS_VISITORS(dataObject -> {
         JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
         JsonObject columns = JsonMethods.convertColumns(columnsArray);
@@ -482,14 +490,6 @@ public enum DataSyncType {
             island.setPlayerInside(remoteSuperiorPlayer, false);
             remoteSuperiorPlayer.setOnlineStatus(false);
         });
-    }),
-
-    INSERT_ISLANDS_VISITORS_HOMES(dataObject -> {
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        JsonObject columns = JsonMethods.convertColumns(columnsArray);
-        requireIsland(columns, island -> island.setVisitorsLocation(
-                Serializers.deserializeLocation(columns.get("location").getAsString())
-        ));
     }),
 
     INSERT_ISLANDS_WARPS(dataObject -> {
