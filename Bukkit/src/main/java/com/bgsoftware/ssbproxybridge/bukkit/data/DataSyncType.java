@@ -897,6 +897,30 @@ public enum DataSyncType {
         ));
     }),
 
+    UPDATE_PLAYERS_ADMIN_BYPASS(dataObject -> {
+        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
+        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
+        requirePlayer(JsonMethods.convertFilters(filtersArray), superiorPlayer -> JsonMethods.forEach(columnsArray, value ->
+                superiorPlayer.setBypassMode(value.getAsBoolean())
+        ));
+    }),
+
+    UPDATE_PLAYERS_ADMIN_SPY(dataObject -> {
+        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
+        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
+        requirePlayer(JsonMethods.convertFilters(filtersArray), superiorPlayer -> JsonMethods.forEach(columnsArray, value ->
+                superiorPlayer.setAdminSpy(value.getAsBoolean())
+        ));
+    }),
+
+    UPDATE_PLAYERS_BLOCKS_STACKER(dataObject -> {
+        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
+        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
+        requirePlayer(JsonMethods.convertFilters(filtersArray), superiorPlayer -> JsonMethods.forEach(columnsArray, value ->
+                superiorPlayer.setBlocksStacker(value.getAsBoolean())
+        ));
+    }),
+
     UPDATE_PLAYERS_CUSTOM_DATA_DATA(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
         JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
@@ -975,6 +999,14 @@ public enum DataSyncType {
         JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
         requirePlayer(JsonMethods.convertFilters(filtersArray), superiorPlayer -> JsonMethods.forEach(columnsArray, value ->
                 superiorPlayer.setToggledPanel(value.getAsBoolean())
+        ));
+    }),
+
+    UPDATE_PLAYERS_TEAM_CHAT(dataObject -> {
+        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
+        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
+        requirePlayer(JsonMethods.convertFilters(filtersArray), superiorPlayer -> JsonMethods.forEach(columnsArray, value ->
+                superiorPlayer.setTeamChat(value.getAsBoolean())
         ));
     });
 

@@ -5,12 +5,11 @@ import com.bgsoftware.ssbproxybridge.bukkit.action.ActionsQueue;
 import com.bgsoftware.ssbproxybridge.bukkit.action.ServerActions;
 import com.bgsoftware.ssbproxybridge.bukkit.bridge.ProxyDatabaseBridge;
 import com.bgsoftware.superiorskyblock.api.data.DatabaseBridge;
+import com.bgsoftware.superiorskyblock.api.data.DatabaseBridgeMode;
 import com.bgsoftware.superiorskyblock.api.data.DatabaseFilter;
 import com.bgsoftware.superiorskyblock.api.events.AttemptPlayerSendMessageEvent;
 import com.bgsoftware.superiorskyblock.api.events.PlayerToggleBlocksStackerEvent;
-import com.bgsoftware.superiorskyblock.api.events.PlayerToggleBorderEvent;
 import com.bgsoftware.superiorskyblock.api.events.PlayerToggleBypassEvent;
-import com.bgsoftware.superiorskyblock.api.events.PlayerToggleFlyEvent;
 import com.bgsoftware.superiorskyblock.api.events.PlayerToggleSpyEvent;
 import com.bgsoftware.superiorskyblock.api.events.PlayerToggleTeamChatEvent;
 import com.bgsoftware.superiorskyblock.api.objects.Pair;
@@ -78,7 +77,7 @@ public class PlayersListener implements Listener {
     private void trySyncServers(SuperiorPlayer superiorPlayer, Pair<String, Object> data) {
         DatabaseBridge databaseBridge = superiorPlayer.getDatabaseBridge();
 
-        if (!(databaseBridge instanceof ProxyDatabaseBridge))
+        if (!(databaseBridge instanceof ProxyDatabaseBridge) || databaseBridge.getDatabaseBridgeMode() != DatabaseBridgeMode.SAVE_DATA)
             return;
 
         ProxyDatabaseBridge proxyDatabaseBridge = (ProxyDatabaseBridge) databaseBridge;
