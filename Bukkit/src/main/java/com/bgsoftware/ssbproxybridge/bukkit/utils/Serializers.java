@@ -1,12 +1,8 @@
 package com.bgsoftware.ssbproxybridge.bukkit.utils;
 
 import org.bukkit.Location;
-import org.bukkit.inventory.ItemStack;
 
 import javax.annotation.Nullable;
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
-import java.math.BigInteger;
 
 public class Serializers {
 
@@ -15,8 +11,8 @@ public class Serializers {
     }
 
     @Nullable
-    public static Location deserializeLocation(String serialized) {
-        if (serialized == null || serialized.isEmpty())
+    public static Location deserializeLocation(@Nullable String serialized) {
+        if (Text.isBlank(serialized))
             return null;
 
         String[] sections = serialized.split(",");
@@ -28,6 +24,15 @@ public class Serializers {
         float pitch = sections.length > 4 ? Float.parseFloat(sections[5]) : 0;
 
         return new LazyWorldLocation(sections[0], x, y, z, yaw, pitch);
+    }
+
+    @Nullable
+    public static String serializeLocation(@Nullable Location location) {
+        if (location == null)
+            return null;
+
+        return location.getWorld().getName() + "," + location.getX() + "," + location.getY() + "," +
+                location.getZ() + "," + location.getYaw() + "," + location.getPitch();
     }
 
 }

@@ -7,6 +7,7 @@ import com.bgsoftware.ssbproxybridge.bukkit.teleport.ProxyPlayersFactory;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.BukkitExecutor;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.MessagesSender;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.PlayerLocales;
+import com.bgsoftware.ssbproxybridge.bukkit.utils.Serializers;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.Text;
 import com.bgsoftware.ssbproxybridge.core.JsonUtil;
 import com.bgsoftware.ssbproxybridge.core.requests.IRequestHandler;
@@ -23,6 +24,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.command.CommandSender;
@@ -40,21 +42,28 @@ public enum ActionType {
     TELEPORT(dataObject -> requirePlayer(dataObject, player -> {
         SSBProxyBridgeModule module = SSBProxyBridgeModule.getModule();
 
-        UUID islandUUID = UUID.fromString(dataObject.get("island").getAsString());
-        Island targetIsland;
-
-        if (islandUUID.getLeastSignificantBits() == 0 && islandUUID.getMostSignificantBits() == 0) {
-            targetIsland = module.getPlugin().getGrid().getSpawnIsland();
-        } else {
-            targetIsland = module.getPlugin().getGrid().getIslandByUUID(islandUUID);
-        }
-
-        if (targetIsland == null) {
-            throw new RequestHandlerException("Couldn't teleport player to invalid island \"" + islandUUID + "\"");
-        }
-
         SuperiorPlayer superiorPlayer = module.getPlugin().getPlayers().getSuperiorPlayer(player);
-        superiorPlayer.teleport(targetIsland);
+
+        if (dataObject.has("island")) {
+            UUID islandUUID = UUID.fromString(dataObject.get("island").getAsString());
+            Island targetIsland = islandUUID.equals(new UUID(0, 0)) ?
+                    module.getPlugin().getGrid().getSpawnIsland() :
+                    module.getPlugin().getGrid().getIslandByUUID(islandUUID);
+
+            if (targetIsland == null) {
+                throw new RequestHandlerException("Couldn't teleport player to invalid island \"" + islandUUID + "\"");
+            }
+
+            superiorPlayer.teleport(targetIsland);
+        } else if (dataObject.has("location")) {
+            Location location = Serializers.deserializeLocation(dataObject.get("location").getAsString());
+
+            if (location == null || location.getWorld() == null)
+                throw new RequestHandlerException("Couldn't teleport player to invalid location \"" + location + "\"");
+
+            superiorPlayer.teleport(location);
+        }
+
     }, true)),
 
     CREATE_ISLAND(dataObject -> {

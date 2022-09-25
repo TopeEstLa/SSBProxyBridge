@@ -37,7 +37,59 @@ public class ProxyPlayerTeleportAlgorithm implements PlayerTeleportAlgorithm {
         this.teleportedToServer = teleportedToServer;
     }
 
+    @Override
+    public CompletableFuture<Boolean> teleport(Player player, Location location) {
+        Island island;
+
+        try {
+            RemoteIsland.setIgnoreRemoteStatus(true);
+            island = module.getPlugin().getGrid().getIslandAt(location);
+        } finally {
+            RemoteIsland.setIgnoreRemoteStatus(false);
+        }
+
+        String targetServer = island == null ? null : island.isSpawn() ? module.getSettings().spawnServerName :
+                island instanceof RemoteIsland ? ((RemoteIsland) island).getOriginalServer() : null;
+
+        if (targetServer != null && teleportToLocation(player, targetServer, location))
+            return CompletableFuture.completedFuture(true);
+
+        return original.teleport(player, location);
+    }
+
+    @Override
+    public CompletableFuture<Boolean> teleport(Player player, Island island) {
+        String targetServer = island.isSpawn() ? module.getSettings().spawnServerName :
+                island instanceof RemoteIsland ? ((RemoteIsland) island).getOriginalServer() : null;
+
+        if (targetServer != null && teleportToIsland(player, targetServer, island))
+            return CompletableFuture.completedFuture(true);
+
+        return original.teleport(player, island);
+    }
+
+    @Override
+    public CompletableFuture<Boolean> teleport(Player player, Island island, World.Environment environment) {
+        String targetServer = island.isSpawn() ? module.getSettings().spawnServerName :
+                island instanceof RemoteIsland ? ((RemoteIsland) island).getOriginalServer() : null;
+
+        if (targetServer != null && teleportToIsland(player, targetServer, island))
+            return CompletableFuture.completedFuture(true);
+
+        return original.teleport(player, island, environment);
+    }
+
     private boolean teleportToIsland(Player player, String islandServer, Island island) {
+        return teleportToAnotherServer(player, islandServer, () ->
+                ServerActions.teleportToIsland(player, islandServer, island.getUniqueId()));
+    }
+
+    private boolean teleportToLocation(Player player, String islandServer, Location location) {
+        return teleportToAnotherServer(player, islandServer, () ->
+                ServerActions.teleportToLocation(player, islandServer, location));
+    }
+
+    private boolean teleportToAnotherServer(Player player, String islandServer, Runnable teleportAction) {
         if (module.getSettings().serverName.equals(islandServer))
             // Teleport regularly to the island.
             return false;
@@ -47,65 +99,10 @@ public class ProxyPlayerTeleportAlgorithm implements PlayerTeleportAlgorithm {
         setTeleportedToServer(true);
         BukkitExecutor.runTaskLater(() -> setTeleportedToServer(false), 5L);
 
-        ServerActions.teleportToIsland(player, islandServer, island.getUniqueId());
+        teleportAction.run();
         ProxyPlayerBridge.teleportPlayer(player, islandServer);
 
         return true;
-    }
-
-    @Override
-    public CompletableFuture<Boolean> teleport(Player player, Location location) {
-        return original.teleport(player, location);
-    }
-
-    @Override
-    public CompletableFuture<Boolean> teleport(Player player, Island island) {
-        String targetServer = island.isSpawn() ? module.getSettings().spawnServerName :
-                island instanceof RemoteIsland ? ((RemoteIsland) island).getOriginalServer() : null;
-
-        if (targetServer == null)
-            return original.teleport(player, island);
-
-        CompletableFuture<Boolean> result = new CompletableFuture<>();
-
-        if (hasPendingTeleportTask || teleportToIsland(player, targetServer, island)) {
-            result.complete(true);
-        } else {
-            original.teleport(player, island).whenComplete((originalTeleport, originalError) -> {
-                if (originalError != null) {
-                    result.completeExceptionally(originalError);
-                } else {
-                    result.complete(originalTeleport);
-                }
-            });
-        }
-
-        return result;
-    }
-
-    @Override
-    public CompletableFuture<Boolean> teleport(Player player, Island island, World.Environment environment) {
-        String targetServer = island.isSpawn() ? module.getSettings().spawnServerName :
-                island instanceof RemoteIsland ? ((RemoteIsland) island).getOriginalServer() : null;
-
-        if (targetServer == null)
-            return original.teleport(player, island);
-
-        CompletableFuture<Boolean> result = new CompletableFuture<>();
-
-        if (hasPendingTeleportTask || teleportToIsland(player, targetServer, island)) {
-            result.complete(true);
-        } else {
-            original.teleport(player, island).whenComplete((originalTeleport, originalError) -> {
-                if (originalError != null) {
-                    result.completeExceptionally(originalError);
-                } else {
-                    result.complete(originalTeleport);
-                }
-            });
-        }
-
-        return result;
     }
 
 }

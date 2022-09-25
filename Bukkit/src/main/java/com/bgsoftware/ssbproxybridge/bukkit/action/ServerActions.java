@@ -2,6 +2,7 @@ package com.bgsoftware.ssbproxybridge.bukkit.action;
 
 import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.DatabaseBridgeAccessor;
+import com.bgsoftware.ssbproxybridge.bukkit.utils.Serializers;
 import com.bgsoftware.ssbproxybridge.core.JsonUtil;
 import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI;
 import com.bgsoftware.superiorskyblock.api.island.Island;
@@ -15,6 +16,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
 import javax.annotation.Nullable;
@@ -40,6 +42,14 @@ public class ServerActions {
         JsonObject data = new JsonObject();
         data.addProperty("action", ActionType.TELEPORT.name());
         data.addProperty("island", islandUUID.toString());
+        data.addProperty("player", player.getUniqueId().toString());
+        sendData(data, targetServer);
+    }
+
+    public static void teleportToLocation(Player player, String targetServer, Location location) {
+        JsonObject data = new JsonObject();
+        data.addProperty("action", ActionType.TELEPORT.name());
+        data.addProperty("location", Serializers.serializeLocation(location));
         data.addProperty("player", player.getUniqueId().toString());
         sendData(data, targetServer);
     }

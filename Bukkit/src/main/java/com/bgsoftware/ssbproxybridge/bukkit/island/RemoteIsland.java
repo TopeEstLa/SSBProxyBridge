@@ -392,28 +392,34 @@ public class RemoteIsland implements Island {
         // On another server, therefore no chunks.
     }
 
+    private static boolean ignoreRemoteStatus = false;
+
+    public static void setIgnoreRemoteStatus(boolean ignoreRemoteStatus) {
+        RemoteIsland.ignoreRemoteStatus = ignoreRemoteStatus;
+    }
+
     @Override
     public boolean isInside(Location location) {
-        // On another server, therefore not inside.
-        return false;
+        // On another server, therefore not inside (unless ignoreRemoteStatus=true)
+        return ignoreRemoteStatus && this.handle.isInside(location);
     }
 
     @Override
     public boolean isInsideRange(Location location) {
-        // On another server, therefore not inside.
-        return false;
+        // On another server, therefore not inside (unless ignoreRemoteStatus=true)
+        return ignoreRemoteStatus && this.handle.isInsideRange(location);
     }
 
     @Override
     public boolean isInsideRange(Location location, int extra) {
-        // On another server, therefore not inside.
-        return false;
+        // On another server, therefore not inside (unless ignoreRemoteStatus=true)
+        return ignoreRemoteStatus && this.handle.isInsideRange(location, extra);
     }
 
     @Override
     public boolean isInsideRange(Chunk chunk) {
-        // On another server, therefore not inside.
-        return false;
+        // On another server, therefore not inside (unless ignoreRemoteStatus=true)
+        return ignoreRemoteStatus && this.handle.isInsideRange(chunk);
     }
 
     @Override
