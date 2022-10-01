@@ -32,7 +32,7 @@ import java.util.Locale;
 
 public class SSBProxyBridgeModule extends PluginModule {
 
-    private static final int API_VERSION = 4;
+    private static final int API_VERSION = 5;
 
     private static SSBProxyBridgeModule INSTANCE;
 

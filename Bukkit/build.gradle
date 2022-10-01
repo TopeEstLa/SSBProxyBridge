@@ -3,6 +3,6 @@ group 'Bukkit'
 dependencies {
     compileOnly "com.bgsoftware.common.config:CommentedConfiguration:1.0.3"
     compileOnly "org.spigotmc:v1_8_R3:latest"
-    compileOnly "com.bgsoftware:SuperiorSkyblockAPI:2022.8"
+    compileOnly "com.bgsoftware:SuperiorSkyblockAPI:2022.8.1"
     compileOnly parent
 }

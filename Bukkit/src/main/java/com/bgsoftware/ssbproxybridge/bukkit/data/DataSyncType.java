@@ -3,7 +3,6 @@ package com.bgsoftware.ssbproxybridge.bukkit.data;
 import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
 import com.bgsoftware.ssbproxybridge.bukkit.bridge.ProxyDatabaseBridge;
 import com.bgsoftware.ssbproxybridge.bukkit.bridge.ProxyDatabaseBridgeFactory;
-import com.bgsoftware.ssbproxybridge.bukkit.island.BankTransactionImpl;
 import com.bgsoftware.ssbproxybridge.bukkit.island.FakeSchematic;
 import com.bgsoftware.ssbproxybridge.bukkit.island.Islands;
 import com.bgsoftware.ssbproxybridge.bukkit.island.RemoteIsland;
@@ -166,7 +165,7 @@ public enum DataSyncType {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
         JsonObject filters = JsonMethods.convertFilters(filtersArray);
         optionalIsland(filters, island -> {
-            if(filters.has("player")) {
+            if (filters.has("player")) {
                 island.removeRating(SuperiorSkyblockAPI.getPlayer(UUID.fromString(filters.get("player").getAsString())));
             } else {
                 island.removeRatings();
@@ -250,7 +249,10 @@ public enum DataSyncType {
     INSERT_BANK_TRANSACTIONS(dataObject -> {
         JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
         JsonObject columns = JsonMethods.convertColumns(columnsArray);
-        requireIsland(columns, island -> island.getIslandBank().loadTransaction(new BankTransactionImpl(
+
+        SSBProxyBridgeModule module = SSBProxyBridgeModule.getModule();
+
+        requireIsland(columns, island -> island.getIslandBank().loadTransaction(module.getPlugin().getFactory().createTransaction(
                 UUID.fromString(columns.get("player").getAsString()),
                 BankAction.valueOf(columns.get("bank_action").getAsString()),
                 columns.get("position").getAsInt(),

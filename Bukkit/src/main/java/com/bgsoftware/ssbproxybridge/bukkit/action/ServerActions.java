@@ -55,7 +55,7 @@ public class ServerActions {
     }
 
     public static CompletableFuture<IslandCreationAlgorithm.IslandCreationResult> createIsland(String targetServer, UUID islandUUID, SuperiorPlayer islandLeader,
-                                                                                               BlockPosition blockPosition, String name, Schematic schematic) {
+                                                                                               BlockPosition blockPosition, String name, String schematic) {
         CompletableFuture<IslandCreationAlgorithm.IslandCreationResult> result = new CompletableFuture<>();
 
         JsonObject position = new JsonObject();
@@ -70,7 +70,7 @@ public class ServerActions {
         data.addProperty("leader", islandLeader.getUniqueId().toString());
         data.add("position", position);
         data.addProperty("name", name);
-        data.addProperty("schematic", schematic.getName());
+        data.addProperty("schematic", schematic);
 
         int responseId = new Random().nextInt();
         data.addProperty("response-id", responseId);
