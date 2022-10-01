@@ -6,7 +6,6 @@ import com.bgsoftware.ssbproxybridge.bukkit.utils.Serializers;
 import com.bgsoftware.ssbproxybridge.core.JsonUtil;
 import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI;
 import com.bgsoftware.superiorskyblock.api.island.Island;
-import com.bgsoftware.superiorskyblock.api.schematic.Schematic;
 import com.bgsoftware.superiorskyblock.api.world.algorithm.IslandCreationAlgorithm;
 import com.bgsoftware.superiorskyblock.api.wrappers.BlockPosition;
 import com.bgsoftware.superiorskyblock.api.wrappers.SuperiorPlayer;
@@ -132,6 +131,16 @@ public class ServerActions {
 
         sendData(data, null);
     }
+
+    public static void warpPlayer(UUID playerUUID, String targetServer, UUID islandUUID, String warpName) {
+        JsonObject data = new JsonObject();
+        data.addProperty("action", ActionType.WARP_PLAYER.name());
+        data.addProperty("island", islandUUID.toString());
+        data.addProperty("warp_name", warpName);
+        data.addProperty("player", playerUUID.toString());
+        sendData(data, targetServer);
+    }
+
 
     private static void sendData(JsonObject data, @Nullable String recipient) {
         data.addProperty("sender", module.getSettings().serverName);

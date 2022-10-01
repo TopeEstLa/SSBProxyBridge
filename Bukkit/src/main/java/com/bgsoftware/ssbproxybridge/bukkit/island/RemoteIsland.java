@@ -1,5 +1,8 @@
 package com.bgsoftware.ssbproxybridge.bukkit.island;
 
+import com.bgsoftware.ssbproxybridge.bukkit.action.ServerActions;
+import com.bgsoftware.ssbproxybridge.bukkit.proxy.ProxyPlayerBridge;
+import com.bgsoftware.ssbproxybridge.bukkit.utils.BukkitExecutor;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.DatabaseBridgeAccessor;
 import com.bgsoftware.superiorskyblock.api.SuperiorSkyblock;
 import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI;
@@ -8,13 +11,16 @@ import com.bgsoftware.superiorskyblock.api.island.Island;
 import com.bgsoftware.superiorskyblock.api.island.IslandChest;
 import com.bgsoftware.superiorskyblock.api.island.PlayerRole;
 import com.bgsoftware.superiorskyblock.api.island.algorithms.IslandCalculationAlgorithm;
+import com.bgsoftware.superiorskyblock.api.island.warps.IslandWarp;
 import com.bgsoftware.superiorskyblock.api.key.Key;
 import com.bgsoftware.superiorskyblock.api.wrappers.SuperiorPlayer;
+import com.google.common.base.Preconditions;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Player;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
@@ -222,8 +228,40 @@ public class RemoteIsland extends DelegateIsland {
     }
 
     @Override
-    public void warpPlayer(SuperiorPlayer superiorPlayer, String name) {
-        // TODO
+    public void warpPlayer(SuperiorPlayer superiorPlayer, String warp) {
+        Preconditions.checkNotNull(superiorPlayer, "superiorPlayer parameter cannot be null.");
+        Preconditions.checkNotNull(warp, "warp parameter cannot be null.");
+
+        IslandWarp islandWarp = getWarp(warp);
+
+        if (islandWarp == null) {
+            // Will trigger the message.
+            super.warpPlayer(superiorPlayer, warp);
+            return;
+        }
+
+        if (plugin.getSettings().getWarpsWarmup() > 0 && !superiorPlayer.hasBypassModeEnabled() &&
+                !superiorPlayer.hasPermission("superior.admin.bypass.warmup")) {
+            // Will trigger the messages.
+            super.warpPlayer(superiorPlayer, warp);
+
+            // Cancel the original teleport task
+            if (superiorPlayer.getTeleportTask() != null)
+                superiorPlayer.getTeleportTask().cancel();
+
+            BukkitExecutor.runTaskLater(() -> warpPlayerRemotely(superiorPlayer, warp), plugin.getSettings().getWarpsWarmup() / 50);
+        } else {
+            warpPlayerRemotely(superiorPlayer, warp);
+        }
+
+    }
+
+    private void warpPlayerRemotely(SuperiorPlayer superiorPlayer, String warpName) {
+        Player player = superiorPlayer.asPlayer();
+        if (player != null) {
+            ServerActions.warpPlayer(player.getUniqueId(), this.originalServer, getUniqueId(), warpName);
+            ProxyPlayerBridge.teleportPlayer(player, this.originalServer);
+        }
     }
 
     @Nullable

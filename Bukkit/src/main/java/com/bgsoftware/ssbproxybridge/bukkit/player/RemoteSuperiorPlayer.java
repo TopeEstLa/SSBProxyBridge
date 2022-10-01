@@ -9,6 +9,7 @@ import javax.annotation.Nullable;
 public class RemoteSuperiorPlayer extends DelegateSuperiorPlayer {
 
     private boolean onlineStatus = false;
+    private boolean bypassMode = false;
     private Player fakePlayer;
 
     public RemoteSuperiorPlayer(SuperiorPlayer handle) {
@@ -40,8 +41,17 @@ public class RemoteSuperiorPlayer extends DelegateSuperiorPlayer {
         return onlineStatus || super.isShownAsOnline();
     }
 
+    @Override
+    public boolean hasBypassModeEnabled() {
+        return bypassMode || super.hasBypassModeEnabled();
+    }
+
     public void setOnlineStatus(boolean onlineStatus) {
         this.onlineStatus = onlineStatus;
+    }
+
+    public void setFakeBypassMode(boolean bypassMode) {
+        this.bypassMode = bypassMode;
     }
 
 }

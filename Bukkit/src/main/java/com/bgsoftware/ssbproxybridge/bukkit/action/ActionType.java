@@ -2,6 +2,7 @@ package com.bgsoftware.ssbproxybridge.bukkit.action;
 
 import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
 import com.bgsoftware.ssbproxybridge.bukkit.island.creation.RemoteIslandCreationAlgorithm;
+import com.bgsoftware.ssbproxybridge.bukkit.player.RemoteSuperiorPlayer;
 import com.bgsoftware.ssbproxybridge.bukkit.teleport.ProxyPlayerTeleportAlgorithm;
 import com.bgsoftware.ssbproxybridge.bukkit.teleport.ProxyPlayersFactory;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.BukkitExecutor;
@@ -172,7 +173,32 @@ public enum ActionType {
 
             MessagesSender.sendMessageSilenty(messageBuilder.build(), target);
         }
-    });
+    }),
+
+    WARP_PLAYER(dataObject -> requirePlayer(dataObject, player -> {
+        SSBProxyBridgeModule module = SSBProxyBridgeModule.getModule();
+
+        SuperiorPlayer superiorPlayer = module.getPlugin().getPlayers().getSuperiorPlayer(player);
+
+        UUID islandUUID = UUID.fromString(dataObject.get("island").getAsString());
+
+        Island targetIsland = islandUUID.equals(new UUID(0, 0)) ?
+                module.getPlugin().getGrid().getSpawnIsland() :
+                module.getPlugin().getGrid().getIslandByUUID(islandUUID);
+
+        if (targetIsland == null)
+            throw new RequestHandlerException("Couldn't teleport player to invalid island \"" + islandUUID + "\"");
+
+        // We want to ignore warmup.
+        RemoteSuperiorPlayer remoteSuperiorPlayer = new RemoteSuperiorPlayer(superiorPlayer);
+        try {
+            remoteSuperiorPlayer.setFakeBypassMode(true);
+            targetIsland.warpPlayer(remoteSuperiorPlayer, dataObject.get("warp_name").getAsString());
+        } finally {
+            remoteSuperiorPlayer.setFakeBypassMode(false);
+        }
+
+    }, true));
 
     private final IRequestHandler requestHandler;
 
