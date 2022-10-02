@@ -60,9 +60,7 @@ public enum DataSyncType {
 
     DELETE_ISLANDS_BANKS(),
 
-    DELETE_ISLANDS_BANS(),
-
-    DELETE_ISLANDS_BANS_PLAYER(dataObject -> {
+    DELETE_ISLANDS_BANS(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
         optionalIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(filtersArray, value ->
                 island.unbanMember(SuperiorSkyblockAPI.getPlayer(UUID.fromString(value.getAsString())))
@@ -71,14 +69,14 @@ public enum DataSyncType {
 
     DELETE_ISLANDS_BLOCK_LIMITS(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        optionalIsland(JsonMethods.convertFilters(filtersArray), Island::clearBlockLimits);
-    }),
-
-    DELETE_ISLANDS_BLOCK_LIMITS_BLOCK(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        optionalIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(filtersArray, value ->
-                island.removeBlockLimit(Key.of(value.getAsString()))
-        ));
+        JsonObject filters = JsonMethods.convertFilters(filtersArray);
+        optionalIsland(filters, island -> {
+            if (filters.has("block")) {
+                island.removeBlockLimit(Key.of(filters.get("block").getAsString()));
+            } else {
+                island.clearBlockLimits();
+            }
+        });
     }),
 
     DELETE_ISLANDS_CHESTS(),
@@ -99,34 +97,29 @@ public enum DataSyncType {
 
     DELETE_ISLANDS_FLAGS(),
 
-    DELETE_ISLANDS_GENERATORS(),
-
-    DELETE_ISLANDS_GENERATORS_ENVIRONMENT(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        optionalIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(filtersArray, value ->
-                island.clearGeneratorAmounts(World.Environment.valueOf(value.getAsString()))
-        ));
-    }),
-
-    DELETE_ISLANDS_GENERATORS_ENVIRONMENT_BLOCK(dataObject -> {
+    DELETE_ISLANDS_GENERATORS(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
         JsonObject filters = JsonMethods.convertFilters(filtersArray);
-        optionalIsland(filters, island -> island.removeGeneratorAmount(
-                Key.of(filters.get("block").getAsString()),
-                World.Environment.valueOf(filters.get("environment").getAsString())
-        ));
+        optionalIsland(filters, island -> {
+            if (filters.has("environment")) {
+                World.Environment environment = World.Environment.valueOf(filters.get("environment").getAsString());
+                if (filters.has("block")) {
+                    island.removeGeneratorAmount(Key.of(filters.get("block").getAsString()), environment);
+                } else {
+                    island.clearGeneratorAmounts(environment);
+                }
+            }
+        });
     }),
 
-    DELETE_ISLANDS_HOMES(),
-
-    DELETE_ISLANDS_HOMES_ENVIRONMENT(dataObject -> {
+    DELETE_ISLANDS_HOMES(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
         optionalIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(filtersArray, value ->
                 island.setIslandHome(World.Environment.valueOf(value.getAsString()), null)
         ));
     }),
 
-    DELETE_ISLANDS_ISLAND_EFFECTS_EFFECT_TYPE(dataObject -> {
+    DELETE_ISLANDS_ISLAND_EFFECTS(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
         optionalIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(filtersArray, value ->
                 island.removePotionEffect(PotionEffectType.getByName(value.getAsString()))
@@ -191,25 +184,19 @@ public enum DataSyncType {
 
     DELETE_ISLANDS_VISITORS(),
 
-    DELETE_ISLANDS_VISITOR_HOMES(),
-
-    DELETE_ISLANDS_VISITOR_HOMES_ENVIRONMENT(dataObject -> {
+    DELETE_ISLANDS_VISITOR_HOMES(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
         optionalIsland(JsonMethods.convertFilters(filtersArray), island -> island.setVisitorsLocation(null));
     }),
 
-    DELETE_ISLANDS_WARPS(),
-
-    DELETE_ISLANDS_WARPS_NAME(dataObject -> {
+    DELETE_ISLANDS_WARPS(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
         optionalIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(filtersArray, value ->
                 island.deleteWarp(value.getAsString())
         ));
     }),
 
-    DELETE_ISLANDS_WARP_CATEGORIES(),
-
-    DELETE_ISLANDS_WARP_CATEGORIES_NAME(dataObject -> {
+    DELETE_ISLANDS_WARP_CATEGORIES(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
         optionalIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(filtersArray, value ->
                 island.deleteCategory(island.getWarpCategory(value.getAsString()))
@@ -225,9 +212,7 @@ public enum DataSyncType {
 
     DELETE_PLAYERS_CUSTOM_DATA(),
 
-    DELETE_PLAYERS_MISSIONS(),
-
-    DELETE_PLAYERS_MISSIONS_NAME(dataObject -> {
+    DELETE_PLAYERS_MISSIONS(dataObject -> {
         JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
         requirePlayer(JsonMethods.convertFilters(filtersArray), superiorPlayer -> JsonMethods.forEachOrThrow(filtersArray, value -> {
             String missionName = value.getAsString();
