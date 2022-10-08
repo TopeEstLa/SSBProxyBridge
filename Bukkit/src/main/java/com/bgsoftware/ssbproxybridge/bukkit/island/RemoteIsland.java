@@ -51,6 +51,8 @@ public class RemoteIsland extends DelegateIsland {
         } finally {
             // We want the RemoteIsland instance to be saved as the island of the player, and not the actual handle.
             superiorPlayer.setIsland(this);
+            // We want to revoke invites for the player, if exists.
+            revokeInvite(superiorPlayer);
         }
     }
 
