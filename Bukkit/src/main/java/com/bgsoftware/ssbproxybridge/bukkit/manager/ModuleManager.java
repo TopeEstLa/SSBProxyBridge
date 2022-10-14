@@ -65,7 +65,10 @@ public class ModuleManager {
             this.connector.connect(connectionArguments);
             startCommunication();
         } catch (ConnectionFailureException error) {
-            throw new RuntimeException("Failed to connect to manager connector:", error);
+            // Failed to connect with the manager.
+            // Instead, we try to send keep-alive packets until we have a connection, then we send a HELLO packet.
+            this.failedCommunication = true;
+            this.keepAliveTask = BukkitExecutor.runTaskTimerAsynchronously(this::sendKeepAlive, 100L, 100L);
         }
     }
 
