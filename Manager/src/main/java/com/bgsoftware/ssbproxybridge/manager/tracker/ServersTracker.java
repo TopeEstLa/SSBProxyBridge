@@ -24,7 +24,9 @@ public class ServersTracker {
     }
 
     public void registerNewServer(String serverName) {
-        servers.put(serverName, new ServerInfo(serverName));
+        ServerInfo oldServerInfo = servers.put(serverName, new ServerInfo(serverName));
+        if (oldServerInfo != null)
+            oldServerInfo.getServerIslands().forEach(islandInfo -> islands.remove(islandInfo.getUniqueId()));
     }
 
     @Nullable
