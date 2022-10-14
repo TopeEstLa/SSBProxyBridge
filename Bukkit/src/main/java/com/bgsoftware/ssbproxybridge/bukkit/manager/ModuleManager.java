@@ -133,13 +133,13 @@ public class ModuleManager {
                 if (failedCommunication) {
                     startCommunication();
 
-                    logger.info("Connected to the module again.");
+                    logger.info("Reconnected to the module-manager.");
 
                     failedCommunication = false;
                 }
             } else {
                 // An error occurred while sending a keep alive.
-                logger.warning("Cannot connect to the module manager...");
+                logger.warning("Failed to connect to the module-manager. Retrying in " + (this.keepAlive / 20L) + " seconds.");
                 failedCommunication = true;
             }
         });
