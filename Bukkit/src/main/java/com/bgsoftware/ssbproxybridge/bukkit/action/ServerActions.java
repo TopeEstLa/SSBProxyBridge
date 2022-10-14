@@ -6,6 +6,9 @@ import com.bgsoftware.ssbproxybridge.bukkit.utils.Serializers;
 import com.bgsoftware.ssbproxybridge.core.JsonUtil;
 import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI;
 import com.bgsoftware.superiorskyblock.api.island.Island;
+import com.bgsoftware.superiorskyblock.api.island.algorithms.IslandCalculationAlgorithm;
+import com.bgsoftware.superiorskyblock.api.key.Key;
+import com.bgsoftware.superiorskyblock.api.key.KeyMap;
 import com.bgsoftware.superiorskyblock.api.world.algorithm.IslandCreationAlgorithm;
 import com.bgsoftware.superiorskyblock.api.wrappers.BlockPosition;
 import com.bgsoftware.superiorskyblock.api.wrappers.SuperiorPlayer;
@@ -19,6 +22,8 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
 import javax.annotation.Nullable;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Random;
@@ -79,7 +84,9 @@ public class ServerActions {
                                                                                                SuperiorPlayer islandLeader,
                                                                                                BlockPosition blockPosition,
                                                                                                String name,
-                                                                                               String schematic) {
+                                                                                               String schematic,
+                                                                                               BigDecimal worthBonus,
+                                                                                               BigDecimal levelBonus) {
         CompletableFuture<IslandCreationAlgorithm.IslandCreationResult> result = new CompletableFuture<>();
 
         JsonObject position = new JsonObject();
@@ -95,6 +102,8 @@ public class ServerActions {
         data.add("position", position);
         data.addProperty("name", name);
         data.addProperty("schematic", schematic);
+        data.addProperty("worth_bonus", worthBonus);
+        data.addProperty("level_bonus", levelBonus);
 
         int responseId = new Random().nextInt();
         data.addProperty("response-id", responseId);
@@ -141,6 +150,46 @@ public class ServerActions {
             error.printStackTrace();
             // We add the request to the pending requests queue, so players will be notified later.
             pendingRequests.add(new RequestData(result, null));
+        });
+    }
+
+    public static CompletableFuture<IslandCalculationAlgorithm.IslandCalculationResult> calculateIsland(String targetServer,
+                                                                                                        UUID islandUUID) {
+        CompletableFuture<IslandCalculationAlgorithm.IslandCalculationResult> result = new CompletableFuture<>();
+
+        JsonObject request = new JsonObject();
+        request.addProperty("action", ActionType.CALCULATE_ISLAND.name());
+        request.addProperty("island", islandUUID.toString());
+
+        sendData(request, targetServer, response -> {
+            if (response.has("error")) {
+                result.completeExceptionally(new RuntimeException("Failed to calculate island: " + response.get("error").getAsString()));
+                return;
+            }
+
+            KeyMap<BigInteger> blockCounts = KeyMap.createKeyMap();
+            JsonArray blockCountsArray = response.getAsJsonArray("block_counts");
+            blockCountsArray.forEach(blockCountElement -> {
+                JsonObject blockCount = blockCountElement.getAsJsonObject();
+                Key block = Key.of(blockCount.get("block").getAsString());
+                BigInteger count = blockCount.get("count").getAsBigInteger();
+                blockCounts.put(block, count);
+            });
+
+            result.complete(() -> blockCounts);
+        }, error -> {
+            logger.warning("Cannot send calculate command due to an unexpected error:");
+            error.printStackTrace();
+            result.completeExceptionally(error);
+        });
+
+        return result;
+    }
+
+    public static void sendCalculationResult(JsonObject result) {
+        sendResponse(result, error -> {
+            logger.warning("Cannot send calculation island result due to an unexpected error:");
+            error.printStackTrace();
         });
     }
 

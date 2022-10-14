@@ -1,6 +1,7 @@
 package com.bgsoftware.ssbproxybridge.bukkit.island;
 
 import com.bgsoftware.ssbproxybridge.bukkit.action.ServerActions;
+import com.bgsoftware.ssbproxybridge.bukkit.island.algorithm.RemoteIslandCalculationAlgorithm;
 import com.bgsoftware.ssbproxybridge.bukkit.proxy.ProxyPlayerBridge;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.BukkitExecutor;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.DatabaseBridgeAccessor;
@@ -38,6 +39,10 @@ public class RemoteIsland extends DelegateIsland {
     public RemoteIsland(String originalServer, Island handle) {
         super(handle);
         this.originalServer = originalServer;
+
+        IslandCalculationAlgorithm islandCalculationAlgorithm = getCalculationAlgorithm();
+        if (islandCalculationAlgorithm instanceof RemoteIslandCalculationAlgorithm)
+            ((RemoteIslandCalculationAlgorithm) islandCalculationAlgorithm).setTargetServer(originalServer);
     }
 
     public String getOriginalServer() {
@@ -172,16 +177,6 @@ public class RemoteIsland extends DelegateIsland {
         });
 
         plugin.getGrid().getIslandsContainer().removeIsland(this);
-    }
-
-    @Override
-    public void calcIslandWorth(@Nullable SuperiorPlayer superiorPlayer, @Nullable Runnable runnable) {
-        // TODO
-    }
-
-    @Override
-    public IslandCalculationAlgorithm getCalculationAlgorithm() {
-        return RemoteIslandCalculationAlgorithm.getInstance();
     }
 
     @Override

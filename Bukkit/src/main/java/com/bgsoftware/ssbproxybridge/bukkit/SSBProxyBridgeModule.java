@@ -4,7 +4,7 @@ import com.bgsoftware.ssbproxybridge.bukkit.action.ActionsListener;
 import com.bgsoftware.ssbproxybridge.bukkit.bridge.ProxyDatabaseBridgeFactory;
 import com.bgsoftware.ssbproxybridge.bukkit.config.SettingsManager;
 import com.bgsoftware.ssbproxybridge.bukkit.data.DataSyncListener;
-import com.bgsoftware.ssbproxybridge.bukkit.island.creation.RemoteIslandCreationAlgorithm;
+import com.bgsoftware.ssbproxybridge.bukkit.island.algorithm.RemoteIslandCreationAlgorithm;
 import com.bgsoftware.ssbproxybridge.bukkit.listener.IslandsListener;
 import com.bgsoftware.ssbproxybridge.bukkit.listener.PlayersListener;
 import com.bgsoftware.ssbproxybridge.bukkit.manager.ModuleManager;

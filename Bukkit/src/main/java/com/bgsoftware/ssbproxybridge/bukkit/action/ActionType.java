@@ -1,7 +1,7 @@
 package com.bgsoftware.ssbproxybridge.bukkit.action;
 
 import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
-import com.bgsoftware.ssbproxybridge.bukkit.island.creation.RemoteIslandCreationAlgorithm;
+import com.bgsoftware.ssbproxybridge.bukkit.island.algorithm.RemoteIslandCreationAlgorithm;
 import com.bgsoftware.ssbproxybridge.bukkit.player.RemoteSuperiorPlayer;
 import com.bgsoftware.ssbproxybridge.bukkit.teleport.ProxyPlayerTeleportAlgorithm;
 import com.bgsoftware.ssbproxybridge.bukkit.teleport.ProxyPlayersFactory;
@@ -80,6 +80,9 @@ public enum ActionType {
 
         String name = dataObject.get("name").getAsString();
         String schematic = dataObject.get("schematic").getAsString();
+        BigDecimal worthBonus = dataObject.get("worth_bonus").getAsBigDecimal();
+        BigDecimal levelBonus = dataObject.get("level_bonus").getAsBigDecimal();
+
         int responseId = dataObject.get("response-id").getAsInt();
 
         IslandCreationAlgorithm islandCreationAlgorithm = module.getPlugin().getGrid().getIslandCreationAlgorithm();
@@ -111,7 +114,7 @@ public enum ActionType {
                 throw new RequestHandlerException("Invalid environment to create island in \"" + environment.name() + "\"");
         }
 
-        module.getPlugin().getGrid().createIsland(islandLeader, schematic, BigDecimal.ZERO, BigDecimal.ZERO, biome, name, offset);
+        module.getPlugin().getGrid().createIsland(islandLeader, schematic, worthBonus, levelBonus, biome, name, offset);
     }),
 
     SEND_MESSAGE(dataObject -> {
@@ -198,7 +201,39 @@ public enum ActionType {
             remoteSuperiorPlayer.setFakeBypassMode(false);
         }
 
-    }, true));
+    }, true)),
+
+    CALCULATE_ISLAND(dataObject -> {
+        SSBProxyBridgeModule module = SSBProxyBridgeModule.getModule();
+
+        UUID islandUUID = UUID.fromString(dataObject.get("island").getAsString());
+        Island island = module.getPlugin().getGrid().getIslandByUUID(islandUUID);
+
+        if (island == null)
+            throw new RequestHandlerException("Couldn't teleport player to invalid island \"" + islandUUID + "\"");
+
+        int responseId = dataObject.get("response-id").getAsInt();
+
+        island.getCalculationAlgorithm().calculateIsland(island).whenComplete((result, error) -> {
+            JsonObject response = new JsonObject();
+            response.addProperty("id", responseId);
+
+            if (error != null) {
+                response.addProperty("error", error.getMessage());
+            } else {
+                JsonArray blockCounts = new JsonArray();
+                response.add("block_counts", blockCounts);
+                result.getBlockCounts().forEach((block, count) -> {
+                    JsonObject blockCount = new JsonObject();
+                    blockCount.addProperty("block", block.toString());
+                    blockCount.addProperty("count", count);
+                    blockCounts.add(blockCount);
+                });
+            }
+
+            ServerActions.sendCalculationResult(response);
+        });
+    });
 
     private final IRequestHandler requestHandler;
 

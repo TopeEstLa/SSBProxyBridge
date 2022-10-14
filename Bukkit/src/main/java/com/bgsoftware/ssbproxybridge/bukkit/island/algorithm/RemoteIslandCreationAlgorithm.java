@@ -1,4 +1,4 @@
-package com.bgsoftware.ssbproxybridge.bukkit.island.creation;
+package com.bgsoftware.ssbproxybridge.bukkit.island.algorithm;
 
 import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
 import com.bgsoftware.ssbproxybridge.bukkit.action.ServerActions;
@@ -55,6 +55,8 @@ public class RemoteIslandCreationAlgorithm extends DelegateIslandCreationAlgorit
                     result.completeExceptionally(error);
                 } else {
                     response.addProperty("result", true);
+                    System.out.println("RawWorth1: " + islandCreationResult.getIsland().getRawWorth());
+                    System.out.println("RawLevel1: " + islandCreationResult.getIsland().getRawLevel());
                     result.complete(islandCreationResult);
                 }
 
@@ -105,7 +107,8 @@ public class RemoteIslandCreationAlgorithm extends DelegateIslandCreationAlgorit
                 } else {
                     // Create island on another server.
                     newIslandResult = ServerActions.createIsland(targetServer, builder.getUniqueId(),
-                            builder.getOwner(), lastIsland, builder.getName(), builder.getScehmaticName());
+                            builder.getOwner(), lastIsland, builder.getName(), builder.getScehmaticName(),
+                            builder.getBonusWorth(), builder.getBonusLevel());
                 }
 
                 newIslandResult.whenComplete((originalResult, originalError) -> {

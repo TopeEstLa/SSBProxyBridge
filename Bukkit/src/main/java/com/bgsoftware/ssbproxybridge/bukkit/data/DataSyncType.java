@@ -6,7 +6,8 @@ import com.bgsoftware.ssbproxybridge.bukkit.bridge.ProxyDatabaseBridgeFactory;
 import com.bgsoftware.ssbproxybridge.bukkit.island.FakeSchematic;
 import com.bgsoftware.ssbproxybridge.bukkit.island.Islands;
 import com.bgsoftware.ssbproxybridge.bukkit.island.RemoteIsland;
-import com.bgsoftware.ssbproxybridge.bukkit.island.creation.RemoteIslandCreationAlgorithm;
+import com.bgsoftware.ssbproxybridge.bukkit.island.RemoteIslandsFactory;
+import com.bgsoftware.ssbproxybridge.bukkit.island.algorithm.RemoteIslandCreationAlgorithm;
 import com.bgsoftware.ssbproxybridge.bukkit.player.RemoteSuperiorPlayer;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.BukkitExecutor;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.DatabaseBridgeAccessor;
@@ -20,6 +21,7 @@ import com.bgsoftware.superiorskyblock.api.data.DatabaseBridgeMode;
 import com.bgsoftware.superiorskyblock.api.enums.BankAction;
 import com.bgsoftware.superiorskyblock.api.enums.BorderColor;
 import com.bgsoftware.superiorskyblock.api.enums.Rating;
+import com.bgsoftware.superiorskyblock.api.factory.IslandsFactory;
 import com.bgsoftware.superiorskyblock.api.island.Island;
 import com.bgsoftware.superiorskyblock.api.island.IslandFlag;
 import com.bgsoftware.superiorskyblock.api.island.IslandPrivilege;
@@ -268,6 +270,9 @@ public enum DataSyncType {
         if (islandCreationAlgorithm instanceof RemoteIslandCreationAlgorithm)
             islandCreationAlgorithm = ((RemoteIslandCreationAlgorithm) islandCreationAlgorithm).getOriginal();
 
+        IslandsFactory originalIslandsFactory = SuperiorSkyblockAPI.getFactory().getIslandsFactory();
+        SuperiorSkyblockAPI.getFactory().registerIslandsFactory(new RemoteIslandsFactory(originalIslandsFactory, islandUUID));
+
         islandCreationAlgorithm.createIsland(
                 islandUUID,
                 islandLeader,
@@ -275,6 +280,8 @@ public enum DataSyncType {
                 columns.get("name").getAsString(),
                 new FakeSchematic(columns.get("island_type").getAsString())
         ).whenComplete((result, error) -> {
+            SuperiorSkyblockAPI.getFactory().registerIslandsFactory(originalIslandsFactory);
+
             boolean createdSuccessfully = false;
 
             try {
@@ -1097,19 +1104,6 @@ public enum DataSyncType {
         // We want to update the leader of the island with the new RemoteIsland
         DatabaseBridgeAccessor.runWithoutDataSave(remoteIsland.getOwner(),
                 islandLeader -> islandLeader.setIsland(remoteIsland));
-
-        DatabaseBridgeAccessor.runWithoutDataSave(remoteIsland, (Runnable) () -> {
-            remoteIsland.setBonusWorth(new BigDecimal(columns.get("worth_bonus").getAsString()));
-            remoteIsland.setBonusLevel(new BigDecimal(columns.get("levels_bonus").getAsString()));
-            remoteIsland.setDiscord(columns.get("discord").getAsString());
-            remoteIsland.setPaypal(columns.get("paypal").getAsString());
-            remoteIsland.setLocked(columns.get("locked").getAsBoolean());
-            remoteIsland.setIgnored(columns.get("ignored").getAsBoolean());
-            remoteIsland.setDescription(columns.get("description").getAsString());
-            remoteIsland.handleBlocksPlace(JsonMethods.parseBlockCounts(columns.get("block_counts").getAsString()));
-            Islands.setGeneratedSchematics(remoteIsland, columns.get("generated_schematics").getAsByte());
-            Islands.setUnlockedWorlds(remoteIsland, columns.get("unlocked_worlds").getAsByte());
-        });
 
         return true;
     }
