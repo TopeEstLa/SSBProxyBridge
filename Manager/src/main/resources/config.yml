@@ -14,7 +14,7 @@ server:
 
 # The interval the servers should send keep-alives, in seconds.
 # If a server fails to send a keep-alive packet twice, the server is considered shutdown.
-keep-alive: 60
+keep-alive: 5
 
 # Time until a server is considered inactive, in seconds.
 # Inactive islands will not be counted when looking for the best server to create a new island.
