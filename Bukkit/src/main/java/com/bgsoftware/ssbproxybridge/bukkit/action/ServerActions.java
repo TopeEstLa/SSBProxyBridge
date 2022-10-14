@@ -19,19 +19,24 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
 import javax.annotation.Nullable;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
+import java.util.logging.Logger;
 
 public class ServerActions {
 
     private static final SSBProxyBridgeModule module = SSBProxyBridgeModule.getModule();
+    private static final Logger logger = Logger.getLogger("SSBProxyBridge");
     private static final Gson gson = new Gson();
-
     private static final Random random = new Random();
+
+    private static final Queue<RequestData> pendingRequests = new LinkedList<>();
 
     private ServerActions() {
 
@@ -42,7 +47,15 @@ public class ServerActions {
         data.addProperty("action", ActionType.TELEPORT.name());
         data.addProperty("island", islandUUID.toString());
         data.addProperty("player", player.getUniqueId().toString());
-        sendData(data, targetServer);
+        sendData(data, targetServer, error -> {
+            logger.warning("Cannot send teleport-island command due to an unexpected error:");
+            error.printStackTrace();
+
+            // TODO: SEND ACTUAL MESSAGE
+            if (player.isOnline()) {
+                player.sendMessage("Cannot teleport you now, try again later.");
+            }
+        });
     }
 
     public static void teleportToLocation(Player player, String targetServer, Location location) {
@@ -50,11 +63,23 @@ public class ServerActions {
         data.addProperty("action", ActionType.TELEPORT.name());
         data.addProperty("location", Serializers.serializeLocation(location));
         data.addProperty("player", player.getUniqueId().toString());
-        sendData(data, targetServer);
+        sendData(data, targetServer, error -> {
+            logger.warning("Cannot send teleport command due to an unexpected error:");
+            error.printStackTrace();
+
+            // TODO: SEND ACTUAL MESSAGE
+            if (player.isOnline()) {
+                player.sendMessage("Cannot teleport you now, try again later.");
+            }
+        });
     }
 
-    public static CompletableFuture<IslandCreationAlgorithm.IslandCreationResult> createIsland(String targetServer, UUID islandUUID, SuperiorPlayer islandLeader,
-                                                                                               BlockPosition blockPosition, String name, String schematic) {
+    public static CompletableFuture<IslandCreationAlgorithm.IslandCreationResult> createIsland(String targetServer,
+                                                                                               UUID islandUUID,
+                                                                                               SuperiorPlayer islandLeader,
+                                                                                               BlockPosition blockPosition,
+                                                                                               String name,
+                                                                                               String schematic) {
         CompletableFuture<IslandCreationAlgorithm.IslandCreationResult> result = new CompletableFuture<>();
 
         JsonObject position = new JsonObject();
@@ -105,9 +130,18 @@ public class ServerActions {
                     return;
                 }
             });
-        });
+        }, result::completeExceptionally);
 
         return result;
+    }
+
+    public static void sendCreationResult(JsonObject result) {
+        sendResponse(result, error -> {
+            logger.warning("Cannot send creation island result due to an unexpected error:");
+            error.printStackTrace();
+            // We add the request to the pending requests queue, so players will be notified later.
+            pendingRequests.add(new RequestData(result, null));
+        });
     }
 
     public static void sendMessage(@Nullable UUID playerUUID, String messageType, Object[] args) {
@@ -129,20 +163,58 @@ public class ServerActions {
         }
         data.add("args", jsonArgs);
 
-        sendData(data, null);
+        sendData(data, null, error -> {
+            logger.warning("Cannot send message command due to an unexpected error:");
+            error.printStackTrace();
+        });
     }
 
-    public static void warpPlayer(UUID playerUUID, String targetServer, UUID islandUUID, String warpName) {
+    public static void warpPlayer(Player player, String targetServer, UUID islandUUID, String warpName) {
         JsonObject data = new JsonObject();
         data.addProperty("action", ActionType.WARP_PLAYER.name());
         data.addProperty("island", islandUUID.toString());
         data.addProperty("warp_name", warpName);
-        data.addProperty("player", playerUUID.toString());
-        sendData(data, targetServer);
+        data.addProperty("player", player.getUniqueId().toString());
+        sendData(data, targetServer, error -> {
+            logger.warning("Cannot send warp command due to an unexpected error:");
+            error.printStackTrace();
+
+            // TODO: SEND ACTUAL MESSAGE
+            if (player.isOnline()) {
+                player.sendMessage("Cannot warp you now, try again later.");
+            }
+        });
     }
 
+    public static Queue<RequestData> getPendingRequests() {
+        return pendingRequests;
+    }
 
-    private static void sendData(JsonObject data, @Nullable String recipient) {
+    private static void sendResponse(JsonObject data, Consumer<Throwable> errorCallback) {
+        finishData(data, null);
+        module.getMessaging().sendData(module.getSettings().messagingServiceActionsChannelName + "_response", gson.toJson(data), errorCallback);
+    }
+
+    private static void sendData(JsonObject data, @Nullable String recipient, Consumer<Throwable> errorCallback) {
+        finishData(data, recipient);
+        module.getMessaging().sendData(module.getSettings().messagingServiceActionsChannelName, gson.toJson(data), errorCallback);
+    }
+
+    private static void sendData(JsonObject data, @Nullable String recipient,
+                                 Consumer<JsonObject> responseCallback, Consumer<Throwable> errorCallback) {
+        int responseId = random.nextInt();
+        data.addProperty("response-id", responseId);
+
+        sendData(data, recipient, errorCallback);
+
+        module.getMessaging().listenOnce(module.getSettings().messagingServiceActionsChannelName + "_response", responseBody -> {
+            JsonObject response = gson.fromJson(responseBody, JsonObject.class);
+            if (response.get("id").getAsInt() == responseId)
+                responseCallback.accept(response);
+        });
+    }
+
+    private static void finishData(JsonObject data, @Nullable String recipient) {
         data.addProperty("sender", module.getSettings().serverName);
         data.addProperty("channel", module.getSettings().messagingServiceActionsChannelName);
 
@@ -151,21 +223,19 @@ public class ServerActions {
             recipients.add(new JsonPrimitive(recipient));
             data.add("recipients", recipients);
         }
-
-        module.getMessaging().sendData(module.getSettings().messagingServiceActionsChannelName, gson.toJson(data));
     }
 
-    private static void sendData(JsonObject data, @Nullable String recipient, Consumer<JsonObject> responseCallback) {
-        int responseId = random.nextInt();
-        data.addProperty("response-id", responseId);
+    private static class RequestData {
 
-        sendData(data, recipient);
+        private final JsonObject data;
+        @Nullable
+        private final String recipient;
 
-        module.getMessaging().listenOnce(module.getSettings().messagingServiceActionsChannelName + "_response", responseBody -> {
-            JsonObject response = gson.fromJson(responseBody, JsonObject.class);
-            if (response.get("id").getAsInt() == responseId)
-                responseCallback.accept(response);
-        });
+        RequestData(JsonObject data, @Nullable String recipient) {
+            this.data = data;
+            this.recipient = recipient;
+        }
+
     }
 
 }

@@ -209,19 +209,21 @@ public class APIEndpoints {
 
         ServersTracker serversTracker = managerServer.getServersTracker();
 
-        IslandInfo islandInfo = serversTracker.getIslandInfo(islandUUID);
-
-        if (islandInfo == null)
-            return Response.ISLAND_DOES_NOT_EXIST.build(headers);
-
         ServerInfo serverInfo = serversTracker.getServerInfo(serverName);
 
         if (serverInfo == null)
             return Response.INVALID_SERVER.build(headers);
 
-        serverInfo.updateLastPingTime();
+        IslandInfo islandInfo = serversTracker.getIslandInfo(islandUUID);
 
-        islandInfo.updateLastUpdateTime();
+        if (islandInfo == null) {
+            // We create a new island info for the island.
+            serversTracker.trackIsland(islandUUID, serverName);
+        } else {
+            islandInfo.updateLastUpdateTime();
+        }
+
+        serverInfo.updateLastPingTime();
 
         return Response.RESULT.newBuilder(headers)
                 .set("result", "OK")

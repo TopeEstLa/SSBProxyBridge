@@ -1,5 +1,7 @@
 package com.bgsoftware.ssbproxybridge.core.connector;
 
+import java.util.function.Consumer;
+
 public interface IConnector<Args extends IConnectionArguments> {
 
     void connect(Args args) throws ConnectionFailureException;
@@ -12,25 +14,19 @@ public interface IConnector<Args extends IConnectionArguments> {
 
     boolean unregisterListeners(String channel);
 
-    void sendData(String channel, String data);
+    void sendData(String channel, String data, Consumer<Throwable> errorCallback);
 
-    default void listenOnce(String channel, IListener listener) {
-        registerListener(channel, new IListener() {
-            @Override
-            public void onReceive(String data) {
-                try {
-                    listener.onReceive(data);
-                } finally {
-                    unregisterListener(channel, this);
-                }
-            }
-        });
+    default void listenOnce(String name, IOneTimeListener listener) {
+        registerListener(name, listener);
     }
 
     interface IListener {
 
         void onReceive(String data);
 
+    }
+
+    interface IOneTimeListener extends IListener {
     }
 
 }

@@ -17,7 +17,7 @@ import java.net.URL;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
+import java.util.function.Consumer;
 
 public class HttpConnector extends ConnectorAbstract<HttpConnectionArguments> {
 
@@ -32,8 +32,6 @@ public class HttpConnector extends ConnectorAbstract<HttpConnectionArguments> {
             return new HttpConnector();
         }
     };
-
-    private static final Logger logger = Logger.getLogger("SSBProxyBridge");
 
     private String url;
     private String secret;
@@ -69,7 +67,7 @@ public class HttpConnector extends ConnectorAbstract<HttpConnectionArguments> {
     }
 
     @Override
-    public void sendData(String channel, String argsSerialized) {
+    public void sendData(String channel, String argsSerialized, Consumer<Throwable> errorCallback) {
         HTTP_CONNECTOR_EXECUTOR.execute(() -> {
             try {
                 JsonObject args = gson.fromJson(argsSerialized, JsonObject.class);
@@ -112,9 +110,8 @@ public class HttpConnector extends ConnectorAbstract<HttpConnectionArguments> {
                 }
 
                 notifyListeners(channel, body.toString());
-            } catch (IOException error) {
-                logger.warning("An error occurred while fetching response:");
-                error.printStackTrace();
+            } catch (Throwable error) {
+                errorCallback.accept(error);
             }
         });
     }

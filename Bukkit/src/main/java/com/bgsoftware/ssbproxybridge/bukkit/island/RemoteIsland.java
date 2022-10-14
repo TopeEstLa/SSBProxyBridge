@@ -261,7 +261,7 @@ public class RemoteIsland extends DelegateIsland {
     private void warpPlayerRemotely(SuperiorPlayer superiorPlayer, String warpName) {
         Player player = superiorPlayer.asPlayer();
         if (player != null) {
-            ServerActions.warpPlayer(player.getUniqueId(), this.originalServer, getUniqueId(), warpName);
+            ServerActions.warpPlayer(player, this.originalServer, getUniqueId(), warpName);
             ProxyPlayerBridge.teleportPlayer(player, this.originalServer);
         }
     }

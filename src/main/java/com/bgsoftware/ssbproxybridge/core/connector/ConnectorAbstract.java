@@ -1,6 +1,7 @@
 package com.bgsoftware.ssbproxybridge.core.connector;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -27,8 +28,20 @@ public abstract class ConnectorAbstract<Args extends IConnectionArguments> imple
 
     protected void notifyListeners(String channel, String data) {
         List<IListener> listeners = this.listeners.get(channel);
-        if (listeners != null)
-            listeners.forEach(listener -> listener.onReceive(data));
+        if (listeners != null) {
+            Iterator<IListener> listenerIterator = listeners.iterator();
+            while (listenerIterator.hasNext()) {
+                IListener listener = listenerIterator.next();
+                try {
+                    listener.onReceive(data);
+                } catch (Throwable error) {
+                    error.printStackTrace();
+                } finally {
+                    if (listener instanceof IOneTimeListener)
+                        listenerIterator.remove();
+                }
+            }
+        }
     }
 
 }

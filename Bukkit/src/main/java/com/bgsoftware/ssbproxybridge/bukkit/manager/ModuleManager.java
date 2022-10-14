@@ -1,6 +1,7 @@
 package com.bgsoftware.ssbproxybridge.bukkit.manager;
 
 import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
+import com.bgsoftware.ssbproxybridge.bukkit.island.RemoteIsland;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.BukkitExecutor;
 import com.bgsoftware.ssbproxybridge.core.connector.ConnectionFailureException;
 import com.bgsoftware.ssbproxybridge.core.connector.EmptyConnector;
@@ -8,17 +9,23 @@ import com.bgsoftware.ssbproxybridge.core.connector.IConnectionArguments;
 import com.bgsoftware.ssbproxybridge.core.connector.IConnector;
 import com.bgsoftware.ssbproxybridge.core.http.HttpConnectionArguments;
 import com.bgsoftware.ssbproxybridge.core.http.HttpConnector;
+import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI;
+import com.bgsoftware.superiorskyblock.api.island.Island;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.logging.Logger;
 
 public class ModuleManager {
 
+    private static final Logger logger = Logger.getLogger("SSBProxyModule");
     private static final Gson gson = new Gson();
 
     private final SSBProxyBridgeModule module;
@@ -27,7 +34,10 @@ public class ModuleManager {
 
     @SuppressWarnings("rawtypes")
     private IConnector connector = EmptyConnector.getInstance();
+    private boolean sendHello = false;
     private long keepAlive = 0;
+    private BukkitTask keepAliveTask;
+    private boolean failedCommunication = false;
 
     public ModuleManager(SSBProxyBridgeModule module) {
         this.module = module;
@@ -35,8 +45,6 @@ public class ModuleManager {
 
     public void setupManager() {
         IConnectionArguments connectionArguments;
-
-        boolean sendHello = false;
 
         switch (module.getSettings().managerType.toUpperCase(Locale.ENGLISH)) {
             case "REST":
@@ -55,15 +63,50 @@ public class ModuleManager {
         try {
             // noinspection unchecked
             this.connector.connect(connectionArguments);
-
-            if (sendHello)
-                sendPing();
-
-            if (this.keepAlive > 0)
-                BukkitExecutor.runTaskTimer(() -> sendRequest(RequestType.KEEP_ALIVE, ""), this.keepAlive, this.keepAlive);
+            startCommunication();
         } catch (ConnectionFailureException error) {
             throw new RuntimeException("Failed to connect to manager connector:", error);
         }
+    }
+
+    private void startCommunication() {
+        if (sendHello)
+            sendHello();
+
+        if (this.keepAliveTask != null) {
+            this.keepAliveTask.cancel();
+        }
+
+        if (this.keepAlive > 0) {
+            this.keepAliveTask = BukkitExecutor.runTaskTimerAsynchronously(this::sendKeepAlive, this.keepAlive, this.keepAlive);
+        } else {
+            this.keepAliveTask = null;
+        }
+    }
+
+    private void sendKeepAlive() {
+        sendRequest(RequestType.KEEP_ALIVE, "").whenCompleteAsync((result, error) -> {
+            if (error == null) {
+                if (failedCommunication) {
+                    startCommunication();
+
+                    logger.info("Connected to the module again.");
+
+                    // We want to update the module manager with our current data.
+                    for (Island island : SuperiorSkyblockAPI.getGrid().getIslands()) {
+                        System.out.println(island);
+                        if (!(island instanceof RemoteIsland))
+                            updateIsland(island.getUniqueId());
+                    }
+
+                    failedCommunication = false;
+                }
+            } else {
+                // An error occurred while sending a keep alive.
+                logger.warning("Cannot connect to the module manager...");
+                failedCommunication = true;
+            }
+        });
     }
 
     public boolean isLocalIsland(UUID islandUUID) {
@@ -83,7 +126,7 @@ public class ModuleManager {
         sendRequest(RequestType.UPDATE_ISLAND, islandUUID.toString());
     }
 
-    public void sendPing() {
+    public void sendHello() {
         CompletableFuture<JsonObject> responseFuture = sendRequest(RequestType.HELLO, "");
 
         try {
@@ -95,6 +138,7 @@ public class ModuleManager {
 
             this.keepAlive = response.get("keep-alive").getAsLong() / 50; // Converting milliseconds to ticks
         } catch (Exception error) {
+            error.printStackTrace();
             throw new RuntimeException("Failed to connect to the manager, aborting.", error);
         }
     }
@@ -109,9 +153,9 @@ public class ModuleManager {
         args.addProperty("route", requestType.getRoute() + params);
         args.addProperty("server", module.getSettings().serverName);
 
-        this.connector.sendData(requestType.name(), gson.toJson(args));
-
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
+
+        this.connector.sendData(requestType.name(), gson.toJson(args), (Consumer<Throwable>) response::completeExceptionally);
 
         this.connector.listenOnce(requestType.name(), responseData -> {
             try {

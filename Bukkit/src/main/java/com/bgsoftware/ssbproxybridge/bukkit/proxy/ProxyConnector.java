@@ -14,6 +14,7 @@ import org.bukkit.plugin.messaging.PluginMessageListener;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class ProxyConnector extends ConnectorAbstract<EmptyConnectionArguments> {
 
@@ -53,7 +54,7 @@ public class ProxyConnector extends ConnectorAbstract<EmptyConnectionArguments> 
     }
 
     @Override
-    public void sendData(String channel, String data) {
+    public void sendData(String channel, String data, Consumer<Throwable> errorCallback) {
         ByteArrayDataOutput dataOutput = ByteStreams.newDataOutput();
 
         dataOutput.writeInt(channel.length());

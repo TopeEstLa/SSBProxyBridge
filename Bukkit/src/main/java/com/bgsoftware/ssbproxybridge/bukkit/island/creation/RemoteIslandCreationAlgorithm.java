@@ -8,17 +8,17 @@ import com.bgsoftware.superiorskyblock.api.world.algorithm.DelegateIslandCreatio
 import com.bgsoftware.superiorskyblock.api.world.algorithm.IslandCreationAlgorithm;
 import com.bgsoftware.superiorskyblock.api.wrappers.BlockPosition;
 import com.bgsoftware.superiorskyblock.api.wrappers.SuperiorPlayer;
-import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import org.bukkit.entity.Player;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.logging.Logger;
 
 public class RemoteIslandCreationAlgorithm extends DelegateIslandCreationAlgorithm {
 
-    private static final Gson gson = new Gson();
-
     private static final SSBProxyBridgeModule module = SSBProxyBridgeModule.getModule();
+    private static final Logger logger = Logger.getLogger("SSBProxyManager");
 
     private final IslandCreationAlgorithm original;
 
@@ -57,11 +57,21 @@ public class RemoteIslandCreationAlgorithm extends DelegateIslandCreationAlgorit
                     result.complete(islandCreationResult);
                 }
 
-                module.getMessaging().sendData(module.getSettings().messagingServiceActionsChannelName + "_response", gson.toJson(response));
+                ServerActions.sendCreationResult(response);
             }));
         } else {
             module.getManager().getServerForNextIsland(builder.getUniqueId()).whenComplete((response, error) -> {
                 if (error != null) {
+                    logger.warning("Cannot send warp command due to an unexpected error:");
+                    error.printStackTrace();
+
+                    Player player = builder.getOwner().asPlayer();
+
+                    // TODO: SEND ACTUAL MESSAGE
+                    if (player != null) {
+                        player.sendMessage("Cannot create an island for you now, try again later.");
+                    }
+
                     result.completeExceptionally(error);
                 } else if (response.has("error")) {
                     result.completeExceptionally(new RuntimeException("Received error from manager: " + response.get("error").getAsString()));

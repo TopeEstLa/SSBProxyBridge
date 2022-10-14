@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.logging.Logger;
 
 public class RabbitMQConnector implements IConnector<RabbitMQConnectionArguments> {
@@ -118,11 +119,11 @@ public class RabbitMQConnector implements IConnector<RabbitMQConnectionArguments
     }
 
     @Override
-    public void sendData(String channel, String data) {
+    public void sendData(String channel, String data, Consumer<Throwable> errorCallback) {
         try {
             this.channel.basicPublish(channel, "", null, data.getBytes(StandardCharsets.UTF_8));
         } catch (IOException error) {
-            error.printStackTrace();
+            errorCallback.accept(error);
         }
     }
 

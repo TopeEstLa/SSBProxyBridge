@@ -9,6 +9,7 @@ import io.lettuce.core.pubsub.RedisPubSubAdapter;
 import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
 import io.lettuce.core.pubsub.api.async.RedisPubSubAsyncCommands;
 
+import java.util.function.Consumer;
 import java.util.logging.Logger;
 
 public class RedisConnector extends ConnectorAbstract<RedisConnectionArguments> {
@@ -104,7 +105,7 @@ public class RedisConnector extends ConnectorAbstract<RedisConnectionArguments> 
     }
 
     @Override
-    public void sendData(String channel, String data) {
+    public void sendData(String channel, String data, Consumer<Throwable> errorCallback) {
         pubCommands.publish(channel, data);
     }
 

@@ -2,6 +2,7 @@ package com.bgsoftware.ssbproxybridge.bukkit.utils;
 
 import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
 import org.bukkit.Bukkit;
+import org.bukkit.scheduler.BukkitTask;
 
 public class BukkitExecutor {
 
@@ -15,8 +16,8 @@ public class BukkitExecutor {
         Bukkit.getScheduler().runTask(module.getPlugin(), task);
     }
 
-    public static void runTaskTimer(Runnable task, long delay, long period) {
-        Bukkit.getScheduler().runTaskTimer(module.getPlugin(), task, delay, period);
+    public static BukkitTask runTaskTimerAsynchronously(Runnable task, long delay, long period) {
+        return Bukkit.getScheduler().runTaskTimerAsynchronously(module.getPlugin(), task, delay, period);
     }
 
     public static void runTaskLater(Runnable task, long delay) {

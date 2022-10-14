@@ -15,6 +15,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import org.bukkit.Bukkit;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -24,10 +25,12 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.logging.Logger;
 
 public class ProxyDatabaseBridge implements DatabaseBridge {
 
     private static final SSBProxyBridgeModule module = SSBProxyBridgeModule.getModule();
+    private static final Logger logger = Logger.getLogger("SSBProxyBridge");
 
     private static final Gson gson = new Gson();
 
@@ -136,7 +139,11 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
         if (this.batchOperations != null) {
             this.batchOperations.add(data);
         } else {
-            module.getMessaging().sendData(module.getSettings().messagingServiceDataChannelName, gson.toJson(data));
+            module.getMessaging().sendData(module.getSettings().messagingServiceDataChannelName, gson.toJson(data), error -> {
+                // We prefer to shut down the server so there won't be any data loss or data synchronization issues.
+                logger.warning("Cannot connect with the messaging-service. Closing the server...");
+                Bukkit.shutdown();
+            });
         }
     }
 
