@@ -106,7 +106,11 @@ public class RedisConnector extends ConnectorAbstract<RedisConnectionArguments> 
 
     @Override
     public void sendData(String channel, String data, Consumer<Throwable> errorCallback) {
-        pubCommands.publish(channel, data);
+        if (!pubConnection.isOpen()) {
+            errorCallback.accept(new ConnectionFailureException("Cannot connect to redis."));
+        } else {
+            pubCommands.publish(channel, data);
+        }
     }
 
 }
