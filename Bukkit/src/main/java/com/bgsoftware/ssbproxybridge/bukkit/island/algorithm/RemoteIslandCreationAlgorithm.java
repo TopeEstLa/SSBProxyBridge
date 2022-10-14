@@ -64,6 +64,9 @@ public class RemoteIslandCreationAlgorithm extends DelegateIslandCreationAlgorit
             module.getManager().getServerForNextIsland(builder.getUniqueId()).whenComplete((response, error) -> {
                 String targetServer;
 
+                if (error == null && response.contains("error"))
+                    error = new RuntimeException("Received error from manager: " + response.getString("error"));
+
                 if (error != null) {
                     logger.warning("Cannot send create-island command due to an unexpected error:");
                     error.printStackTrace();
@@ -85,13 +88,6 @@ public class RemoteIslandCreationAlgorithm extends DelegateIslandCreationAlgorit
                     } else {
                         targetServer = module.getSettings().managerFallbackServer;
                     }
-                } else if (response.contains("error")) {
-                    // We want to delete the island from the manager.
-                    module.getManager().deleteIsland(builder.getUniqueId());
-
-                    result.completeExceptionally(new RuntimeException("Received error from manager: " + response.getString("error")));
-
-                    return;
                 } else {
                     targetServer = response.getString("result");
                 }
