@@ -233,6 +233,21 @@ public enum ActionType {
 
             ServerActions.sendCalculationResult(response);
         });
+    }),
+
+    SET_BIOME(dataObject -> {
+        SSBProxyBridgeModule module = SSBProxyBridgeModule.getModule();
+
+        UUID islandUUID = UUID.fromString(dataObject.get("island").getAsString());
+        Island island = module.getPlugin().getGrid().getIslandByUUID(islandUUID);
+
+        if (island == null)
+            throw new RequestHandlerException("Couldn't teleport player to invalid island \"" + islandUUID + "\"");
+
+        Biome biome = Biome.valueOf(dataObject.get("biome").getAsString());
+        boolean updateBlocks = dataObject.get("update_blocks").getAsBoolean();
+
+        island.setBiome(biome, updateBlocks);
     });
 
     private final IRequestHandler requestHandler;

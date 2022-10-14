@@ -19,6 +19,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import org.bukkit.Location;
+import org.bukkit.block.Biome;
 import org.bukkit.entity.Player;
 
 import javax.annotation.Nullable;
@@ -232,6 +233,18 @@ public class ServerActions {
             if (player.isOnline()) {
                 player.sendMessage("Cannot warp you now, try again later.");
             }
+        });
+    }
+
+    public static void setIslandBiome(String targetServer, UUID islandUUID, Biome biome, boolean updateBlocks) {
+        JsonObject data = new JsonObject();
+        data.addProperty("action", ActionType.SET_BIOME.name());
+        data.addProperty("island", islandUUID.toString());
+        data.addProperty("biome", biome.name());
+        data.addProperty("update_blocks", updateBlocks);
+        sendData(data, targetServer, error -> {
+            logger.warning("Cannot send biome command due to an unexpected error:");
+            error.printStackTrace();
         });
     }
 

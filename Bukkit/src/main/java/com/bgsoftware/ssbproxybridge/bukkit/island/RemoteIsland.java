@@ -1,12 +1,16 @@
 package com.bgsoftware.ssbproxybridge.bukkit.island;
 
 import com.bgsoftware.ssbproxybridge.bukkit.action.ServerActions;
+import com.bgsoftware.ssbproxybridge.bukkit.bridge.ProxyDatabaseBridge;
 import com.bgsoftware.ssbproxybridge.bukkit.island.algorithm.RemoteIslandCalculationAlgorithm;
 import com.bgsoftware.ssbproxybridge.bukkit.proxy.ProxyPlayerBridge;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.BukkitExecutor;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.DatabaseBridgeAccessor;
 import com.bgsoftware.superiorskyblock.api.SuperiorSkyblock;
 import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI;
+import com.bgsoftware.superiorskyblock.api.data.DatabaseBridge;
+import com.bgsoftware.superiorskyblock.api.data.DatabaseBridgeMode;
+import com.bgsoftware.superiorskyblock.api.data.DatabaseFilter;
 import com.bgsoftware.superiorskyblock.api.island.DelegateIsland;
 import com.bgsoftware.superiorskyblock.api.island.Island;
 import com.bgsoftware.superiorskyblock.api.island.IslandChest;
@@ -14,6 +18,7 @@ import com.bgsoftware.superiorskyblock.api.island.PlayerRole;
 import com.bgsoftware.superiorskyblock.api.island.algorithms.IslandCalculationAlgorithm;
 import com.bgsoftware.superiorskyblock.api.island.warps.IslandWarp;
 import com.bgsoftware.superiorskyblock.api.key.Key;
+import com.bgsoftware.superiorskyblock.api.objects.Pair;
 import com.bgsoftware.superiorskyblock.api.wrappers.SuperiorPlayer;
 import com.google.common.base.Preconditions;
 import org.bukkit.Chunk;
@@ -180,8 +185,14 @@ public class RemoteIsland extends DelegateIsland {
     }
 
     @Override
+    public void setBiome(Biome biome) {
+        setBiome(biome, true);
+    }
+
+    @Override
     public void setBiome(Biome biome, boolean updateBlocks) {
-        // TODO
+        super.setBiome(biome, false);
+        ServerActions.setIslandBiome(this.originalServer, getUniqueId(), biome, updateBlocks);
     }
 
     @Override
@@ -289,6 +300,18 @@ public class RemoteIsland extends DelegateIsland {
     @Override
     public void setChestRows(int index, int rows) {
         // Do nothing.
+    }
+
+    private void syncCustomData(Pair<String, Object> data) {
+        DatabaseBridge databaseBridge = getDatabaseBridge();
+
+        if (!(databaseBridge instanceof ProxyDatabaseBridge) || databaseBridge.getDatabaseBridgeMode() != DatabaseBridgeMode.SAVE_DATA)
+            return;
+
+        ProxyDatabaseBridge proxyDatabaseBridge = (ProxyDatabaseBridge) getDatabaseBridge();
+        proxyDatabaseBridge.customOperation("islands",
+                DatabaseFilter.fromFilter("uuid", getUniqueId().toString()),
+                new Pair[]{data});
     }
 
 }
