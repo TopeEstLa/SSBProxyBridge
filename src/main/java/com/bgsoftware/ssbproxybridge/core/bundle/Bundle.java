@@ -207,7 +207,7 @@ public class Bundle {
 
     public void setList(String key, List<?> value) {
         JsonArray array = new JsonArray();
-        value.forEach(element -> array.add(JsonUtil.getJsonFromObject(array)));
+        value.forEach(element -> array.add(JsonUtil.getJsonFromObject(element)));
         setData(key, array);
     }
 
