@@ -76,6 +76,9 @@ public class RemoteIslandCreationAlgorithm extends DelegateIslandCreationAlgorit
                             player.sendMessage("Cannot create an island for you now, try again later.");
                         }
 
+                        // We want to delete the island from the manager.
+                        module.getManager().deleteIsland(builder.getUniqueId());
+
                         result.completeExceptionally(error);
 
                         return;
@@ -83,7 +86,11 @@ public class RemoteIslandCreationAlgorithm extends DelegateIslandCreationAlgorit
                         targetServer = module.getSettings().managerFallbackServer;
                     }
                 } else if (response.has("error")) {
+                    // We want to delete the island from the manager.
+                    module.getManager().deleteIsland(builder.getUniqueId());
+
                     result.completeExceptionally(new RuntimeException("Received error from manager: " + response.get("error").getAsString()));
+
                     return;
                 } else {
                     targetServer = response.get("result").getAsString();
@@ -91,23 +98,27 @@ public class RemoteIslandCreationAlgorithm extends DelegateIslandCreationAlgorit
 
                 // Create the island in targetServer.
 
+                CompletableFuture<IslandCreationResult> newIslandResult;
+
                 if (targetServer.equals(module.getSettings().serverName)) {
-                    original.createIsland(builder, lastIsland).whenComplete((originalResult, originalError) -> {
-                        if (originalError != null)
-                            result.completeExceptionally(originalError);
-                        else
-                            result.complete(originalResult);
-                    });
+                    newIslandResult = original.createIsland(builder, lastIsland);
                 } else {
                     // Create island on another server.
-                    ServerActions.createIsland(targetServer, builder.getUniqueId(),
-                            builder.getOwner(), lastIsland, builder.getName(), builder.getScehmaticName()).whenComplete((creationResult, creationError) -> {
-                        if (creationError != null)
-                            result.completeExceptionally(creationError);
-                        else
-                            result.complete(creationResult);
-                    });
+                    newIslandResult = ServerActions.createIsland(targetServer, builder.getUniqueId(),
+                            builder.getOwner(), lastIsland, builder.getName(), builder.getScehmaticName());
                 }
+
+                newIslandResult.whenComplete((originalResult, originalError) -> {
+                    if (originalError != null) {
+                        // We want to delete the island from the manager.
+                        module.getManager().deleteIsland(builder.getUniqueId());
+
+                        result.completeExceptionally(originalError);
+                    } else {
+                        result.complete(originalResult);
+                    }
+                });
+
             });
         }
 
