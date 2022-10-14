@@ -7,7 +7,6 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -59,9 +58,7 @@ public class JsonUtil {
             jsonElement.getAsJsonArray().forEach(element -> array.add(getValueFromElement(element)));
             return Collections.unmodifiableList(array);
         } else if (jsonElement.isJsonObject()) {
-            Map<String, Object> map = new LinkedHashMap<>();
-            jsonElement.getAsJsonObject().entrySet().forEach(entry -> map.put(entry.getKey(), getValueFromElement(entry.getValue())));
-            return Collections.unmodifiableMap(map);
+            return new Bundle(jsonElement.getAsJsonObject()).toImmutable();
         }
 
         throw new IllegalStateException("Cannot find valid object from json " + jsonElement);

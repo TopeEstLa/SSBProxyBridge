@@ -222,14 +222,15 @@ public enum ActionType {
                 response.setString("error", error.getMessage());
             } else {
                 List<Bundle> blockCounts = new LinkedList<>();
-                response.setList("block_counts", blockCounts);
                 result.getBlockCounts().forEach((block, count) -> {
                     Bundle blockCount = new Bundle();
                     blockCount.setString("block", block.toString());
                     blockCount.setBigInteger("count", count);
                     blockCounts.add(blockCount);
                 });
+                response.setList("block_counts", blockCounts);
             }
+
 
             ServerActions.sendCalculationResult(response);
         });

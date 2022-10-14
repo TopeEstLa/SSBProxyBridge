@@ -74,7 +74,7 @@ public class Bundle {
         });
     }
 
-    private Bundle(JsonObject data) {
+    public Bundle(JsonObject data) {
         data.deepCopy().entrySet().forEach(entry -> this.data.add(entry.getKey(), entry.getValue()));
     }
 
