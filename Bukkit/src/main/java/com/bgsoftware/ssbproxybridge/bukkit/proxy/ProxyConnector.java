@@ -2,8 +2,11 @@ package com.bgsoftware.ssbproxybridge.bukkit.proxy;
 
 import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
 import com.bgsoftware.ssbproxybridge.core.Singleton;
+import com.bgsoftware.ssbproxybridge.core.bundle.Bundle;
+import com.bgsoftware.ssbproxybridge.core.bundle.BundleSerializer;
 import com.bgsoftware.ssbproxybridge.core.connector.ConnectorAbstract;
 import com.bgsoftware.ssbproxybridge.core.connector.EmptyConnectionArguments;
+import com.google.common.base.Preconditions;
 import com.google.common.io.ByteArrayDataInput;
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
@@ -54,8 +57,13 @@ public class ProxyConnector extends ConnectorAbstract<EmptyConnectionArguments> 
     }
 
     @Override
-    public void sendData(String channel, String data, Consumer<Throwable> errorCallback) {
+    public void sendBundle(Bundle bundle, Consumer<Throwable> errorCallback) {
+        Preconditions.checkArgument(bundle.getChannelName() != null, "Bundle must have a channel name");
+
         ByteArrayDataOutput dataOutput = ByteStreams.newDataOutput();
+
+        String channel = bundle.getChannelName();
+        String data = BundleSerializer.serializeBundle(bundle);
 
         dataOutput.writeInt(channel.length());
         dataOutput.write(channel.getBytes());
@@ -96,7 +104,7 @@ public class ProxyConnector extends ConnectorAbstract<EmptyConnectionArguments> 
 
             String body = new String(bodyBytes);
 
-            notifyListeners(channelName, body);
+            notifyListeners(new Bundle(channelName, body).toImmutable());
         }
 
     }

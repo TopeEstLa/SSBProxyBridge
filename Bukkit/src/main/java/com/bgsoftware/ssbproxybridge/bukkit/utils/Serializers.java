@@ -26,13 +26,4 @@ public class Serializers {
         return new LazyWorldLocation(sections[0], x, y, z, yaw, pitch);
     }
 
-    @Nullable
-    public static String serializeLocation(@Nullable Location location) {
-        if (location == null)
-            return null;
-
-        return location.getWorld().getName() + "," + location.getX() + "," + location.getY() + "," +
-                location.getZ() + "," + location.getYaw() + "," + location.getPitch();
-    }
-
 }

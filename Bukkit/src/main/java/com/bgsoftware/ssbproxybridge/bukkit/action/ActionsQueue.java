@@ -1,8 +1,8 @@
 package com.bgsoftware.ssbproxybridge.bukkit.action;
 
+import com.bgsoftware.ssbproxybridge.core.bundle.Bundle;
 import com.bgsoftware.ssbproxybridge.core.requests.RequestHandlerConsumer;
 import com.bgsoftware.ssbproxybridge.core.requests.RequestHandlerException;
-import com.google.gson.JsonObject;
 import org.bukkit.entity.Player;
 
 import javax.annotation.Nullable;
@@ -27,30 +27,31 @@ public class ActionsQueue<K, V> {
 
     }
 
-    public void addAction(JsonObject dataObject, K key, RequestHandlerConsumer<V> action) {
-        ActionRecord<V> actionRecord = new ActionRecord<>(dataObject, action);
+    public void addAction(Bundle bundle, K key, RequestHandlerConsumer<V> action) {
+        ActionRecord<V> actionRecord = new ActionRecord<>(bundle, action);
         queuedActions.computeIfAbsent(key, c -> new LinkedList<>()).add(actionRecord);
     }
 
-    public void poll(K key, V value, @Nullable BiConsumer<RequestHandlerException, JsonObject> onError) {
+    public void poll(K key, V value, @Nullable BiConsumer<RequestHandlerException, Bundle> onError) {
         List<ActionRecord<V>> actionRecords = queuedActions.remove(key);
-        if (actionRecords != null)
+        if (actionRecords != null) {
             actionRecords.forEach(actionRecord -> {
                 try {
-                    actionRecord.action.accept(value);
+                    actionRecord.action.accept(actionRecord.request, value);
                 } catch (RequestHandlerException error) {
                     if (onError != null)
                         onError.accept(error, actionRecord.request);
                 }
             });
+        }
     }
 
     private static class ActionRecord<E> {
 
-        private final JsonObject request;
+        private final Bundle request;
         private final RequestHandlerConsumer<E> action;
 
-        ActionRecord(JsonObject request, RequestHandlerConsumer<E> action) {
+        ActionRecord(Bundle request, RequestHandlerConsumer<E> action) {
             this.request = request;
             this.action = action;
         }

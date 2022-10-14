@@ -2,6 +2,7 @@ package com.bgsoftware.ssbproxybridge.bukkit.bridge;
 
 import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
 import com.bgsoftware.ssbproxybridge.bukkit.data.DataSyncType;
+import com.bgsoftware.ssbproxybridge.core.bundle.Bundle;
 import com.bgsoftware.ssbproxybridge.core.database.Column;
 import com.bgsoftware.ssbproxybridge.core.database.Filter;
 import com.bgsoftware.ssbproxybridge.core.database.OperationSerializer;
@@ -11,10 +12,6 @@ import com.bgsoftware.superiorskyblock.api.data.DatabaseFilter;
 import com.bgsoftware.superiorskyblock.api.objects.Pair;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import org.bukkit.Bukkit;
 
 import javax.annotation.Nullable;
@@ -23,6 +20,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Queue;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
@@ -32,14 +30,12 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
     private static final SSBProxyBridgeModule module = SSBProxyBridgeModule.getModule();
     private static final Logger logger = Logger.getLogger("SSBProxyBridge");
 
-    private static final Gson gson = new Gson();
-
     private final DatabaseBridge original;
 
     private DatabaseBridgeMode databaseBridgeMode = DatabaseBridgeMode.IDLE;
     private boolean isActivated;
     @Nullable
-    private JsonArray batchOperations = null;
+    private Queue<Bundle> batchOperations = null;
 
     public ProxyDatabaseBridge(DatabaseBridge original, boolean isActivated) {
         this.original = original;
@@ -54,10 +50,9 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
     @Override
     public void batchOperations(boolean batchOperations) {
         if (batchOperations) {
-            this.batchOperations = new JsonArray();
+            this.batchOperations = new LinkedList<>();
         } else if (this.batchOperations != null) {
-            if (this.batchOperations.size() > 0)
-                commitData(this.batchOperations);
+            this.batchOperations.forEach(this::commitData);
             this.batchOperations = null;
         }
         original.batchOperations(batchOperations);
@@ -68,7 +63,8 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
         if (isActivated && databaseBridgeMode == DatabaseBridgeMode.SAVE_DATA) {
             DataSyncType type = buildDataSyncType("update", table, pairs);
 
-            JsonObject operation = OperationSerializer.serializeOperation(type.name(), createFilters(databaseFilter), createColumns(pairs));
+            Bundle operation = OperationSerializer.serializeOperation(type.name(),
+                    createFilters(databaseFilter), createColumns(pairs));
 
             if (type.getHandler() != null && type.onSent(operation))
                 commitData(operation);
@@ -82,7 +78,7 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
         if (isActivated && databaseBridgeMode == DatabaseBridgeMode.SAVE_DATA) {
             DataSyncType type = buildDataSyncType("insert", table, null);
 
-            JsonObject operation = OperationSerializer.serializeOperation(type.name(), Collections.emptyList(), createColumns(pairs));
+            Bundle operation = OperationSerializer.serializeOperation(type.name(), Collections.emptyList(), createColumns(pairs));
 
             if (type.getHandler() != null && type.onSent(operation))
                 commitData(operation);
@@ -95,7 +91,7 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
         if (isActivated && databaseBridgeMode == DatabaseBridgeMode.SAVE_DATA) {
             DataSyncType type = buildDataSyncType("update", table, pairs);
 
-            JsonObject operation = OperationSerializer.serializeOperation(type.name(), createFilters(databaseFilter), createColumns(pairs));
+            Bundle operation = OperationSerializer.serializeOperation(type.name(), createFilters(databaseFilter), createColumns(pairs));
 
             if (type.getHandler() != null && type.onSent(operation))
                 commitData(operation);
@@ -107,7 +103,7 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
         if (isActivated && databaseBridgeMode == DatabaseBridgeMode.SAVE_DATA) {
             DataSyncType type = buildDataSyncType("delete", table, null);
 
-            JsonObject operation = OperationSerializer.serializeOperation(type.name(), createFilters(databaseFilter));
+            Bundle operation = OperationSerializer.serializeOperation(type.name(), createFilters(databaseFilter));
 
             if (type.getHandler() != null && type.onSent(operation))
                 commitData(operation);
@@ -135,11 +131,12 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
         isActivated = true;
     }
 
-    private void commitData(JsonElement data) {
+    private void commitData(Bundle bundle) {
+        bundle.setChannelName(module.getSettings().messagingServiceDataChannelName);
         if (this.batchOperations != null) {
-            this.batchOperations.add(data);
+            this.batchOperations.add(bundle);
         } else {
-            module.getMessaging().sendData(module.getSettings().messagingServiceDataChannelName, gson.toJson(data), error -> {
+            module.getMessaging().sendBundle(bundle, error -> {
                 // We prefer to shut down the server so there won't be any data loss or data synchronization issues.
                 logger.warning("Cannot connect with the messaging-service. Closing the server...");
                 Bukkit.shutdown();

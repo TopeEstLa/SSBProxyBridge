@@ -3,6 +3,8 @@ package com.bgsoftware.ssbproxybridge.bukkit.manager;
 import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
 import com.bgsoftware.ssbproxybridge.bukkit.island.RemoteIsland;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.BukkitExecutor;
+import com.bgsoftware.ssbproxybridge.core.bundle.Bundle;
+import com.bgsoftware.ssbproxybridge.core.bundle.BundleParseError;
 import com.bgsoftware.ssbproxybridge.core.connector.ConnectionFailureException;
 import com.bgsoftware.ssbproxybridge.core.connector.EmptyConnector;
 import com.bgsoftware.ssbproxybridge.core.connector.IConnectionArguments;
@@ -11,9 +13,6 @@ import com.bgsoftware.ssbproxybridge.core.http.HttpConnectionArguments;
 import com.bgsoftware.ssbproxybridge.core.http.HttpConnector;
 import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI;
 import com.bgsoftware.superiorskyblock.api.island.Island;
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonSyntaxException;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.Locale;
@@ -26,7 +25,6 @@ import java.util.logging.Logger;
 public class ModuleManager {
 
     private static final Logger logger = Logger.getLogger("SSBProxyModule");
-    private static final Gson gson = new Gson();
 
     private final SSBProxyBridgeModule module;
 
@@ -73,11 +71,11 @@ public class ModuleManager {
     }
 
     public boolean isLocalIsland(UUID islandUUID) {
-        JsonObject response = sendRequest(RequestType.CHECK_ISLAND, islandUUID.toString()).join();
-        return module.getSettings().serverName.equals(response.get("result").getAsString());
+        Bundle response = sendRequest(RequestType.CHECK_ISLAND, islandUUID.toString()).join();
+        return module.getSettings().serverName.equals(response.getString("result"));
     }
 
-    public CompletableFuture<JsonObject> getServerForNextIsland(UUID islandUUID) {
+    public CompletableFuture<Bundle> getServerForNextIsland(UUID islandUUID) {
         return sendRequest(RequestType.CREATE_ISLAND, islandUUID.toString());
     }
 
@@ -90,16 +88,16 @@ public class ModuleManager {
     }
 
     public void sendHello() {
-        CompletableFuture<JsonObject> responseFuture = sendRequest(RequestType.HELLO, "");
+        CompletableFuture<Bundle> responseFuture = sendRequest(RequestType.HELLO, "");
 
         try {
             // Should block until we get a response.
-            JsonObject response = responseFuture.get(10, TimeUnit.SECONDS);
+            Bundle response = responseFuture.get(10, TimeUnit.SECONDS);
 
-            if (response.has("error"))
-                throw new RuntimeException("Failed to register to the manager: " + response.get("error").getAsString());
+            if (response.contains("error"))
+                throw new RuntimeException("Failed to register to the manager: " + response.getString("error"));
 
-            this.keepAlive = response.get("keep-alive").getAsLong() / 50; // Converting milliseconds to ticks
+            this.keepAlive = response.getLong("keep-alive") / 50; // Converting milliseconds to ticks
         } catch (Exception error) {
             error.printStackTrace();
             throw new RuntimeException("Failed to connect to the manager, aborting.", error);
@@ -145,32 +143,33 @@ public class ModuleManager {
         });
     }
 
-    private CompletableFuture<JsonObject> sendRequest(RequestType requestType, String params) {
-        JsonObject args = new JsonObject();
+    private CompletableFuture<Bundle> sendRequest(RequestType requestType, String params) {
+        Bundle args = new Bundle();
 
         long requestId = this.requestIds++;
 
-        args.addProperty("method", requestType.getMethod());
-        args.addProperty("id", requestId);
-        args.addProperty("route", requestType.getRoute() + params);
-        args.addProperty("server", module.getSettings().serverName);
+        args.setChannelName(requestType.name());
+        args.setString("method", requestType.getMethod());
+        args.setLong("id", requestId);
+        args.setString("route", requestType.getRoute() + params);
+        args.setString("server", module.getSettings().serverName);
 
-        CompletableFuture<JsonObject> response = new CompletableFuture<>();
+        CompletableFuture<Bundle> result = new CompletableFuture<>();
 
-        this.connector.sendData(requestType.name(), gson.toJson(args), (Consumer<Throwable>) response::completeExceptionally);
+        this.connector.sendBundle(args, (Consumer<Throwable>) result::completeExceptionally);
 
         this.connector.listenOnce(requestType.name(), responseData -> {
             try {
-                JsonObject responseBody = gson.fromJson(responseData, JsonObject.class);
-                if (requestId == responseBody.get("id").getAsLong())
-                    response.complete(responseBody);
-            } catch (JsonSyntaxException error) {
+                Bundle response = new Bundle(responseData);
+                if (requestId == response.getLong("id"))
+                    result.complete(response);
+            } catch (BundleParseError error) {
                 System.out.println(responseData);
                 error.printStackTrace();
             }
         });
 
-        return response;
+        return result;
     }
 
 }

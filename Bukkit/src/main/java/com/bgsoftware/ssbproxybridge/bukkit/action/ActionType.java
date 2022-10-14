@@ -6,11 +6,11 @@ import com.bgsoftware.ssbproxybridge.bukkit.player.RemoteSuperiorPlayer;
 import com.bgsoftware.ssbproxybridge.bukkit.teleport.ProxyPlayerTeleportAlgorithm;
 import com.bgsoftware.ssbproxybridge.bukkit.teleport.ProxyPlayersFactory;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.BukkitExecutor;
+import com.bgsoftware.ssbproxybridge.bukkit.utils.LazyWorldLocation;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.MessagesSender;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.PlayerLocales;
-import com.bgsoftware.ssbproxybridge.bukkit.utils.Serializers;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.Text;
-import com.bgsoftware.ssbproxybridge.core.JsonUtil;
+import com.bgsoftware.ssbproxybridge.core.bundle.Bundle;
 import com.bgsoftware.ssbproxybridge.core.requests.IRequestHandler;
 import com.bgsoftware.ssbproxybridge.core.requests.RequestHandlerConsumer;
 import com.bgsoftware.ssbproxybridge.core.requests.RequestHandlerException;
@@ -21,9 +21,6 @@ import com.bgsoftware.superiorskyblock.api.service.message.MessagesService;
 import com.bgsoftware.superiorskyblock.api.world.algorithm.IslandCreationAlgorithm;
 import com.bgsoftware.superiorskyblock.api.wrappers.BlockPosition;
 import com.bgsoftware.superiorskyblock.api.wrappers.SuperiorPlayer;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -33,20 +30,20 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.RegisteredServiceProvider;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
 public enum ActionType {
 
-    TELEPORT(dataObject -> requirePlayer(dataObject, player -> {
+    TELEPORT(bundle -> requirePlayer(bundle, (unused, player) -> {
         SSBProxyBridgeModule module = SSBProxyBridgeModule.getModule();
 
         SuperiorPlayer superiorPlayer = module.getPlugin().getPlayers().getSuperiorPlayer(player);
 
-        if (dataObject.has("island")) {
-            UUID islandUUID = UUID.fromString(dataObject.get("island").getAsString());
+        if (bundle.contains("island")) {
+            UUID islandUUID = bundle.getUUID("island");
             Island targetIsland = islandUUID.equals(new UUID(0, 0)) ?
                     module.getPlugin().getGrid().getSpawnIsland() :
                     module.getPlugin().getGrid().getIslandByUUID(islandUUID);
@@ -56,10 +53,18 @@ public enum ActionType {
             }
 
             superiorPlayer.teleport(targetIsland);
-        } else if (dataObject.has("location")) {
-            Location location = Serializers.deserializeLocation(dataObject.get("location").getAsString());
+        } else if (bundle.contains("location")) {
+            Bundle position = bundle.getExtra("location");
+            Location location = new LazyWorldLocation(
+                    position.getString("world"),
+                    position.getDouble("x"),
+                    position.getDouble("y"),
+                    position.getDouble("z"),
+                    position.getFloat("yaw"),
+                    position.getFloat("pitch")
+            );
 
-            if (location == null || location.getWorld() == null)
+            if (location.getWorld() == null)
                 throw new RequestHandlerException("Couldn't teleport player to invalid location \"" + location + "\"");
 
             superiorPlayer.teleport(location);
@@ -67,23 +72,27 @@ public enum ActionType {
 
     }, true)),
 
-    CREATE_ISLAND(dataObject -> {
+    CREATE_ISLAND(bundle -> {
         SSBProxyBridgeModule module = SSBProxyBridgeModule.getModule();
 
-        UUID islandUUID = UUID.fromString(dataObject.get("uuid").getAsString());
-        SuperiorPlayer islandLeader = SuperiorSkyblockAPI.getPlayer(UUID.fromString(dataObject.get("leader").getAsString()));
+        UUID islandUUID = bundle.getUUID("uuid");
+        SuperiorPlayer islandLeader = SuperiorSkyblockAPI.getPlayer(bundle.getUUID("leader"));
 
-        JsonObject position = dataObject.get("position").getAsJsonObject();
+        Bundle position = bundle.getExtra("position");
 
-        BlockPosition blockPosition = module.getPlugin().getFactory().createBlockPosition(position.get("world").getAsString(),
-                position.get("x").getAsInt(), position.get("y").getAsInt(), position.get("z").getAsInt());
+        BlockPosition blockPosition = module.getPlugin().getFactory().createBlockPosition(
+                position.getString("world"),
+                position.getInt("x"),
+                position.getInt("y"),
+                position.getInt("z")
+        );
 
-        String name = dataObject.get("name").getAsString();
-        String schematic = dataObject.get("schematic").getAsString();
-        BigDecimal worthBonus = dataObject.get("worth_bonus").getAsBigDecimal();
-        BigDecimal levelBonus = dataObject.get("level_bonus").getAsBigDecimal();
+        String name = bundle.getString("name");
+        String schematic = bundle.getString("schematic");
+        BigDecimal worthBonus = bundle.getBigDecimal("worth_bonus");
+        BigDecimal levelBonus = bundle.getBigDecimal("level_bonus");
 
-        int responseId = dataObject.get("response-id").getAsInt();
+        int responseId = bundle.getInt("response-id");
 
         IslandCreationAlgorithm islandCreationAlgorithm = module.getPlugin().getGrid().getIslandCreationAlgorithm();
         if (islandCreationAlgorithm instanceof RemoteIslandCreationAlgorithm) {
@@ -117,13 +126,13 @@ public enum ActionType {
         module.getPlugin().getGrid().createIsland(islandLeader, schematic, worthBonus, levelBonus, biome, name, offset);
     }),
 
-    SEND_MESSAGE(dataObject -> {
+    SEND_MESSAGE(bundle -> {
         CommandSender target;
 
-        if (dataObject.has("player")) {
-            UUID playerUUID = UUID.fromString(dataObject.get("player").getAsString());
+        if (bundle.contains("player")) {
+            UUID playerUUID = bundle.getUUID("player");
             target = Bukkit.getPlayer(playerUUID);
-        } else if (dataObject.has("console")) {
+        } else if (bundle.contains("console")) {
             target = Bukkit.getConsoleSender();
         } else {
             target = null;
@@ -151,25 +160,16 @@ public enum ActionType {
             targetLocale = PlayerLocales.getLocale(defaultLocale);
         }
 
-        IMessageComponent component = messagesService.getComponent(dataObject.get("type").getAsString(), targetLocale);
+        IMessageComponent component = messagesService.getComponent(bundle.getString("type"), targetLocale);
 
-        JsonArray jsonArgs = dataObject.get("args").getAsJsonArray();
-
-        List<Object> arguments = new ArrayList<>();
-
-        for (JsonElement elementArgument : jsonArgs) {
-            Object value = elementArgument.isJsonPrimitive() ?
-                    JsonUtil.getValueFromPrimitive(elementArgument.getAsJsonPrimitive()) : null;
-            if (value != null)
-                arguments.add(value);
-        }
+        List<Object> args = bundle.getList("args");
 
         if (component != null) {
-            MessagesSender.sendMessageSilenty(component, target, arguments.toArray(new Object[0]));
+            MessagesSender.sendMessageSilenty(component, target, args.toArray(new Object[0]));
         } else {
             // We send the message raw to the player.
-            String message = arguments.isEmpty() || arguments.get(0) == null ? null : arguments.get(0).toString();
-            boolean translateColors = arguments.size() >= 2 && arguments.get(1) instanceof Boolean && (boolean) arguments.get(1);
+            String message = args.isEmpty() || args.get(0) == null ? null : args.get(0).toString();
+            boolean translateColors = args.size() >= 2 && args.get(1) instanceof Boolean && (boolean) args.get(1);
 
             MessagesService.Builder messageBuilder = messagesService.newBuilder();
             messageBuilder.addRawMessage(translateColors ? Text.colorize(message) : message);
@@ -178,12 +178,12 @@ public enum ActionType {
         }
     }),
 
-    WARP_PLAYER(dataObject -> requirePlayer(dataObject, player -> {
+    WARP_PLAYER(bundle -> requirePlayer(bundle, (unused, player) -> {
         SSBProxyBridgeModule module = SSBProxyBridgeModule.getModule();
 
         SuperiorPlayer superiorPlayer = module.getPlugin().getPlayers().getSuperiorPlayer(player);
 
-        UUID islandUUID = UUID.fromString(dataObject.get("island").getAsString());
+        UUID islandUUID = bundle.getUUID("island");
 
         Island targetIsland = islandUUID.equals(new UUID(0, 0)) ?
                 module.getPlugin().getGrid().getSpawnIsland() :
@@ -196,37 +196,37 @@ public enum ActionType {
         RemoteSuperiorPlayer remoteSuperiorPlayer = new RemoteSuperiorPlayer(superiorPlayer);
         try {
             remoteSuperiorPlayer.setFakeBypassMode(true);
-            targetIsland.warpPlayer(remoteSuperiorPlayer, dataObject.get("warp_name").getAsString());
+            targetIsland.warpPlayer(remoteSuperiorPlayer, bundle.getString("warp_name"));
         } finally {
             remoteSuperiorPlayer.setFakeBypassMode(false);
         }
 
     }, true)),
 
-    CALCULATE_ISLAND(dataObject -> {
+    CALCULATE_ISLAND(bundle -> {
         SSBProxyBridgeModule module = SSBProxyBridgeModule.getModule();
 
-        UUID islandUUID = UUID.fromString(dataObject.get("island").getAsString());
+        UUID islandUUID = bundle.getUUID("island");
         Island island = module.getPlugin().getGrid().getIslandByUUID(islandUUID);
 
         if (island == null)
             throw new RequestHandlerException("Couldn't teleport player to invalid island \"" + islandUUID + "\"");
 
-        int responseId = dataObject.get("response-id").getAsInt();
+        int responseId = bundle.getInt("response-id");
 
         island.getCalculationAlgorithm().calculateIsland(island).whenComplete((result, error) -> {
-            JsonObject response = new JsonObject();
-            response.addProperty("id", responseId);
+            Bundle response = new Bundle();
+            response.setInt("id", responseId);
 
             if (error != null) {
-                response.addProperty("error", error.getMessage());
+                response.setString("error", error.getMessage());
             } else {
-                JsonArray blockCounts = new JsonArray();
-                response.add("block_counts", blockCounts);
+                List<Bundle> blockCounts = new LinkedList<>();
+                response.setList("block_counts", blockCounts);
                 result.getBlockCounts().forEach((block, count) -> {
-                    JsonObject blockCount = new JsonObject();
-                    blockCount.addProperty("block", block.toString());
-                    blockCount.addProperty("count", count);
+                    Bundle blockCount = new Bundle();
+                    blockCount.setString("block", block.toString());
+                    blockCount.setBigInteger("count", count);
                     blockCounts.add(blockCount);
                 });
             }
@@ -235,17 +235,17 @@ public enum ActionType {
         });
     }),
 
-    SET_BIOME(dataObject -> {
+    SET_BIOME(bundle -> {
         SSBProxyBridgeModule module = SSBProxyBridgeModule.getModule();
 
-        UUID islandUUID = UUID.fromString(dataObject.get("island").getAsString());
+        UUID islandUUID = bundle.getUUID("island");
         Island island = module.getPlugin().getGrid().getIslandByUUID(islandUUID);
 
         if (island == null)
             throw new RequestHandlerException("Couldn't teleport player to invalid island \"" + islandUUID + "\"");
 
-        Biome biome = Biome.valueOf(dataObject.get("biome").getAsString());
-        boolean updateBlocks = dataObject.get("update_blocks").getAsBoolean();
+        Biome biome = bundle.getEnum("biome", Biome.class);
+        boolean updateBlocks = bundle.getBoolean("update_blocks");
 
         island.setBiome(biome, updateBlocks);
     });
@@ -260,11 +260,11 @@ public enum ActionType {
         return requestHandler;
     }
 
-    private static void requirePlayer(JsonObject data, RequestHandlerConsumer<Player> consumer, boolean addAsPendingTeleport) throws RequestHandlerException {
-        UUID playerUUID = UUID.fromString(data.get("player").getAsString());
+    private static void requirePlayer(Bundle bundle, RequestHandlerConsumer<Player> consumer, boolean addAsPendingTeleport) throws RequestHandlerException {
+        UUID playerUUID = bundle.getUUID("player");
         Player player = Bukkit.getPlayer(playerUUID);
         if (player != null) {
-            consumer.accept(player);
+            consumer.accept(bundle, player);
         } else {
             if (addAsPendingTeleport) {
                 ProxyPlayerTeleportAlgorithm playerTeleportAlgorithm = ProxyPlayersFactory.getInstance()
@@ -272,8 +272,8 @@ public enum ActionType {
 
                 if (playerTeleportAlgorithm != null) {
                     playerTeleportAlgorithm.setHasPendingTeleportTask(true);
-                    ActionsQueue.getPlayersQueue().addAction(data, playerUUID, playerAction -> {
-                        consumer.accept(playerAction);
+                    ActionsQueue.getPlayersQueue().addAction(bundle, playerUUID, (actionBundle, playerAction) -> {
+                        consumer.accept(actionBundle, playerAction);
                         BukkitExecutor.runTaskLater(() -> playerTeleportAlgorithm.setHasPendingTeleportTask(false), 1L);
                     });
 
@@ -281,7 +281,7 @@ public enum ActionType {
                 }
             }
 
-            ActionsQueue.getPlayersQueue().addAction(data, playerUUID, consumer);
+            ActionsQueue.getPlayersQueue().addAction(bundle, playerUUID, consumer);
         }
     }
 

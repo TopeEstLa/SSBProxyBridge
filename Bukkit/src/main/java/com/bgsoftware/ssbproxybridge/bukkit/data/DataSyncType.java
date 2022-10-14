@@ -12,6 +12,7 @@ import com.bgsoftware.ssbproxybridge.bukkit.player.RemoteSuperiorPlayer;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.BukkitExecutor;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.DatabaseBridgeAccessor;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.Serializers;
+import com.bgsoftware.ssbproxybridge.core.bundle.Bundle;
 import com.bgsoftware.ssbproxybridge.core.requests.IRequestHandler;
 import com.bgsoftware.ssbproxybridge.core.requests.RequestHandlerAction;
 import com.bgsoftware.ssbproxybridge.core.requests.RequestHandlerConsumer;
@@ -31,13 +32,10 @@ import com.bgsoftware.superiorskyblock.api.key.Key;
 import com.bgsoftware.superiorskyblock.api.missions.Mission;
 import com.bgsoftware.superiorskyblock.api.world.algorithm.IslandCreationAlgorithm;
 import com.bgsoftware.superiorskyblock.api.wrappers.SuperiorPlayer;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
 import org.bukkit.World;
 import org.bukkit.potion.PotionEffectType;
 
 import javax.annotation.Nullable;
-import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.EnumMap;
 import java.util.Locale;
@@ -49,9 +47,8 @@ public enum DataSyncType {
 
     DELETE_GRID(),
 
-    DELETE_ISLANDS(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        optionalIsland(JsonMethods.convertFilters(filtersArray), island -> {
+    DELETE_ISLANDS(bundle -> {
+        optionalIsland(bundle.getExtra("filters"), (filters, island) -> {
             if (island instanceof RemoteIsland) {
                 ((RemoteIsland) island).removeIsland();
             } else {
@@ -62,19 +59,15 @@ public enum DataSyncType {
 
     DELETE_ISLANDS_BANKS(),
 
-    DELETE_ISLANDS_BANS(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        optionalIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(filtersArray, value ->
-                island.unbanMember(SuperiorSkyblockAPI.getPlayer(UUID.fromString(value.getAsString())))
-        ));
+    DELETE_ISLANDS_BANS(bundle -> {
+        optionalIsland(bundle.getExtra("filters"), (filters, island) ->
+                island.unbanMember(SuperiorSkyblockAPI.getPlayer(filters.getUUID("player"))));
     }),
 
-    DELETE_ISLANDS_BLOCK_LIMITS(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonObject filters = JsonMethods.convertFilters(filtersArray);
-        optionalIsland(filters, island -> {
-            if (filters.has("block")) {
-                island.removeBlockLimit(Key.of(filters.get("block").getAsString()));
+    DELETE_ISLANDS_BLOCK_LIMITS(bundle -> {
+        optionalIsland(bundle.getExtra("filters"), (filters, island) -> {
+            if (filters.contains("block")) {
+                island.removeBlockLimit(Key.of(filters.getString("block")));
             } else {
                 island.clearBlockLimits();
             }
@@ -85,28 +78,28 @@ public enum DataSyncType {
 
     DELETE_ISLANDS_CUSTOM_DATA(),
 
-    DELETE_ISLANDS_EFFECTS(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        optionalIsland(JsonMethods.convertFilters(filtersArray), Island::clearEffects);
+    DELETE_ISLANDS_EFFECTS(bundle -> {
+        optionalIsland(bundle.getExtra("filters"), (filters, island) -> {
+            if (filters.contains("effect_type")) {
+                island.removePotionEffect(PotionEffectType.getByName(filters.getString("effect_type")));
+            } else {
+                island.clearEffects();
+            }
+        });
     }),
 
-    DELETE_ISLANDS_ENTITY_LIMITS(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        optionalIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(filtersArray, value ->
-                island.removePotionEffect(PotionEffectType.getByName(value.getAsString()))
-        ));
+    DELETE_ISLANDS_ENTITY_LIMITS(bundle -> {
+        optionalIsland(bundle.getExtra("filters"), (filters, island) -> island.clearEntitiesLimits());
     }),
 
     DELETE_ISLANDS_FLAGS(),
 
-    DELETE_ISLANDS_GENERATORS(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonObject filters = JsonMethods.convertFilters(filtersArray);
-        optionalIsland(filters, island -> {
-            if (filters.has("environment")) {
-                World.Environment environment = World.Environment.valueOf(filters.get("environment").getAsString());
-                if (filters.has("block")) {
-                    island.removeGeneratorAmount(Key.of(filters.get("block").getAsString()), environment);
+    DELETE_ISLANDS_GENERATORS(bundle -> {
+        optionalIsland(bundle.getExtra("filters"), (filters, island) -> {
+            if (filters.contains("environment")) {
+                World.Environment environment = filters.getEnum("environment", World.Environment.class);
+                if (filters.contains("block")) {
+                    island.removeGeneratorAmount(Key.of(filters.getString("block")), environment);
                 } else {
                     island.clearGeneratorAmounts(environment);
                 }
@@ -114,70 +107,57 @@ public enum DataSyncType {
         });
     }),
 
-    DELETE_ISLANDS_HOMES(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        optionalIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(filtersArray, value ->
-                island.setIslandHome(World.Environment.valueOf(value.getAsString()), null)
-        ));
+    DELETE_ISLANDS_HOMES(bundle -> {
+        optionalIsland(bundle.getExtra("filters"), (filters, island) ->
+                island.setIslandHome(filters.getEnum("environment", World.Environment.class), null));
     }),
 
-    DELETE_ISLANDS_ISLAND_EFFECTS(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        optionalIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(filtersArray, value ->
-                island.removePotionEffect(PotionEffectType.getByName(value.getAsString()))
-        ));
+    DELETE_ISLANDS_ISLAND_EFFECTS(bundle -> {
+        optionalIsland(bundle.getExtra("filters"), (filters, island) ->
+                island.removePotionEffect(PotionEffectType.getByName(filters.getString("effect_type"))));
     }),
 
-    DELETE_ISLANDS_MEMBERS(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        optionalIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(filtersArray, value -> {
-            SuperiorPlayer islandMember = SuperiorSkyblockAPI.getPlayer(UUID.fromString(value.getAsString()));
+    DELETE_ISLANDS_MEMBERS(bundle -> {
+        optionalIsland(bundle.getExtra("filters"), (filters, island) -> {
+            SuperiorPlayer islandMember = SuperiorSkyblockAPI.getPlayer(filters.getUUID("player"));
             DatabaseBridgeAccessor.runWithoutDataSave(islandMember, (Runnable) () -> island.kickMember(islandMember));
-        }));
+        });
     }),
 
-    DELETE_ISLANDS_MISSIONS(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        optionalIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEachOrThrow(filtersArray, value -> {
-            String missionName = value.getAsString();
+    DELETE_ISLANDS_MISSIONS(bundle -> {
+        optionalIsland(bundle.getExtra("filters"), (filters, island) -> {
+            String missionName = filters.getString("name");
             Mission<?> mission = SuperiorSkyblockAPI.getMissions().getMission(missionName);
 
             if (mission == null)
                 throw new RequestHandlerException("Cannot find a valid mission \"" + missionName + "\"");
 
             island.setAmountMissionCompleted(mission, 0);
-        }));
+        });
     }),
 
-    DELETE_ISLANDS_PLAYER_PERMISSIONS(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        optionalIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(filtersArray, value ->
-                island.resetPermissions(SuperiorSkyblockAPI.getPlayer(UUID.fromString(value.getAsString())))
-        ));
+    DELETE_ISLANDS_PLAYER_PERMISSIONS(bundle -> {
+        optionalIsland(bundle.getExtra("filters"), (filters, island) ->
+                island.resetPermissions(SuperiorSkyblockAPI.getPlayer(filters.getUUID("player"))));
     }),
 
-    DELETE_ISLANDS_RATINGS(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonObject filters = JsonMethods.convertFilters(filtersArray);
-        optionalIsland(filters, island -> {
-            if (filters.has("player")) {
-                island.removeRating(SuperiorSkyblockAPI.getPlayer(UUID.fromString(filters.get("player").getAsString())));
+    DELETE_ISLANDS_RATINGS(bundle -> {
+        optionalIsland(bundle.getExtra("filters"), (filters, island) -> {
+            if (filters.contains("player")) {
+                island.removeRating(SuperiorSkyblockAPI.getPlayer(filters.getUUID("player")));
             } else {
                 island.removeRatings();
             }
         });
     }),
 
-    DELETE_ISLANDS_ROLE_LIMITS(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        optionalIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(filtersArray, value ->
-                island.removeRoleLimit(SuperiorSkyblockAPI.getRoles().getPlayerRole(value.getAsInt()))
-        ));
+    DELETE_ISLANDS_ROLE_LIMITS(bundle -> {
+        optionalIsland(bundle.getExtra("filters"), (filters, island) ->
+                island.removeRoleLimit(SuperiorSkyblockAPI.getRoles().getPlayerRole(bundle.getInt("role"))));
     }),
 
-    DELETE_ISLANDS_ROLE_PERMISSIONS(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        optionalIsland(JsonMethods.convertFilters(filtersArray), Island::resetPermissions);
+    DELETE_ISLANDS_ROLE_PERMISSIONS(bundle -> {
+        optionalIsland(bundle.getExtra("filters"), (filters, island) -> island.resetPermissions());
     }),
 
     DELETE_ISLANDS_SETTINGS(),
@@ -186,45 +166,37 @@ public enum DataSyncType {
 
     DELETE_ISLANDS_VISITORS(),
 
-    DELETE_ISLANDS_VISITOR_HOMES(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        optionalIsland(JsonMethods.convertFilters(filtersArray), island -> island.setVisitorsLocation(null));
+    DELETE_ISLANDS_VISITOR_HOMES(bundle -> {
+        optionalIsland(bundle.getExtra("filters"), (filters, island) -> island.setVisitorsLocation(null));
     }),
 
-    DELETE_ISLANDS_WARPS(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        optionalIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(filtersArray, value ->
-                island.deleteWarp(value.getAsString())
-        ));
+    DELETE_ISLANDS_WARPS(bundle -> {
+        optionalIsland(bundle.getExtra("filters"), (filters, island) ->
+                island.deleteWarp(filters.getString("")));
     }),
 
-    DELETE_ISLANDS_WARP_CATEGORIES(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        optionalIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(filtersArray, value ->
-                island.deleteCategory(island.getWarpCategory(value.getAsString()))
-        ));
+    DELETE_ISLANDS_WARP_CATEGORIES(bundle -> {
+        optionalIsland(bundle.getExtra("filters"), (filters, island) ->
+                island.deleteCategory(island.getWarpCategory(filters.getString("name"))));
     }),
 
-    DELETE_PLAYERS(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        requirePlayer(JsonMethods.convertFilters(filtersArray), superiorPlayer ->
-                SuperiorSkyblockAPI.getPlayers().getPlayersContainer().removePlayer(superiorPlayer)
-        );
+    DELETE_PLAYERS(bundle -> {
+        requirePlayer(bundle.getExtra("filters"), (filters, superiorPlayer) ->
+                SuperiorSkyblockAPI.getPlayers().getPlayersContainer().removePlayer(superiorPlayer));
     }),
 
     DELETE_PLAYERS_CUSTOM_DATA(),
 
-    DELETE_PLAYERS_MISSIONS(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        requirePlayer(JsonMethods.convertFilters(filtersArray), superiorPlayer -> JsonMethods.forEachOrThrow(filtersArray, value -> {
-            String missionName = value.getAsString();
+    DELETE_PLAYERS_MISSIONS(bundle -> {
+        requirePlayer(bundle.getExtra("filters"), (filters, superiorPlayer) -> {
+            String missionName = bundle.getString("name");
             Mission<?> mission = SuperiorSkyblockAPI.getMissions().getMission(missionName);
 
             if (mission == null)
                 throw new RequestHandlerException("Cannot find a valid mission \"" + missionName + "\"");
 
             superiorPlayer.setAmountMissionCompleted(mission, 0);
-        }));
+        });
     }),
 
     DELETE_PLAYERS_SETTINGS(),
@@ -233,35 +205,33 @@ public enum DataSyncType {
 
     /* Insert Operations */
 
-    INSERT_BANK_TRANSACTIONS(dataObject -> {
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        JsonObject columns = JsonMethods.convertColumns(columnsArray);
-
+    INSERT_BANK_TRANSACTIONS(bundle -> {
         SSBProxyBridgeModule module = SSBProxyBridgeModule.getModule();
-
-        requireIsland(columns, island -> island.getIslandBank().loadTransaction(module.getPlugin().getFactory().createTransaction(
-                UUID.fromString(columns.get("player").getAsString()),
-                BankAction.valueOf(columns.get("bank_action").getAsString()),
-                columns.get("position").getAsInt(),
-                columns.get("time").getAsLong(),
-                columns.get("failure_reason").getAsString(),
-                new BigDecimal(columns.get("amount").getAsString())
-        )));
+        requireIsland(bundle.getExtra("columns"), (columns, island) -> {
+            island.getIslandBank().loadTransaction(module.getPlugin().getFactory().createTransaction(
+                    columns.getUUID("player"),
+                    columns.getEnum("bank_action", BankAction.class),
+                    columns.getInt("position"),
+                    columns.getLong("time"),
+                    columns.getString("failure_reason"),
+                    columns.getBigDecimal("amount")
+            ));
+        });
     }),
 
     INSERT_GRID(),
 
-    INSERT_ISLANDS(dataObject -> {
-        JsonObject columns = JsonMethods.convertColumns(dataObject.get("columns").getAsJsonArray());
-        UUID islandUUID = UUID.fromString(columns.get("uuid").getAsString());
+    INSERT_ISLANDS(bundle -> {
+        Bundle columns = bundle.getExtra("columns");
+        UUID islandUUID = columns.getUUID("uuid");
 
         Island island = SuperiorSkyblockAPI.getIslandByUUID(islandUUID);
 
         if (island != null) // Only if the island doesn't exist already we try to insert it again.
             return;
 
-        String center = columns.get("center").getAsString();
-        SuperiorPlayer islandLeader = SuperiorSkyblockAPI.getPlayer(UUID.fromString(columns.get("owner").getAsString()));
+        String center = columns.getString("center");
+        SuperiorPlayer islandLeader = SuperiorSkyblockAPI.getPlayer(columns.getUUID("owner"));
 
         islandLeader.getDatabaseBridge().setDatabaseBridgeMode(DatabaseBridgeMode.IDLE);
 
@@ -277,8 +247,8 @@ public enum DataSyncType {
                 islandUUID,
                 islandLeader,
                 SuperiorSkyblockAPI.getFactory().createBlockPosition(SuperiorSkyblockAPI.getGrid().getLastIslandLocation()),
-                columns.get("name").getAsString(),
-                new FakeSchematic(columns.get("island_type").getAsString())
+                columns.getString("name"),
+                new FakeSchematic(columns.getString("island_type"))
         ).whenComplete((result, error) -> {
             SuperiorSkyblockAPI.getFactory().registerIslandsFactory(originalIslandsFactory);
 
@@ -288,7 +258,7 @@ public enum DataSyncType {
                 if (error != null) {
                     error.printStackTrace();
                 } else {
-                    createdSuccessfully = islandCreationCallback(result, dataObject, columns, center);
+                    createdSuccessfully = islandCreationCallback(result, bundle.getSender(), center);
                 }
             } catch (Throwable callbackError) {
                 callbackError.printStackTrace();
@@ -303,69 +273,55 @@ public enum DataSyncType {
         });
     }),
 
-    INSERT_ISLANDS_BANKS(dataObject -> {
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        JsonObject columns = JsonMethods.convertColumns(columnsArray);
-        requireIsland(columns, island -> {
-            island.getIslandBank().setBalance(new BigDecimal(columns.get("balance").getAsString()));
-            island.setLastInterestTime(columns.get("last_interest_time").getAsLong());
+    INSERT_ISLANDS_BANKS(bundle -> {
+        requireIsland(bundle.getExtra("columns"), (columns, island) -> {
+            island.getIslandBank().setBalance(columns.getBigDecimal("balance"));
+            island.setLastInterestTime(columns.getLong("last_interest_time"));
         });
     }),
 
-    INSERT_ISLANDS_BANS(dataObject -> {
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        JsonObject columns = JsonMethods.convertColumns(columnsArray);
-        requireIsland(columns, island -> island.banMember(
-                SuperiorSkyblockAPI.getPlayer(UUID.fromString(columns.get("player").getAsString())),
-                SuperiorSkyblockAPI.getPlayer(UUID.fromString(columns.get("banned_by").getAsString()))
+    INSERT_ISLANDS_BANS(bundle -> {
+        requireIsland(bundle.getExtra("columns"), (columns, island) -> island.banMember(
+                SuperiorSkyblockAPI.getPlayer(columns.getUUID("player")),
+                SuperiorSkyblockAPI.getPlayer(columns.getUUID("banned_by"))
         ));
     }),
 
-    INSERT_ISLANDS_BLOCK_LIMITS(dataObject -> {
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        JsonObject columns = JsonMethods.convertColumns(columnsArray);
-        requireIsland(columns, island -> island.setBlockLimit(
-                Key.of(columns.get("block").getAsString()),
-                columns.get("limit").getAsInt()
+    INSERT_ISLANDS_BLOCK_LIMITS(bundle -> {
+        requireIsland(bundle.getExtra("columns"), (columns, island) -> island.setBlockLimit(
+                Key.of(columns.getString("block")),
+                columns.getInt("limit")
         ));
     }),
 
     /* We do not update chests */
     INSERT_ISLANDS_CHESTS(),
 
-    INSERT_ISLANDS_CUSTOM_DATA(dataObject -> {
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        JsonObject columns = JsonMethods.convertColumns(columnsArray);
-        requireIsland(columns, island -> {
-            byte[] data = columns.get("data").getAsString().getBytes(StandardCharsets.UTF_8);
+    INSERT_ISLANDS_CUSTOM_DATA(bundle -> {
+        requireIsland(bundle.getExtra("columns"), (columns, island) -> {
+            byte[] data = columns.getString("data").getBytes(StandardCharsets.UTF_8);
             island.getPersistentDataContainer().load(data);
         });
     }),
 
-    INSERT_ISLANDS_EFFECTS(dataObject -> {
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        JsonObject columns = JsonMethods.convertColumns(columnsArray);
-        requireIsland(columns, island -> island.setPotionEffect(
-                PotionEffectType.getByName(columns.get("effect_type").getAsString()),
-                columns.get("level").getAsInt()
+    INSERT_ISLANDS_EFFECTS(bundle -> {
+        requireIsland(bundle.getExtra("columns"), (columns, island) -> island.setPotionEffect(
+                PotionEffectType.getByName(columns.getString("effect_type")),
+                columns.getInt("level")
         ));
     }),
 
-    INSERT_ISLANDS_ENTITY_LIMITS(dataObject -> {
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        JsonObject columns = JsonMethods.convertColumns(columnsArray);
-        requireIsland(columns, island -> island.setEntityLimit(
-                Key.of(columns.get("entity").getAsString()),
-                columns.get("limit").getAsInt()
+    INSERT_ISLANDS_ENTITY_LIMITS(bundle -> {
+        requireIsland(bundle.getExtra("columns"), (columns, island) -> island.setEntityLimit(
+                Key.of(columns.getString("entity")),
+                columns.getInt("limit")
         ));
     }),
 
-    INSERT_ISLANDS_FLAGS(dataObject -> {
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        JsonObject columns = JsonMethods.convertColumns(columnsArray);
-        requireIsland(columns, island -> {
-            IslandFlag islandFlag = IslandFlag.getByName(columns.get("name").getAsString());
-            if (columns.get("status").getAsInt() == 1) {
+    INSERT_ISLANDS_FLAGS(bundle -> {
+        requireIsland(bundle.getExtra("columns"), (columns, island) -> {
+            IslandFlag islandFlag = IslandFlag.getByName(columns.getString("name"));
+            if (columns.getInt("status") == 1) {
                 island.enableSettings(islandFlag);
             } else {
                 island.disableSettings(islandFlag);
@@ -373,110 +329,88 @@ public enum DataSyncType {
         });
     }),
 
-    INSERT_ISLANDS_GENERATORS(dataObject -> {
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        JsonObject columns = JsonMethods.convertColumns(columnsArray);
-        requireIsland(columns, island -> island.setGeneratorAmount(
-                Key.of(columns.get("block").getAsString()),
-                columns.get("rate").getAsInt(),
-                World.Environment.valueOf(columns.get("environment").getAsString())
+    INSERT_ISLANDS_GENERATORS(bundle -> {
+        requireIsland(bundle.getExtra("columns"), (columns, island) -> island.setGeneratorAmount(
+                Key.of(columns.getString("block")),
+                columns.getInt("rate"),
+                columns.getEnum("environment", World.Environment.class)
         ));
     }),
 
-    INSERT_ISLANDS_HOMES(dataObject -> {
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        JsonObject columns = JsonMethods.convertColumns(columnsArray);
-        requireIsland(columns, island -> island.setIslandHome(
-                World.Environment.valueOf(columns.get("environment").getAsString()),
-                Serializers.deserializeLocation(columns.get("location").getAsString())
+    INSERT_ISLANDS_HOMES(bundle -> {
+        requireIsland(bundle.getExtra("columns"), (columns, island) -> island.setIslandHome(
+                columns.getEnum("environment", World.Environment.class),
+                Serializers.deserializeLocation(columns.getString("location"))
         ));
     }),
 
-    INSERT_ISLANDS_MEMBERS(dataObject -> {
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        JsonObject columns = JsonMethods.convertColumns(columnsArray);
-        requireIsland(columns, island -> island.addMember(
-                SuperiorSkyblockAPI.getPlayer(UUID.fromString(columns.get("player").getAsString())),
-                SuperiorSkyblockAPI.getRoles().getPlayerRole(columns.get("role").getAsInt())
+    INSERT_ISLANDS_MEMBERS(bundle -> {
+        requireIsland(bundle.getExtra("columns"), (columns, island) -> island.addMember(
+                SuperiorSkyblockAPI.getPlayer(columns.getUUID("player")),
+                SuperiorSkyblockAPI.getRoles().getPlayerRole(columns.getInt("role"))
         ));
     }),
 
-    INSERT_ISLANDS_MISSIONS(dataObject -> {
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        JsonObject columns = JsonMethods.convertColumns(columnsArray);
-        requireIsland(columns, island -> {
-            String missionName = columns.get("name").getAsString();
+    INSERT_ISLANDS_MISSIONS(bundle -> {
+        requireIsland(bundle.getExtra("columns"), (columns, island) -> {
+            String missionName = columns.getString("name");
             Mission<?> mission = SuperiorSkyblockAPI.getMissions().getMission(missionName);
 
             if (mission == null)
                 throw new RequestHandlerException("Cannot find a valid mission \"" + missionName + "\"");
 
-            island.setAmountMissionCompleted(mission, columns.get("finish_count").getAsInt());
+            island.setAmountMissionCompleted(mission, columns.getInt("finish_count"));
         });
     }),
 
-    INSERT_ISLANDS_PLAYER_PERMISSIONS(dataObject -> {
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        JsonObject columns = JsonMethods.convertColumns(columnsArray);
-        requireIsland(columns, island -> island.setPermission(
-                SuperiorSkyblockAPI.getPlayer(UUID.fromString(columns.get("player").getAsString())),
-                IslandPrivilege.getByName(columns.get("permission").getAsString()),
-                columns.get("status").getAsBoolean()
+    INSERT_ISLANDS_PLAYER_PERMISSIONS(bundle -> {
+        requireIsland(bundle.getExtra("columns"), (columns, island) -> island.setPermission(
+                SuperiorSkyblockAPI.getPlayer(columns.getUUID("player")),
+                IslandPrivilege.getByName(columns.getString("permission")),
+                columns.getBoolean("status")
         ));
     }),
 
-    INSERT_ISLANDS_RATINGS(dataObject -> {
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        JsonObject columns = JsonMethods.convertColumns(columnsArray);
-        requireIsland(columns, island -> island.setRating(
-                SuperiorSkyblockAPI.getPlayer(UUID.fromString(columns.get("player").getAsString())),
-                Rating.valueOf(columns.get("rating").getAsInt())
+    INSERT_ISLANDS_RATINGS(bundle -> {
+        requireIsland(bundle.getExtra("columns"), (columns, island) -> island.setRating(
+                SuperiorSkyblockAPI.getPlayer(columns.getUUID("player")),
+                Rating.valueOf(columns.getInt("rating"))
         ));
     }),
 
-    INSERT_ISLANDS_ROLE_LIMITS(dataObject -> {
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        JsonObject columns = JsonMethods.convertColumns(columnsArray);
-        requireIsland(columns, island -> island.setRoleLimit(
-                SuperiorSkyblockAPI.getRoles().getPlayerRole(columns.get("role").getAsInt()),
-                columns.get("limit").getAsInt()
+    INSERT_ISLANDS_ROLE_LIMITS(bundle -> {
+        requireIsland(bundle.getExtra("columns"), (columns, island) -> island.setRoleLimit(
+                SuperiorSkyblockAPI.getRoles().getPlayerRole(columns.getInt("role")),
+                columns.getInt("limit")
         ));
     }),
 
-    INSERT_ISLANDS_ROLE_PERMISSIONS(dataObject -> {
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        JsonObject columns = JsonMethods.convertColumns(columnsArray);
-        requireIsland(columns, island -> island.setPermission(
-                SuperiorSkyblockAPI.getRoles().getPlayerRole(columns.get("role").getAsInt()),
-                IslandPrivilege.getByName(columns.get("permission").getAsString())
+    INSERT_ISLANDS_ROLE_PERMISSIONS(bundle -> {
+        requireIsland(bundle.getExtra("columns"), (columns, island) -> island.setPermission(
+                SuperiorSkyblockAPI.getRoles().getPlayerRole(columns.getInt("role")),
+                IslandPrivilege.getByName(columns.getString("permission"))
         ));
     }),
 
     /* Do nothing, as upgrades will not be synced otherwise */
     INSERT_ISLANDS_SETTINGS(),
 
-    INSERT_ISLANDS_UPGRADES(dataObject -> {
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        JsonObject columns = JsonMethods.convertColumns(columnsArray);
-        requireIsland(columns, island -> island.setUpgradeLevel(
-                SuperiorSkyblockAPI.getUpgrades().getUpgrade(columns.get("upgrade").getAsString()),
-                columns.get("level").getAsInt()
+    INSERT_ISLANDS_UPGRADES(bundle -> {
+        requireIsland(bundle.getExtra("columns"), (columns, island) -> island.setUpgradeLevel(
+                SuperiorSkyblockAPI.getUpgrades().getUpgrade(columns.getString("upgrade")),
+                columns.getInt("level")
         ));
     }),
 
-    INSERT_ISLANDS_VISITOR_HOMES(dataObject -> {
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        JsonObject columns = JsonMethods.convertColumns(columnsArray);
-        requireIsland(columns, island -> island.setVisitorsLocation(
-                Serializers.deserializeLocation(columns.get("location").getAsString())
+    INSERT_ISLANDS_VISITOR_HOMES(bundle -> {
+        requireIsland(bundle.getExtra("columns"), (columns, island) -> island.setVisitorsLocation(
+                Serializers.deserializeLocation(columns.getString("location"))
         ));
     }),
 
-    INSERT_ISLANDS_VISITORS(dataObject -> {
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        JsonObject columns = JsonMethods.convertColumns(columnsArray);
-        requireIsland(columns, island -> {
-            SuperiorPlayer islandVisitor = SuperiorSkyblockAPI.getPlayer(UUID.fromString(columns.get("player").getAsString()));
+    INSERT_ISLANDS_VISITORS(bundle -> {
+        requireIsland(bundle.getExtra("columns"), (columns, island) -> {
+            SuperiorPlayer islandVisitor = SuperiorSkyblockAPI.getPlayer(columns.getUUID("player"));
             // We use a fake player so we can fake his online status
             RemoteSuperiorPlayer remoteSuperiorPlayer = new RemoteSuperiorPlayer(islandVisitor);
             remoteSuperiorPlayer.setOnlineStatus(true);
@@ -486,34 +420,30 @@ public enum DataSyncType {
         });
     }),
 
-    INSERT_ISLANDS_WARPS(dataObject -> {
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        JsonObject columns = JsonMethods.convertColumns(columnsArray);
-        requireIsland(columns, island -> {
-            IslandWarp islandWarp = island.createWarp(columns.get("name").getAsString(),
-                    Serializers.deserializeLocation(columns.get("location").getAsString()),
-                    island.getWarpCategory(columns.get("category").getAsString())
+    INSERT_ISLANDS_WARPS(bundle -> {
+        requireIsland(bundle.getExtra("columns"), (columns, island) -> {
+            IslandWarp islandWarp = island.createWarp(columns.getString("name"),
+                    Serializers.deserializeLocation(columns.getString("location")),
+                    island.getWarpCategory(columns.getString("category"))
             );
-            islandWarp.setPrivateFlag(columns.get("private").getAsBoolean());
+            islandWarp.setPrivateFlag(columns.getBoolean("private"));
 //            // TODO
 //            islandWarp.setIcon(columns.get("private").getAsBoolean());
         });
     }),
 
-    INSERT_ISLANDS_WARP_CATEGORIES(dataObject -> {
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        JsonObject columns = JsonMethods.convertColumns(columnsArray);
-        requireIsland(columns, island -> {
-            WarpCategory warpCategory = island.createWarpCategory(columns.get("name").getAsString());
-            warpCategory.setSlot(columns.get("slot").getAsInt());
+    INSERT_ISLANDS_WARP_CATEGORIES(bundle -> {
+        requireIsland(bundle.getExtra("columns"), (columns, island) -> {
+            WarpCategory warpCategory = island.createWarpCategory(columns.getString("name"));
+            warpCategory.setSlot(columns.getInt("slot"));
 //            // TODO
 //            warpCategory.setIcon(columns.get("icon").getAsString());
         });
     }),
 
-    INSERT_PLAYERS(dataObject -> {
-        JsonObject columns = JsonMethods.convertColumns(dataObject.get("columns").getAsJsonArray());
-        UUID playerUUID = UUID.fromString(columns.get("uuid").getAsString());
+    INSERT_PLAYERS(bundle -> {
+        Bundle columns = bundle.getExtra("columns");
+        UUID playerUUID = columns.getUUID("uuid");
 
         // We want to create a new player, which is done by calling the getPlayer method.
         try {
@@ -521,9 +451,9 @@ public enum DataSyncType {
             SuperiorPlayer superiorPlayer = SuperiorSkyblockAPI.getPlayer(playerUUID);
 
             RemoteSuperiorPlayer remoteSuperiorPlayer = new RemoteSuperiorPlayer(superiorPlayer);
-            remoteSuperiorPlayer.setName(columns.get("last_used_name").getAsString());
-            remoteSuperiorPlayer.setTextureValue(columns.get("last_used_skin").getAsString());
-            remoteSuperiorPlayer.setDisbands(columns.get("disbands").getAsInt());
+            remoteSuperiorPlayer.setName(columns.getString("last_used_name"));
+            remoteSuperiorPlayer.setTextureValue(columns.getString("last_used_skin"));
+            remoteSuperiorPlayer.setDisbands(columns.getInt("disbands"));
 
             ((ProxyDatabaseBridge) superiorPlayer.getDatabaseBridge()).activate();
         } finally {
@@ -531,26 +461,22 @@ public enum DataSyncType {
         }
     }),
 
-    INSERT_PLAYERS_CUSTOM_DATA(dataObject -> {
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        JsonObject columns = JsonMethods.convertColumns(columnsArray);
-        requirePlayer(columns, superiorPlayer -> {
-            byte[] data = columns.get("data").getAsString().getBytes(StandardCharsets.UTF_8);
+    INSERT_PLAYERS_CUSTOM_DATA(bundle -> {
+        requirePlayer(bundle.getExtra("columns"), (columns, superiorPlayer) -> {
+            byte[] data = columns.getString("data").getBytes(StandardCharsets.UTF_8);
             superiorPlayer.getPersistentDataContainer().load(data);
         });
     }),
 
-    INSERT_PLAYERS_MISSIONS(dataObject -> {
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        JsonObject columns = JsonMethods.convertColumns(columnsArray);
-        requirePlayer(columns, superiorPlayer -> {
-            String missionName = columns.get("name").getAsString();
+    INSERT_PLAYERS_MISSIONS(bundle -> {
+        requirePlayer(bundle.getExtra("columns"), (columns, superiorPlayer) -> {
+            String missionName = columns.getString("name");
             Mission<?> mission = SuperiorSkyblockAPI.getMissions().getMission(missionName);
 
             if (mission == null)
                 throw new RequestHandlerException("Cannot find a valid mission \"" + missionName + "\"");
 
-            superiorPlayer.setAmountMissionCompleted(mission, columns.get("finish_count").getAsInt());
+            superiorPlayer.setAmountMissionCompleted(mission, columns.getInt("finish_count"));
         });
     }),
 
@@ -563,225 +489,172 @@ public enum DataSyncType {
     /* Last islands are updated when new islands are created */
     UPDATE_GRID_LAST_ISLAND(),
 
-    UPDATE_ISLANDS_BANKS_BALANCE(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requireIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(columnsArray, value ->
-                island.getIslandBank().setBalance(new BigDecimal(value.getAsString()))
-        ));
+    UPDATE_ISLANDS_BANKS_BALANCE(bundle -> {
+        requireIsland(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, island) ->
+                island.getIslandBank().setBalance(columns.getBigDecimal("balance"))
+        );
     }),
 
-    UPDATE_ISLANDS_BANKS_LAST_INTEREST_TIME(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requireIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(columnsArray, value ->
-                island.setLastInterestTime(value.getAsLong())
-        ));
+    UPDATE_ISLANDS_BANKS_LAST_INTEREST_TIME(bundle -> {
+        requireIsland(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, island) ->
+                island.setLastInterestTime(columns.getLong("last_interest_time"))
+        );
     }),
 
-    UPDATE_ISLANDS_BLOCK_COUNTS(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requireIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(columnsArray, value -> {
+    UPDATE_ISLANDS_BLOCK_COUNTS(bundle -> {
+        requireIsland(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, island) -> {
             island.clearBlockCounts();
-            island.handleBlocksPlace(JsonMethods.parseBlockCounts(value.getAsString()));
-        }));
+            island.handleBlocksPlace(JsonMethods.parseBlockCounts(columns.getString("block_counts")));
+        });
     }),
 
-    UPDATE_ISLANDS_COOP_PLAYER(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requireIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(columnsArray, value ->
-                island.addCoop(SuperiorSkyblockAPI.getPlayer(UUID.fromString(value.getAsString())))
-        ));
+    UPDATE_ISLANDS_COOP_PLAYER(bundle -> {
+        requireIsland(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, island) ->
+                island.addCoop(SuperiorSkyblockAPI.getPlayer(columns.getUUID("uuid")))
+        );
     }),
 
-    UPDATE_ISLANDS_DESCRIPTION(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requireIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(columnsArray, value ->
-                island.setDescription(value.getAsString())
-        ));
+    UPDATE_ISLANDS_DESCRIPTION(bundle -> {
+        requireIsland(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, island) ->
+                island.setDescription(columns.getString("description"))
+        );
     }),
 
     /* We do not care about dirty chunks */
     UPDATE_ISLANDS_DIRTY_CHUNKS(),
 
-    UPDATE_ISLANDS_DISCORD(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requireIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(columnsArray, value ->
-                island.setDiscord(value.getAsString())
-        ));
+    UPDATE_ISLANDS_DISCORD(bundle -> {
+        requireIsland(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, island) ->
+                island.setDiscord(columns.getString("discord"))
+        );
     }),
 
-    UPDATE_ISLANDS_GENERATED_SCHEMATICS(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requireIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(columnsArray, value ->
-                Islands.setGeneratedSchematics(island, value.getAsInt())
-        ));
+    UPDATE_ISLANDS_GENERATED_SCHEMATICS(bundle -> {
+        requireIsland(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, island) ->
+                Islands.setGeneratedSchematics(island, columns.getInt("generated_schematics"))
+        );
     }),
 
-    UPDATE_ISLANDS_IGNORED(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requireIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(columnsArray, value ->
-                island.setIgnored(value.getAsBoolean())
-        ));
+    UPDATE_ISLANDS_IGNORED(bundle -> {
+        requireIsland(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, island) ->
+                island.setIgnored(columns.getBoolean("ignored"))
+        );
     }),
 
-    UPDATE_ISLANDS_INVITE_PLAYER(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requireIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(columnsArray, value ->
-                island.inviteMember(SuperiorSkyblockAPI.getPlayer(UUID.fromString(value.getAsString())))
-        ));
+    UPDATE_ISLANDS_INVITE_PLAYER(bundle -> {
+        requireIsland(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, island) ->
+                island.inviteMember(SuperiorSkyblockAPI.getPlayer(columns.getUUID("uuid")))
+        );
     }),
 
-    UPDATE_ISLANDS_LAST_TIME_UPDATED(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requireIsland(JsonMethods.convertFilters(filtersArray), island -> {
-            JsonMethods.forEach(columnsArray, value -> island.setLastTimeUpdate(value.getAsLong()));
+    UPDATE_ISLANDS_LAST_TIME_UPDATED(bundle -> {
+        requireIsland(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, island) -> {
+            island.setLastTimeUpdate(columns.getLong("last_time_updated"));
             SSBProxyBridgeModule.getModule().getManager().updateIsland(island.getUniqueId());
         });
     }),
 
-    UPDATE_ISLANDS_LEVELS_BONUS(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requireIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(columnsArray, value ->
-                island.setBonusLevel(new BigDecimal(value.getAsString()))
-        ));
+    UPDATE_ISLANDS_LEVELS_BONUS(bundle -> {
+        requireIsland(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, island) ->
+                island.setBonusLevel(columns.getBigDecimal("levels_bonus"))
+        );
     }),
 
-    UPDATE_ISLANDS_LOCKED(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requireIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(columnsArray, value ->
-                island.setLocked(value.getAsBoolean())
-        ));
+    UPDATE_ISLANDS_LOCKED(bundle -> {
+        requireIsland(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, island) ->
+                island.setLocked(bundle.getBoolean("locked"))
+        );
     }),
 
-    UPDATE_ISLANDS_MEMBERS_ROLE(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requirePlayer(JsonMethods.convertFilters(filtersArray), superiorPlayer -> JsonMethods.forEach(columnsArray, value ->
-                superiorPlayer.setPlayerRole(SuperiorSkyblockAPI.getRoles().getPlayerRole(value.getAsInt()))));
+    UPDATE_ISLANDS_MEMBERS_ROLE(bundle -> {
+        requirePlayer(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, superiorPlayer) ->
+                superiorPlayer.setPlayerRole(SuperiorSkyblockAPI.getRoles().getPlayerRole(columns.getInt("role")))
+        );
     }),
 
-    UPDATE_ISLANDS_NAME(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requireIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(columnsArray, value ->
-                island.setName(value.getAsString())
-        ));
+    UPDATE_ISLANDS_NAME(bundle -> {
+        requireIsland(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, island) ->
+                island.setName(columns.getString("name"))
+        );
     }),
 
-    UPDATE_ISLANDS_OWNER(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requireIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(columnsArray, value ->
-                island.transferIsland(SuperiorSkyblockAPI.getPlayer(UUID.fromString(value.getAsString())))
-        ));
+    UPDATE_ISLANDS_OWNER(bundle -> {
+        requireIsland(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, island) ->
+                island.transferIsland(SuperiorSkyblockAPI.getPlayer(columns.getUUID("owner")))
+        );
     }),
 
-    UPDATE_ISLANDS_PAYPAL(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requireIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(columnsArray, value ->
-                island.setPaypal(value.getAsString())
-        ));
+    UPDATE_ISLANDS_PAYPAL(bundle -> {
+        requireIsland(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, island) ->
+                island.setPaypal(bundle.getString("paypal"))
+        );
     }),
 
 
-    UPDATE_ISLANDS_SETTINGS_BANK_LIMIT(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requireIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(columnsArray, value ->
-                island.setBankLimit(new BigDecimal(value.getAsString()))
-        ));
+    UPDATE_ISLANDS_SETTINGS_BANK_LIMIT(bundle -> {
+        requireIsland(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, island) ->
+                island.setBankLimit(bundle.getBigDecimal("bank_limit"))
+        );
     }),
 
-    UPDATE_ISLANDS_SETTINGS_COOPS_LIMIT(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requireIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(columnsArray, value ->
-                island.setCoopLimit(value.getAsInt())
-        ));
+    UPDATE_ISLANDS_SETTINGS_COOPS_LIMIT(bundle -> {
+        requireIsland(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, island) ->
+                island.setCoopLimit(columns.getInt("coops_limit"))
+        );
     }),
 
-    UPDATE_ISLANDS_SETTINGS_CROP_GROWTH_MULTIPLIER(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requireIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(columnsArray, value ->
-                island.setCropGrowthMultiplier(value.getAsDouble())
-        ));
+    UPDATE_ISLANDS_SETTINGS_CROP_GROWTH_MULTIPLIER(bundle -> {
+        requireIsland(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, island) ->
+                island.setCropGrowthMultiplier(columns.getDouble("crop_growth_multiplier"))
+        );
     }),
 
-    UPDATE_ISLANDS_SETTINGS_MEMBERS_LIMIT(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requireIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(columnsArray, value ->
-                island.setTeamLimit(value.getAsInt())
-        ));
+    UPDATE_ISLANDS_SETTINGS_MEMBERS_LIMIT(bundle -> {
+        requireIsland(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, island) ->
+                island.setTeamLimit(columns.getInt("members_limit"))
+        );
     }),
 
-    UPDATE_ISLANDS_SETTINGS_MOB_DROPS_MULTIPLIER(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requireIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(columnsArray, value ->
-                island.setMobDropsMultiplier(value.getAsDouble())
-        ));
+    UPDATE_ISLANDS_SETTINGS_MOB_DROPS_MULTIPLIER(bundle -> {
+        requireIsland(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, island) ->
+                island.setMobDropsMultiplier(columns.getDouble("mob_drops_multiplier"))
+        );
     }),
 
-    UPDATE_ISLANDS_SETTINGS_SIZE(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requireIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(columnsArray, value ->
-                island.setIslandSize(value.getAsInt())
-        ));
+    UPDATE_ISLANDS_SETTINGS_SIZE(bundle -> {
+        requireIsland(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, island) ->
+                island.setIslandSize(bundle.getInt("size"))
+        );
     }),
 
-    UPDATE_ISLANDS_SETTINGS_SPAWNER_RATES_MULTIPLIER(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requireIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(columnsArray, value ->
-                island.setSpawnerRatesMultiplier(value.getAsDouble())
-        ));
+    UPDATE_ISLANDS_SETTINGS_SPAWNER_RATES_MULTIPLIER(bundle -> {
+        requireIsland(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, island) ->
+                island.setSpawnerRatesMultiplier(columns.getDouble("spawner_rates_multiplier"))
+        );
     }),
 
-    UPDATE_ISLANDS_SETTINGS_WARPS_LIMIT(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requireIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(columnsArray, value ->
-                island.setWarpsLimit(value.getAsInt())
-        ));
+    UPDATE_ISLANDS_SETTINGS_WARPS_LIMIT(bundle -> {
+        requireIsland(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, island) ->
+                island.setWarpsLimit(columns.getInt("warps_limit"))
+        );
     }),
 
-    UPDATE_ISLANDS_UNCOOP_PLAYER(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requireIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(columnsArray, value ->
-                island.removeCoop(SuperiorSkyblockAPI.getPlayer(UUID.fromString(value.getAsString())))
-        ));
+    UPDATE_ISLANDS_UNCOOP_PLAYER(bundle -> {
+        requireIsland(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, island) ->
+                island.removeCoop(SuperiorSkyblockAPI.getPlayer(columns.getUUID("uuid")))
+        );
     }),
 
-    UPDATE_ISLANDS_UNLOCKED_WORLDS(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requireIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(columnsArray, value ->
-                Islands.setUnlockedWorlds(island, value.getAsInt())
-        ));
+    UPDATE_ISLANDS_UNLOCKED_WORLDS(bundle -> {
+        requireIsland(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, island) ->
+                Islands.setUnlockedWorlds(island, columns.getInt("unlocked_worlds"))
+        );
     }),
 
-    UPDATE_ISLANDS_WARPS_ICON(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonObject filters = JsonMethods.convertFilters(filtersArray);
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requireIsland(filters, island -> {
-            String islandWarpName = filters.get("name").getAsString();
+    UPDATE_ISLANDS_WARPS_ICON(bundle -> {
+        Bundle filters = bundle.getExtra("filters");
+        requireIsland(filters, bundle.getExtra("columns"), (columns, island) -> {
+            String islandWarpName = filters.getString("name");
             IslandWarp islandWarp = island.getWarp(islandWarpName);
 
             if (islandWarp == null)
@@ -791,225 +664,175 @@ public enum DataSyncType {
         });
     }),
 
-    UPDATE_ISLANDS_WARPS_LOCATION(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonObject filters = JsonMethods.convertFilters(filtersArray);
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requireIsland(filters, island -> {
-            String islandWarpName = filters.get("name").getAsString();
+    UPDATE_ISLANDS_WARPS_LOCATION(bundle -> {
+        Bundle filters = bundle.getExtra("filters");
+        requireIsland(filters, bundle.getExtra("columns"), (columns, island) -> {
+            String islandWarpName = filters.getString("name");
             IslandWarp islandWarp = island.getWarp(islandWarpName);
 
             if (islandWarp == null)
                 throw new RequestHandlerException("Cannot find a valid warp \"" + islandWarpName + "\"");
 
-            JsonMethods.forEach(columnsArray, value ->
-                    islandWarp.setLocation(Serializers.deserializeLocation(value.getAsString()))
-            );
+            islandWarp.setLocation(Serializers.deserializeLocation(columns.getString("location")));
         });
     }),
 
-    UPDATE_ISLANDS_WARPS_NAME(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonObject filters = JsonMethods.convertFilters(filtersArray);
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requireIsland(filters, island -> {
-            String islandWarpName = filters.get("name").getAsString();
+    UPDATE_ISLANDS_WARPS_NAME(bundle -> {
+        Bundle filters = bundle.getExtra("filters");
+        requireIsland(filters, bundle.getExtra("columns"), (columns, island) -> {
+            String islandWarpName = filters.getString("name");
             IslandWarp islandWarp = island.getWarp(islandWarpName);
 
             if (islandWarp == null)
                 throw new RequestHandlerException("Cannot find a valid warp \"" + islandWarpName + "\"");
 
-            JsonMethods.forEach(columnsArray, value ->
-                    islandWarp.setName(value.getAsString())
-            );
+            islandWarp.setName(columns.getString("name"));
         });
     }),
 
-    UPDATE_ISLANDS_WARPS_PRIVATE(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonObject filters = JsonMethods.convertFilters(filtersArray);
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requireIsland(filters, island -> {
-            String islandWarpName = filters.get("name").getAsString();
+    UPDATE_ISLANDS_WARPS_PRIVATE(bundle -> {
+        Bundle filters = bundle.getExtra("filters");
+        requireIsland(filters, bundle.getExtra("columns"), (columns, island) -> {
+            String islandWarpName = filters.getString("name");
             IslandWarp islandWarp = island.getWarp(islandWarpName);
 
             if (islandWarp == null)
                 throw new RequestHandlerException("Cannot find a valid warp \"" + islandWarpName + "\"");
 
-            JsonMethods.forEach(columnsArray, value ->
-                    islandWarp.setPrivateFlag(value.getAsBoolean())
-            );
+            islandWarp.setPrivateFlag(columns.getBoolean("private"));
         });
     }),
 
-    UPDATE_ISLANDS_WARP_CATEGORIES_ICON(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonObject filters = JsonMethods.convertFilters(filtersArray);
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requireIsland(filters, island -> {
-            String warpCategoryName = filters.get("name").getAsString();
+    UPDATE_ISLANDS_WARP_CATEGORIES_ICON(bundle -> {
+        Bundle filters = bundle.getExtra("filters");
+        requireIsland(filters, bundle.getExtra("columns"), (columns, island) -> {
+            String warpCategoryName = filters.getString("name");
             WarpCategory warpCategory = island.getWarpCategory(warpCategoryName);
 
             if (warpCategory == null)
-                throw new RequestHandlerException("Invalid warp category update with name \"" + filters.get("name").getAsString() + "\"");
+                throw new RequestHandlerException("Invalid warp category update with name \"" + warpCategoryName + "\"");
 
             // TODO
         });
     }),
 
-    UPDATE_ISLANDS_WARP_CATEGORIES_NAME(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonObject filters = JsonMethods.convertFilters(filtersArray);
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requireIsland(filters, island -> {
-            String warpCategoryName = filters.get("name").getAsString();
+    UPDATE_ISLANDS_WARP_CATEGORIES_NAME(bundle -> {
+        Bundle filters = bundle.getExtra("filters");
+        requireIsland(filters, bundle.getExtra("columns"), (columns, island) -> {
+            String warpCategoryName = filters.getString("name");
             WarpCategory warpCategory = island.getWarpCategory(warpCategoryName);
 
             if (warpCategory == null)
-                throw new RequestHandlerException("Invalid warp category update with name \"" + filters.get("name").getAsString() + "\"");
+                throw new RequestHandlerException("Invalid warp category update with name \"" + warpCategoryName + "\"");
 
-            JsonMethods.forEach(columnsArray, value ->
-                    warpCategory.getIsland().renameCategory(warpCategory, value.getAsString())
-            );
+            warpCategory.getIsland().renameCategory(warpCategory, columns.getString("name"));
         });
     }),
 
-    UPDATE_ISLANDS_WARP_CATEGORIES_SLOT(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonObject filters = JsonMethods.convertFilters(filtersArray);
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requireIsland(filters, island -> {
-            String warpCategoryName = filters.get("name").getAsString();
+    UPDATE_ISLANDS_WARP_CATEGORIES_SLOT(bundle -> {
+        Bundle filters = bundle.getExtra("filters");
+        requireIsland(filters, bundle.getExtra("columns"), (columns, island) -> {
+            String warpCategoryName = filters.getString("name");
             WarpCategory warpCategory = island.getWarpCategory(warpCategoryName);
 
             if (warpCategory == null)
-                throw new RequestHandlerException("Invalid warp category update with name \"" + filters.get("name").getAsString() + "\"");
+                throw new RequestHandlerException("Invalid warp category update with name \"" + warpCategoryName + "\"");
 
-            JsonMethods.forEach(columnsArray, value ->
-                    warpCategory.setSlot(value.getAsInt())
-            );
+            warpCategory.setSlot(columns.getInt("slot"));
         });
     }),
 
-    UPDATE_ISLANDS_WORTH_BONUS(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requireIsland(JsonMethods.convertFilters(filtersArray), island -> JsonMethods.forEach(columnsArray, value ->
-                island.setBonusWorth(new BigDecimal(value.getAsString()))
-        ));
+    UPDATE_ISLANDS_WORTH_BONUS(bundle -> {
+        requireIsland(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, island) ->
+                island.setBonusWorth(columns.getBigDecimal("worth_bonus"))
+        );
     }),
 
-    UPDATE_PLAYERS_ADMIN_BYPASS(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requirePlayer(JsonMethods.convertFilters(filtersArray), superiorPlayer -> JsonMethods.forEach(columnsArray, value ->
-                superiorPlayer.setBypassMode(value.getAsBoolean())
-        ));
+    UPDATE_PLAYERS_ADMIN_BYPASS(bundle -> {
+        requirePlayer(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, superiorPlayer) ->
+                superiorPlayer.setBypassMode(columns.getBoolean("admin_bypass"))
+        );
     }),
 
-    UPDATE_PLAYERS_ADMIN_SPY(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requirePlayer(JsonMethods.convertFilters(filtersArray), superiorPlayer -> JsonMethods.forEach(columnsArray, value ->
-                superiorPlayer.setAdminSpy(value.getAsBoolean())
-        ));
+    UPDATE_PLAYERS_ADMIN_SPY(bundle -> {
+        requirePlayer(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, superiorPlayer) ->
+                superiorPlayer.setAdminSpy(columns.getBoolean("admin_spy"))
+
+        );
     }),
 
-    UPDATE_PLAYERS_BLOCKS_STACKER(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requirePlayer(JsonMethods.convertFilters(filtersArray), superiorPlayer -> JsonMethods.forEach(columnsArray, value ->
-                superiorPlayer.setBlocksStacker(value.getAsBoolean())
-        ));
+    UPDATE_PLAYERS_BLOCKS_STACKER(bundle -> {
+        requirePlayer(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, superiorPlayer) ->
+                superiorPlayer.setBlocksStacker(columns.getBoolean("blocks_stacker"))
+        );
     }),
 
-    UPDATE_PLAYERS_CUSTOM_DATA_DATA(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requirePlayer(JsonMethods.convertFilters(filtersArray), superiorPlayer -> JsonMethods.forEach(columnsArray, value -> {
-            byte[] data = value.getAsString().getBytes(StandardCharsets.UTF_8);
+    UPDATE_PLAYERS_CUSTOM_DATA_DATA(bundle -> {
+        requirePlayer(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, superiorPlayer) -> {
+            byte[] data = columns.getString("data").getBytes(StandardCharsets.UTF_8);
             superiorPlayer.getPersistentDataContainer().load(data);
-        }));
+        });
     }),
 
-    UPDATE_PLAYERS_DISBANDS(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requirePlayer(JsonMethods.convertFilters(filtersArray), superiorPlayer -> JsonMethods.forEach(columnsArray, value ->
-                superiorPlayer.setDisbands(value.getAsInt())));
+    UPDATE_PLAYERS_DISBANDS(bundle -> {
+        requirePlayer(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, superiorPlayer) ->
+                superiorPlayer.setDisbands(columns.getInt("disbands"))
+        );
     }),
 
-    UPDATE_PLAYERS_LAST_TIME_UPDATED(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requirePlayer(JsonMethods.convertFilters(filtersArray), superiorPlayer -> JsonMethods.forEach(columnsArray, value ->
-                superiorPlayer.setLastTimeStatus(value.getAsLong())
-        ));
+    UPDATE_PLAYERS_LAST_TIME_UPDATED(bundle -> {
+        requirePlayer(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, superiorPlayer) ->
+                superiorPlayer.setLastTimeStatus(columns.getLong("last_time_updated"))
+        );
     }),
 
-    UPDATE_PLAYERS_LAST_USED_NAME(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requirePlayer(JsonMethods.convertFilters(filtersArray), superiorPlayer -> JsonMethods.forEach(columnsArray, value ->
-                superiorPlayer.setName(value.getAsString())
-        ));
+    UPDATE_PLAYERS_LAST_USED_NAME(bundle -> {
+        requirePlayer(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, superiorPlayer) ->
+                superiorPlayer.setName(columns.getString("last_used_name"))
+        );
     }),
 
-    UPDATE_PLAYERS_LAST_USED_SKIN(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requirePlayer(JsonMethods.convertFilters(filtersArray), superiorPlayer -> JsonMethods.forEach(columnsArray, value ->
-                superiorPlayer.setTextureValue(value.getAsString())
-        ));
+    UPDATE_PLAYERS_LAST_USED_SKIN(bundle -> {
+        requirePlayer(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, superiorPlayer) ->
+                superiorPlayer.setTextureValue(columns.getString("last_used_skin"))
+        );
     }),
 
-    UPDATE_PLAYERS_SETTINGS_BORDER_COLOR(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requirePlayer(JsonMethods.convertFilters(filtersArray), superiorPlayer -> JsonMethods.forEach(columnsArray, value ->
-                superiorPlayer.setBorderColor(BorderColor.valueOf(value.getAsString()))
-        ));
+    UPDATE_PLAYERS_SETTINGS_BORDER_COLOR(bundle -> {
+        requirePlayer(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, superiorPlayer) ->
+                superiorPlayer.setBorderColor(columns.getEnum("border_color", BorderColor.class))
+        );
     }),
 
-    UPDATE_PLAYERS_SETTINGS_ISLAND_FLY(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requirePlayer(JsonMethods.convertFilters(filtersArray), superiorPlayer -> JsonMethods.forEach(columnsArray, value ->
-                superiorPlayer.setIslandFly(value.getAsBoolean())
-        ));
+    UPDATE_PLAYERS_SETTINGS_ISLAND_FLY(bundle -> {
+        requirePlayer(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, superiorPlayer) ->
+                superiorPlayer.setIslandFly(columns.getBoolean("island_fly"))
+        );
     }),
 
-    UPDATE_PLAYERS_SETTINGS_LANGUAGE(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requirePlayer(JsonMethods.convertFilters(filtersArray), superiorPlayer -> JsonMethods.forEach(columnsArray, value -> {
-            String[] language = value.getAsString().split("-");
+    UPDATE_PLAYERS_SETTINGS_LANGUAGE(bundle -> {
+        requirePlayer(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, superiorPlayer) -> {
+            String[] language = columns.getString("language").split("-");
             superiorPlayer.setUserLocale(new Locale(language[0], language[1]));
-        }));
+        });
     }),
 
-    UPDATE_PLAYERS_SETTINGS_TOGGLED_BORDER(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requirePlayer(JsonMethods.convertFilters(filtersArray), superiorPlayer -> JsonMethods.forEach(columnsArray, value ->
-                superiorPlayer.setWorldBorderEnabled(value.getAsBoolean())
-        ));
+    UPDATE_PLAYERS_SETTINGS_TOGGLED_BORDER(bundle -> {
+        requirePlayer(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, superiorPlayer) ->
+                superiorPlayer.setWorldBorderEnabled(columns.getBoolean("toggled_border"))
+        );
     }),
 
-    UPDATE_PLAYERS_SETTINGS_TOGGLED_PANEL(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requirePlayer(JsonMethods.convertFilters(filtersArray), superiorPlayer -> JsonMethods.forEach(columnsArray, value ->
-                superiorPlayer.setToggledPanel(value.getAsBoolean())
-        ));
+    UPDATE_PLAYERS_SETTINGS_TOGGLED_PANEL(bundle -> {
+        requirePlayer(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, superiorPlayer) ->
+                superiorPlayer.setToggledPanel(columns.getBoolean("toggled_panel"))
+        );
     }),
 
-    UPDATE_PLAYERS_TEAM_CHAT(dataObject -> {
-        JsonArray filtersArray = dataObject.get("filters").getAsJsonArray();
-        JsonArray columnsArray = dataObject.get("columns").getAsJsonArray();
-        requirePlayer(JsonMethods.convertFilters(filtersArray), superiorPlayer -> JsonMethods.forEach(columnsArray, value ->
-                superiorPlayer.setTeamChat(value.getAsBoolean())
-        ));
+    UPDATE_PLAYERS_TEAM_CHAT(bundle -> {
+        requirePlayer(bundle.getExtra("filters"), bundle.getExtra("columns"), (columns, superiorPlayer) ->
+                superiorPlayer.setTeamChat(columns.getBoolean("team_chat"))
+        );
     });
 
     private static final SSBProxyBridgeModule module = SSBProxyBridgeModule.getModule();
@@ -1030,19 +853,19 @@ public enum DataSyncType {
         return requestHandler;
     }
 
-    public boolean onSent(JsonObject data) {
+    public boolean onSent(Bundle bundle) {
         long sequenceNumber = System.currentTimeMillis();
-        data.addProperty("sender", module.getSettings().serverName);
-        data.addProperty("channel", module.getSettings().messagingServiceDataChannelName);
-        data.addProperty("sequenceNumber", sequenceNumber);
+        bundle.setSender(module.getSettings().serverName);
+        bundle.setChannelName(module.getSettings().messagingServiceDataChannelName);
+        bundle.setLong("sequenceNumber", sequenceNumber);
         Long oldSequenceNumber = SEQUENCE_NUMBERS.put(this, sequenceNumber);
         // We make sure the old sequence number is lower than the current one
         // Because we use times for sequence number this situation should never occur, however better being safe.
         return oldSequenceNumber == null || oldSequenceNumber < sequenceNumber;
     }
 
-    public boolean onReceive(JsonObject data) {
-        long sequenceNumber = data.get("sequenceNumber").getAsLong();
+    public boolean onReceive(Bundle bundle) {
+        long sequenceNumber = bundle.getLong("sequenceNumber");
 
         if (sequenceNumber <= SEQUENCE_NUMBERS.getOrDefault(this, 0L)) {
             System.out.println("Seq Number of packet: " + sequenceNumber);
@@ -1053,33 +876,67 @@ public enum DataSyncType {
         return true;
     }
 
-    private static void requireIsland(JsonObject data, RequestHandlerConsumer<Island> consumer) throws RequestHandlerException {
-        Island island = JsonMethods.getIsland(data);
+    private static void requireIsland(Bundle filters, Bundle columns, RequestHandlerConsumer<Island> consumer) throws RequestHandlerException {
+        Island island = getIslandFromFilters(filters);
 
         if (island == null)
             throw new RequestHandlerException("Cannot find a valid uuid of an island.");
 
-        DatabaseBridgeAccessor.runWithoutDataSave(island, (RequestHandlerAction) () -> consumer.accept(island));
+        DatabaseBridgeAccessor.runWithoutDataSave(island, (RequestHandlerAction) () -> consumer.accept(columns, island));
     }
 
-    private static void optionalIsland(JsonObject data, RequestHandlerConsumer<Island> consumer) throws RequestHandlerException {
-        Island island = JsonMethods.getIsland(data);
+    private static void requireIsland(Bundle filters, RequestHandlerConsumer<Island> consumer) throws RequestHandlerException {
+        requireIsland(filters, filters, consumer);
+    }
+
+    private static void optionalIsland(Bundle filters, RequestHandlerConsumer<Island> consumer) throws RequestHandlerException {
+        Island island = getIslandFromFilters(filters);
         if (island != null) {
-            DatabaseBridgeAccessor.runWithoutDataSave(island, (RequestHandlerAction) () -> consumer.accept(island));
+            DatabaseBridgeAccessor.runWithoutDataSave(island, (RequestHandlerAction) () -> consumer.accept(filters, island));
         }
     }
 
-    private static void requirePlayer(JsonObject data, RequestHandlerConsumer<SuperiorPlayer> consumer) throws RequestHandlerException {
-        SuperiorPlayer superiorPlayer = JsonMethods.getSuperiorPlayer(data);
+    @Nullable
+    private static Island getIslandFromFilters(Bundle filters) {
+        if (filters.contains("uuid")) {
+            return SuperiorSkyblockAPI.getIslandByUUID(filters.getUUID("uuid"));
+        } else if (filters.contains("island")) {
+            return SuperiorSkyblockAPI.getIslandByUUID(filters.getUUID("island"));
+        }
+
+        return null;
+    }
+
+    private static void requirePlayer(Bundle filters, Bundle columns, RequestHandlerConsumer<SuperiorPlayer> consumer) throws RequestHandlerException {
+        SuperiorPlayer superiorPlayer = getPlayerFromFilters(filters);
 
         if (superiorPlayer == null)
             throw new RequestHandlerException("Cannot find a valid uuid of a player.");
 
-        DatabaseBridgeAccessor.runWithoutDataSave(superiorPlayer, (RequestHandlerAction) () -> consumer.accept(superiorPlayer));
+        DatabaseBridgeAccessor.runWithoutDataSave(superiorPlayer, (RequestHandlerAction) () -> consumer.accept(columns, superiorPlayer));
+    }
+
+    private static void requirePlayer(Bundle filters, RequestHandlerConsumer<SuperiorPlayer> consumer) throws RequestHandlerException {
+        requirePlayer(filters, filters, consumer);
+    }
+
+    @Nullable
+    private static SuperiorPlayer getPlayerFromFilters(Bundle filters) {
+        UUID playerUUID;
+
+        if (filters.contains("uuid")) {
+            playerUUID = filters.getUUID("uuid");
+        } else if (filters.contains("player")) {
+            playerUUID = filters.getUUID("player");
+        } else {
+            return null;
+        }
+
+        return SuperiorSkyblockAPI.getPlayers().getPlayersContainer().getSuperiorPlayer(playerUUID);
     }
 
     private static boolean islandCreationCallback(IslandCreationAlgorithm.IslandCreationResult result,
-                                                  JsonObject dataObject, JsonObject columns, String center) {
+                                                  String sender, String center) {
         // We make sure the location the island was generated is the same as the center from the request.
 
         String newIslandLocation = result.getIslandLocation().getWorld().getName() + "," +
@@ -1095,7 +952,7 @@ public enum DataSyncType {
             return false;
         }
 
-        RemoteIsland remoteIsland = new RemoteIsland(dataObject.get("sender").getAsString(), result.getIsland());
+        RemoteIsland remoteIsland = new RemoteIsland(sender, result.getIsland());
 
         SuperiorSkyblockAPI.getGrid().getIslandsContainer().addIsland(remoteIsland);
 

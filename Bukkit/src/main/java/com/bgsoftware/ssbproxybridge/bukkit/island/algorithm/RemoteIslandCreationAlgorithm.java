@@ -3,13 +3,13 @@ package com.bgsoftware.ssbproxybridge.bukkit.island.algorithm;
 import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
 import com.bgsoftware.ssbproxybridge.bukkit.action.ServerActions;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.Text;
+import com.bgsoftware.ssbproxybridge.core.bundle.Bundle;
 import com.bgsoftware.superiorskyblock.api.island.Island;
 import com.bgsoftware.superiorskyblock.api.schematic.Schematic;
 import com.bgsoftware.superiorskyblock.api.world.algorithm.DelegateIslandCreationAlgorithm;
 import com.bgsoftware.superiorskyblock.api.world.algorithm.IslandCreationAlgorithm;
 import com.bgsoftware.superiorskyblock.api.wrappers.BlockPosition;
 import com.bgsoftware.superiorskyblock.api.wrappers.SuperiorPlayer;
-import com.google.gson.JsonObject;
 import org.bukkit.entity.Player;
 
 import java.util.UUID;
@@ -47,14 +47,14 @@ public class RemoteIslandCreationAlgorithm extends DelegateIslandCreationAlgorit
             this.overriddenArguments = null;
             original.createIsland(arguments.islandUUID, arguments.islandLeader,
                     arguments.blockPosition, arguments.name, arguments.schematic).whenComplete(((islandCreationResult, error) -> {
-                JsonObject response = new JsonObject();
-                response.addProperty("id", arguments.responseId);
+                Bundle response = new Bundle();
+                response.setInt("id", arguments.responseId);
 
                 if (error != null) {
-                    response.addProperty("error", error.getMessage());
+                    response.setString("error", error.getMessage());
                     result.completeExceptionally(error);
                 } else {
-                    response.addProperty("result", true);
+                    response.setBoolean("result", true);
                     result.complete(islandCreationResult);
                 }
 
@@ -85,15 +85,15 @@ public class RemoteIslandCreationAlgorithm extends DelegateIslandCreationAlgorit
                     } else {
                         targetServer = module.getSettings().managerFallbackServer;
                     }
-                } else if (response.has("error")) {
+                } else if (response.contains("error")) {
                     // We want to delete the island from the manager.
                     module.getManager().deleteIsland(builder.getUniqueId());
 
-                    result.completeExceptionally(new RuntimeException("Received error from manager: " + response.get("error").getAsString()));
+                    result.completeExceptionally(new RuntimeException("Received error from manager: " + response.getString("error")));
 
                     return;
                 } else {
-                    targetServer = response.get("result").getAsString();
+                    targetServer = response.getString("result");
                 }
 
                 // Create the island in targetServer.

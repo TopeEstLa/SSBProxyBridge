@@ -1,38 +1,33 @@
 package com.bgsoftware.ssbproxybridge.bukkit.action;
 
 import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
-import com.bgsoftware.ssbproxybridge.bukkit.connector.JsonConnectorListener;
+import com.bgsoftware.ssbproxybridge.bukkit.connector.BaseConnectorListener;
+import com.bgsoftware.ssbproxybridge.core.bundle.Bundle;
 import com.bgsoftware.ssbproxybridge.core.requests.RequestHandlerException;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
 
-import java.util.Locale;
+import java.util.NoSuchElementException;
 
-public class ActionsListener extends JsonConnectorListener {
+public class ActionsListener extends BaseConnectorListener {
 
     public ActionsListener(SSBProxyBridgeModule module) {
         super(module, module.getSettings().messagingServiceActionsChannelName);
     }
 
     @Override
-    protected void processRequest(JsonObject dataObject) {
-        JsonElement actionElement = dataObject.get("action");
+    protected void processRequest(Bundle bundle) {
+        ActionType actionType;
 
-        if (!(actionElement instanceof JsonPrimitive)) {
-            handleFailureRequest(dataObject, new RequestHandlerException("Missing field \"action\""));
+        try {
+            actionType = bundle.getEnum("action", ActionType.class);
+        } catch (NoSuchElementException error) {
+            handleFailureRequest(bundle, new RequestHandlerException("Missing field \"action\""));
             return;
         }
 
-        String action = actionElement.getAsString();
-
         try {
-            ActionType actionType = ActionType.valueOf(action.toUpperCase(Locale.ENGLISH));
-            actionType.getHandler().handle(dataObject);
-        } catch (IllegalArgumentException error) {
-            handleRequestsFallback(dataObject);
+            actionType.getHandler().handle(bundle);
         } catch (Throwable error) {
-            handleFailureRequest(dataObject, error);
+            handleFailureRequest(bundle, error);
         }
     }
 

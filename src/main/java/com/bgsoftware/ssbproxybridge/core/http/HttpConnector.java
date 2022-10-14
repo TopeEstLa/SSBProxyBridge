@@ -1,11 +1,11 @@
 package com.bgsoftware.ssbproxybridge.core.http;
 
 import com.bgsoftware.ssbproxybridge.core.Singleton;
+import com.bgsoftware.ssbproxybridge.core.bundle.Bundle;
 import com.bgsoftware.ssbproxybridge.core.connector.ConnectionFailureException;
 import com.bgsoftware.ssbproxybridge.core.connector.ConnectorAbstract;
+import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -20,8 +20,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 public class HttpConnector extends ConnectorAbstract<HttpConnectionArguments> {
-
-    private static final Gson gson = new Gson();
 
     private static final ExecutorService HTTP_CONNECTOR_EXECUTOR = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder()
             .setNameFormat("SSBProxyBridge Http Connection").build());
@@ -67,16 +65,16 @@ public class HttpConnector extends ConnectorAbstract<HttpConnectionArguments> {
     }
 
     @Override
-    public void sendData(String channel, String argsSerialized, Consumer<Throwable> errorCallback) {
+    public void sendBundle(Bundle bundle, Consumer<Throwable> errorCallback) {
+        Preconditions.checkArgument(bundle.getChannelName() != null, "Bundle must have a channel name");
+
         HTTP_CONNECTOR_EXECUTOR.execute(() -> {
             try {
-                JsonObject args = gson.fromJson(argsSerialized, JsonObject.class);
+                String method = bundle.getString("method");
+                String route = bundle.getString("route");
+                String server = bundle.getString("server");
 
-                String method = args.get("method").getAsString();
-                String route = args.get("route").getAsString();
-                String server = args.get("server").getAsString();
-
-                long requestId = args.get("id").getAsLong();
+                long requestId = bundle.getLong("id");
 
                 URL urlWithParams = new URL(this.url + (route.isEmpty() || route.endsWith("/") ? route : route + "/"));
 
@@ -88,8 +86,8 @@ public class HttpConnector extends ConnectorAbstract<HttpConnectionArguments> {
                 connection.setRequestProperty("X-Server", server);
                 connection.setInstanceFollowRedirects(true);
 
-                if (args.has("body")) {
-                    String body = args.get("body").getAsString();
+                if (bundle.contains("body")) {
+                    String body = bundle.getString("body");
                     connection.setDoOutput(true);
 
                     try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(connection.getOutputStream()))) {
@@ -109,7 +107,7 @@ public class HttpConnector extends ConnectorAbstract<HttpConnectionArguments> {
                     }
                 }
 
-                notifyListeners(channel, body.toString());
+                notifyListeners(new Bundle(bundle.getChannelName(), body.toString()).toImmutable());
             } catch (Throwable error) {
                 errorCallback.accept(error);
             }

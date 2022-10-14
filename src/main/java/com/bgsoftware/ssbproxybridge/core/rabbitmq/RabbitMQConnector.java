@@ -1,8 +1,11 @@
 package com.bgsoftware.ssbproxybridge.core.rabbitmq;
 
 import com.bgsoftware.ssbproxybridge.core.Singleton;
+import com.bgsoftware.ssbproxybridge.core.bundle.Bundle;
+import com.bgsoftware.ssbproxybridge.core.bundle.BundleSerializer;
 import com.bgsoftware.ssbproxybridge.core.connector.ConnectionFailureException;
 import com.bgsoftware.ssbproxybridge.core.connector.IConnector;
+import com.google.common.base.Preconditions;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -84,7 +87,7 @@ public class RabbitMQConnector implements IConnector<RabbitMQConnectionArguments
             this.channel.queueBindNoWait(queueName, channel, "", null);
             this.channel.basicConsume(queueName, true, (consumerTag, delivery) -> {
                 String data = new String(delivery.getBody(), StandardCharsets.UTF_8);
-                listener.onReceive(data);
+                listener.onReceive(new Bundle(channel, data).toImmutable());
             }, cancelCallback -> {
             });
         } catch (IOException error) {
@@ -119,9 +122,12 @@ public class RabbitMQConnector implements IConnector<RabbitMQConnectionArguments
     }
 
     @Override
-    public void sendData(String channel, String data, Consumer<Throwable> errorCallback) {
+    public void sendBundle(Bundle bundle, Consumer<Throwable> errorCallback) {
+        Preconditions.checkArgument(bundle.getChannelName() != null, "Bundle must have a channel name");
+
         try {
-            this.channel.basicPublish(channel, "", null, data.getBytes(StandardCharsets.UTF_8));
+            this.channel.basicPublish(bundle.getChannelName(), "", null,
+                    BundleSerializer.serializeBundle(bundle).getBytes(StandardCharsets.UTF_8));
         } catch (IOException error) {
             errorCallback.accept(error);
         }

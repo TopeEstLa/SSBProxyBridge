@@ -1,43 +1,37 @@
 package com.bgsoftware.ssbproxybridge.bukkit.data;
 
 import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
-import com.bgsoftware.ssbproxybridge.bukkit.connector.JsonConnectorListener;
+import com.bgsoftware.ssbproxybridge.bukkit.connector.BaseConnectorListener;
+import com.bgsoftware.ssbproxybridge.core.bundle.Bundle;
 import com.bgsoftware.ssbproxybridge.core.requests.RequestHandlerException;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
 
-import java.util.Locale;
+import java.util.NoSuchElementException;
 
-public class DataSyncListener extends JsonConnectorListener {
+public class DataSyncListener extends BaseConnectorListener {
 
     public DataSyncListener(SSBProxyBridgeModule module) {
         super(module, module.getSettings().messagingServiceDataChannelName);
     }
 
     @Override
-    protected void processRequest(JsonObject dataObject) {
-        JsonElement typeElement = dataObject.get("type");
+    protected void processRequest(Bundle bundle) {
+        DataSyncType dataSyncType;
 
-        if (!(typeElement instanceof JsonPrimitive)) {
-            handleFailureRequest(dataObject, new RequestHandlerException("Missing field \"type\""));
+        try {
+            dataSyncType = bundle.getEnum("type", DataSyncType.class);
+        } catch (NoSuchElementException error) {
+            handleFailureRequest(bundle, new RequestHandlerException("Missing field \"type\""));
             return;
         }
 
-        String type = typeElement.getAsString();
-
         try {
-            DataSyncType dataSyncType = DataSyncType.valueOf(type.toUpperCase(Locale.ENGLISH));
-
-            if (!dataSyncType.onReceive(dataObject))
+            if (!dataSyncType.onReceive(bundle))
                 throw new IllegalStateException("Cannot receive the packet " + dataSyncType);
 
             if (dataSyncType.getHandler() != null)
-                dataSyncType.getHandler().handle(dataObject);
-        } catch (IllegalArgumentException error) {
-            handleRequestsFallback(dataObject);
+                dataSyncType.getHandler().handle(bundle);
         } catch (Throwable error) {
-            handleFailureRequest(dataObject, error);
+            handleFailureRequest(bundle, error);
         }
     }
 

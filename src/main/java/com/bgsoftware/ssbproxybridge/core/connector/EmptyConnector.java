@@ -1,5 +1,7 @@
 package com.bgsoftware.ssbproxybridge.core.connector;
 
+import com.bgsoftware.ssbproxybridge.core.bundle.Bundle;
+
 import java.util.function.Consumer;
 
 public class EmptyConnector implements IConnector<EmptyConnectionArguments> {
@@ -41,11 +43,11 @@ public class EmptyConnector implements IConnector<EmptyConnectionArguments> {
 
     @Override
     public void listenOnce(String channel, IOneTimeListener listener) {
-        listener.onReceive("");
+        listener.onReceive(Bundle.EMPTY);
     }
 
     @Override
-    public void sendData(String channel, String data, Consumer<Throwable> errorCallback) {
+    public void sendBundle(Bundle bundle, Consumer<Throwable> errorCallback) {
         // Do nothing.
     }
 

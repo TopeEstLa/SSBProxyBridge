@@ -1,8 +1,11 @@
 package com.bgsoftware.ssbproxybridge.core.redis;
 
 import com.bgsoftware.ssbproxybridge.core.Singleton;
+import com.bgsoftware.ssbproxybridge.core.bundle.Bundle;
+import com.bgsoftware.ssbproxybridge.core.bundle.BundleSerializer;
 import com.bgsoftware.ssbproxybridge.core.connector.ConnectionFailureException;
 import com.bgsoftware.ssbproxybridge.core.connector.ConnectorAbstract;
+import com.google.common.base.Preconditions;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
 import io.lettuce.core.pubsub.RedisPubSubAdapter;
@@ -62,7 +65,7 @@ public class RedisConnector extends ConnectorAbstract<RedisConnectionArguments> 
         this.subConnection.addListener(new RedisPubSubAdapter<String, String>() {
             @Override
             public void message(String channel, String data) {
-                notifyListeners(channel, data);
+                notifyListeners(new Bundle(channel, data).toImmutable());
             }
         });
 
@@ -105,11 +108,13 @@ public class RedisConnector extends ConnectorAbstract<RedisConnectionArguments> 
     }
 
     @Override
-    public void sendData(String channel, String data, Consumer<Throwable> errorCallback) {
+    public void sendBundle(Bundle bundle, Consumer<Throwable> errorCallback) {
+        Preconditions.checkArgument(bundle.getChannelName() != null, "Bundle must have a channel name");
+
         if (!pubConnection.isOpen()) {
             errorCallback.accept(new ConnectionFailureException("Cannot connect to redis."));
         } else {
-            pubCommands.publish(channel, data);
+            pubCommands.publish(bundle.getChannelName(), BundleSerializer.serializeBundle(bundle));
         }
     }
 

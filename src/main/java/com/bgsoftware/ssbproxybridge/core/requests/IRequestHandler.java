@@ -1,9 +1,9 @@
 package com.bgsoftware.ssbproxybridge.core.requests;
 
-import com.google.gson.JsonObject;
+import com.bgsoftware.ssbproxybridge.core.bundle.Bundle;
 
 public interface IRequestHandler {
 
-    void handle(JsonObject data) throws RequestHandlerException;
+    void handle(Bundle bundle) throws RequestHandlerException;
 
 }
