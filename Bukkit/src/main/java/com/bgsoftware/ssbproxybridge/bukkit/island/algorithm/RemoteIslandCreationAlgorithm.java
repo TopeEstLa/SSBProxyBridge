@@ -55,8 +55,6 @@ public class RemoteIslandCreationAlgorithm extends DelegateIslandCreationAlgorit
                     result.completeExceptionally(error);
                 } else {
                     response.addProperty("result", true);
-                    System.out.println("RawWorth1: " + islandCreationResult.getIsland().getRawWorth());
-                    System.out.println("RawLevel1: " + islandCreationResult.getIsland().getRawLevel());
                     result.complete(islandCreationResult);
                 }
 
