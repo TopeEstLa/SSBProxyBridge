@@ -358,7 +358,7 @@ public enum DataSyncType {
         JsonObject columns = JsonMethods.convertColumns(columnsArray);
         requireIsland(columns, island -> {
             IslandFlag islandFlag = IslandFlag.getByName(columns.get("name").getAsString());
-            if (columns.get("status").getAsBoolean()) {
+            if (columns.get("status").getAsInt() == 1) {
                 island.enableSettings(islandFlag);
             } else {
                 island.disableSettings(islandFlag);
