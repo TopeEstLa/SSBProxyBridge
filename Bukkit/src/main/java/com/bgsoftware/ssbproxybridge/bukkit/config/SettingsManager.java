@@ -27,6 +27,7 @@ public class SettingsManager {
     public final String messagingServiceRabbitMQPassword;
 
     public final String managerType;
+    public final String managerFallbackServer;
     public final String managerRestUrl;
     public final String managerRestSecret;
 
@@ -63,6 +64,7 @@ public class SettingsManager {
         this.messagingServiceRabbitMQPassword = config.getString("messaging-service.rabbitmq.password", "guest");
 
         this.managerType = config.getString("manager.type", "rest");
+        this.managerFallbackServer = config.getString("manager.fallback-server", "");
         this.managerRestUrl = config.getString("manager.rest.url", "http://localhost:8080/");
         this.managerRestSecret = config.getString("manager.rest.secret", "");
     }

@@ -57,6 +57,13 @@ manager:
   # The type of service to use as a manager.
   # This type can be Rest or Proxy.
   type: 'rest'
+  # The fallback server used to create islands in when the manager is down.
+  # This means that players that create islands while the manager is down
+  # will be forwarded to this server and will stay playing in it until they
+  # disband their island.
+  # You can disable this by setting it to '' (in this case, players will have
+  # a message sent to them stating that they cannot create an island)
+  fallback-server: ''
 
   # Connection settings for the manager Rest-API
   rest:

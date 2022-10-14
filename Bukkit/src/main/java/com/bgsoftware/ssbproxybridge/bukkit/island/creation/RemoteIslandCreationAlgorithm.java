@@ -2,6 +2,7 @@ package com.bgsoftware.ssbproxybridge.bukkit.island.creation;
 
 import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
 import com.bgsoftware.ssbproxybridge.bukkit.action.ServerActions;
+import com.bgsoftware.ssbproxybridge.bukkit.utils.Text;
 import com.bgsoftware.superiorskyblock.api.island.Island;
 import com.bgsoftware.superiorskyblock.api.schematic.Schematic;
 import com.bgsoftware.superiorskyblock.api.world.algorithm.DelegateIslandCreationAlgorithm;
@@ -61,41 +62,51 @@ public class RemoteIslandCreationAlgorithm extends DelegateIslandCreationAlgorit
             }));
         } else {
             module.getManager().getServerForNextIsland(builder.getUniqueId()).whenComplete((response, error) -> {
+                String targetServer;
+
                 if (error != null) {
-                    logger.warning("Cannot send warp command due to an unexpected error:");
+                    logger.warning("Cannot send create-island command due to an unexpected error:");
                     error.printStackTrace();
 
-                    Player player = builder.getOwner().asPlayer();
+                    if (Text.isBlank(module.getSettings().managerFallbackServer)) {
+                        Player player = builder.getOwner().asPlayer();
 
-                    // TODO: SEND ACTUAL MESSAGE
-                    if (player != null) {
-                        player.sendMessage("Cannot create an island for you now, try again later.");
+                        // TODO: SEND ACTUAL MESSAGE
+                        if (player != null) {
+                            player.sendMessage("Cannot create an island for you now, try again later.");
+                        }
+
+                        result.completeExceptionally(error);
+
+                        return;
+                    } else {
+                        targetServer = module.getSettings().managerFallbackServer;
                     }
-
-                    result.completeExceptionally(error);
                 } else if (response.has("error")) {
                     result.completeExceptionally(new RuntimeException("Received error from manager: " + response.get("error").getAsString()));
+                    return;
                 } else {
-                    String targetServer = response.get("result").getAsString();
+                    targetServer = response.get("result").getAsString();
+                }
 
-                    if (targetServer.equals(module.getSettings().serverName)) {
-                        original.createIsland(builder, lastIsland).whenComplete((originalResult, originalError) -> {
-                            if (originalError != null)
-                                result.completeExceptionally(originalError);
-                            else
-                                result.complete(originalResult);
-                        });
-                    } else {
-                        // Create island on another server.
-                        ServerActions.createIsland(targetServer, builder.getUniqueId(),
-                                builder.getOwner(), lastIsland, builder.getName(), builder.getScehmaticName()).whenComplete((creationResult, creationError) -> {
-                            if (creationError != null)
-                                result.completeExceptionally(creationError);
-                            else
-                                result.complete(creationResult);
-                        });
-                    }
+                // Create the island in targetServer.
 
+                if (targetServer.equals(module.getSettings().serverName)) {
+                    original.createIsland(builder, lastIsland).whenComplete((originalResult, originalError) -> {
+                        if (originalError != null)
+                            result.completeExceptionally(originalError);
+                        else
+                            result.complete(originalResult);
+                    });
+                } else {
+                    // Create island on another server.
+                    ServerActions.createIsland(targetServer, builder.getUniqueId(),
+                            builder.getOwner(), lastIsland, builder.getName(), builder.getScehmaticName()).whenComplete((creationResult, creationError) -> {
+                        if (creationError != null)
+                            result.completeExceptionally(creationError);
+                        else
+                            result.complete(creationResult);
+                    });
                 }
             });
         }
