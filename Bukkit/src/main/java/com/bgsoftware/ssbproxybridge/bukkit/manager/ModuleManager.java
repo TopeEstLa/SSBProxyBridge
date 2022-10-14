@@ -69,46 +69,6 @@ public class ModuleManager {
         }
     }
 
-    private void startCommunication() {
-        if (sendHello)
-            sendHello();
-
-        if (this.keepAliveTask != null) {
-            this.keepAliveTask.cancel();
-        }
-
-        if (this.keepAlive > 0) {
-            this.keepAliveTask = BukkitExecutor.runTaskTimerAsynchronously(this::sendKeepAlive, this.keepAlive, this.keepAlive);
-        } else {
-            this.keepAliveTask = null;
-        }
-    }
-
-    private void sendKeepAlive() {
-        sendRequest(RequestType.KEEP_ALIVE, "").whenCompleteAsync((result, error) -> {
-            if (error == null) {
-                if (failedCommunication) {
-                    startCommunication();
-
-                    logger.info("Connected to the module again.");
-
-                    // We want to update the module manager with our current data.
-                    for (Island island : SuperiorSkyblockAPI.getGrid().getIslands()) {
-                        System.out.println(island);
-                        if (!(island instanceof RemoteIsland))
-                            updateIsland(island.getUniqueId());
-                    }
-
-                    failedCommunication = false;
-                }
-            } else {
-                // An error occurred while sending a keep alive.
-                logger.warning("Cannot connect to the module manager...");
-                failedCommunication = true;
-            }
-        });
-    }
-
     public boolean isLocalIsland(UUID islandUUID) {
         JsonObject response = sendRequest(RequestType.CHECK_ISLAND, islandUUID.toString()).join();
         return module.getSettings().serverName.equals(response.get("result").getAsString());
@@ -141,6 +101,45 @@ public class ModuleManager {
             error.printStackTrace();
             throw new RuntimeException("Failed to connect to the manager, aborting.", error);
         }
+    }
+
+    private void startCommunication() {
+        if (sendHello)
+            sendHello();
+
+        if (this.keepAliveTask != null) {
+            this.keepAliveTask.cancel();
+        }
+
+        if (this.keepAlive > 0) {
+            this.keepAliveTask = BukkitExecutor.runTaskTimerAsynchronously(this::sendKeepAlive, this.keepAlive, this.keepAlive);
+        } else {
+            this.keepAliveTask = null;
+        }
+
+        // We want to update the module manager with our current data.
+        for (Island island : SuperiorSkyblockAPI.getGrid().getIslands()) {
+            if (!(island instanceof RemoteIsland))
+                updateIsland(island.getUniqueId());
+        }
+    }
+
+    private void sendKeepAlive() {
+        sendRequest(RequestType.KEEP_ALIVE, "").whenCompleteAsync((result, error) -> {
+            if (error == null) {
+                if (failedCommunication) {
+                    startCommunication();
+
+                    logger.info("Connected to the module again.");
+
+                    failedCommunication = false;
+                }
+            } else {
+                // An error occurred while sending a keep alive.
+                logger.warning("Cannot connect to the module manager...");
+                failedCommunication = true;
+            }
+        });
     }
 
     private CompletableFuture<JsonObject> sendRequest(RequestType requestType, String params) {
