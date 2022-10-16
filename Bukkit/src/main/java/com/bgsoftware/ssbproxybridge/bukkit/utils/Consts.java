@@ -138,8 +138,8 @@ public interface Consts {
 
             interface BlockRate {
 
-                 String BLOCK = "block";
-                 String RATE = "rate";
+                String BLOCK = "block";
+                String RATE = "rate";
 
             }
 
@@ -256,16 +256,98 @@ public interface Consts {
 
     }
 
-    interface DataSyncRequest {
+    interface DataSync {
 
-        String INCLUDE_PLAYERS = "include_players";
+        interface DataSyncRequest {
+
+            String INCLUDE_PLAYERS = "include_players";
+
+        }
+
+        interface ForceDataSync {
+
+            String ISLANDS = "islands";
+            String PLAYERS = "players";
+
+        }
 
     }
 
-    interface ForceDataSync {
+    interface Action {
 
-        String ISLANDS = "islands";
-        String PLAYERS = "players";
+        String ACTION = "action";
+        String PLAYER = "player";
+        String RESPONSE_ID = "response-id";
+
+        interface Teleport {
+
+            String ISLAND = "island";
+            String LOCATION = "location";
+
+        }
+
+        interface CreateIsland {
+
+            String UUID = "uuid";
+            String LEADER = "leader";
+            String POSITION = "position";
+            String NAME = "name";
+            String SCHEMATIC = "schematic";
+            String WORTH_BONUS = "worth_bonus";
+            String LEVELS_BONUS = "level_bonus";
+
+            interface Response {
+
+                String ERROR = "error";
+                String RESULT = "result";
+
+            }
+
+        }
+
+        interface SendMessage {
+
+            String PLAYER = "player";
+            String CONSOLE = "console";
+            String TYPE = "type";
+            String ARGS = "args";
+
+        }
+
+        interface WarpPlayer {
+
+            String ISLAND = "island";
+            String WARP_NAME = "warp_name";
+
+        }
+
+        interface CalculateIsland {
+
+            String ISLAND = "island";
+
+            interface Response {
+
+                String ERROR = "error";
+                String RESULT = "block_counts";
+
+            }
+
+            interface BlockCount {
+
+                String BLOCK = "block";
+                String COUNT = "count";
+
+            }
+
+        }
+
+        interface SetBiome {
+
+            String ISLAND = "island";
+            String BIOME = "biome";
+            String UPDATE_BLOCKS = "update_blocks";
+
+        }
 
     }
 

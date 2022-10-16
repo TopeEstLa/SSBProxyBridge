@@ -54,6 +54,12 @@ public class Serializers {
         return new LazyWorldLocation(sections[0], x, y, z, yaw, pitch);
     }
 
+    public static Location deserializeLocation(Bundle bundle) {
+        return new LazyWorldLocation(bundle.getString("world"),
+                bundle.getDouble("x"), bundle.getDouble("y"), bundle.getDouble("z"),
+                bundle.getFloat("yaw"), bundle.getFloat("pitch"));
+    }
+
     public static Island deserializeIsland(Bundle bundle) {
         Island.Builder builder = Island.newBuilder()
                 .setUniqueId(bundle.getUUID(Consts.Island.UUID))
@@ -484,7 +490,7 @@ public class Serializers {
             bundle.setList(key, bundles);
     }
 
-    private static Bundle serializeLocation(Location location) {
+    public static Bundle serializeLocation(Location location) {
         Bundle bundle = new Bundle();
         bundle.setString("world", Objects.requireNonNull(LazyWorldLocation.getWorldName(location)));
         bundle.setDouble("x", location.getX());
@@ -493,12 +499,6 @@ public class Serializers {
         bundle.setFloat("yaw", location.getYaw());
         bundle.setFloat("pitch", location.getPitch());
         return bundle;
-    }
-
-    private static Location deserializeLocation(Bundle bundle) {
-        return new LazyWorldLocation(bundle.getString("world"),
-                bundle.getDouble("x"), bundle.getDouble("y"), bundle.getDouble("z"),
-                bundle.getFloat("yaw"), bundle.getFloat("pitch"));
     }
 
     private static <E> void serialize(Bundle bundle, String key, Collection<E> collection, Function<E, Bundle> function) {

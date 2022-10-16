@@ -1114,7 +1114,7 @@ public enum DataSyncType {
     REQUEST_DATA_SYNC() {
         @Override
         public void onReceive(Bundle bundle) throws RequestHandlerException {
-            module.sendDataSync(bundle.getSender(), bundle.contains(Consts.DataSyncRequest.INCLUDE_PLAYERS));
+            module.sendDataSync(bundle.getSender(), bundle.contains(Consts.DataSync.DataSyncRequest.INCLUDE_PLAYERS));
         }
 
         @Override
@@ -1132,7 +1132,7 @@ public enum DataSyncType {
     FORCE_DATA_SYNC() {
         @Override
         public void onReceive(Bundle bundle) throws RequestHandlerException {
-            bundle.getList(Consts.ForceDataSync.ISLANDS).forEach(islandData -> {
+            bundle.getList(Consts.DataSync.ForceDataSync.ISLANDS).forEach(islandData -> {
                 Island island = Serializers.deserializeIsland((Bundle) islandData);
                 Island oldIsland = module.getPlugin().getGrid().getIslandByUUID(island.getUniqueId());
                 if (oldIsland != null) {
@@ -1153,7 +1153,7 @@ public enum DataSyncType {
                 module.getPlugin().getGrid().getIslandsContainer().addIsland(island);
             });
 
-            bundle.getList(Consts.ForceDataSync.PLAYERS).forEach(playerData -> {
+            bundle.getList(Consts.DataSync.ForceDataSync.PLAYERS).forEach(playerData -> {
                 Serializers.deserializePlayer((Bundle) playerData);
             });
         }

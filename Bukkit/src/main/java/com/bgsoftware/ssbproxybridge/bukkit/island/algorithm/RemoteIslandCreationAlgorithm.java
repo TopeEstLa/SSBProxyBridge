@@ -2,6 +2,7 @@ package com.bgsoftware.ssbproxybridge.bukkit.island.algorithm;
 
 import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
 import com.bgsoftware.ssbproxybridge.bukkit.action.ServerActions;
+import com.bgsoftware.ssbproxybridge.bukkit.utils.Consts;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.Text;
 import com.bgsoftware.ssbproxybridge.core.bundle.Bundle;
 import com.bgsoftware.superiorskyblock.api.island.Island;
@@ -48,13 +49,13 @@ public class RemoteIslandCreationAlgorithm extends DelegateIslandCreationAlgorit
             original.createIsland(arguments.islandUUID, arguments.islandLeader,
                     arguments.blockPosition, arguments.name, arguments.schematic).whenComplete(((islandCreationResult, error) -> {
                 Bundle response = new Bundle();
-                response.setInt("id", arguments.responseId);
+                response.setInt(Consts.Action.RESPONSE_ID, arguments.responseId);
 
                 if (error != null) {
-                    response.setString("error", error.getMessage());
+                    response.setString(Consts.Action.CreateIsland.Response.ERROR, error.getMessage());
                     result.completeExceptionally(error);
                 } else {
-                    response.setBoolean("result", true);
+                    response.setBoolean(Consts.Action.CreateIsland.Response.RESULT, true);
                     result.complete(islandCreationResult);
                 }
 

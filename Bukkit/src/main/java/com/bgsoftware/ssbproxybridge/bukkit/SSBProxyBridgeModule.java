@@ -209,7 +209,7 @@ public class SSBProxyBridgeModule extends PluginModule {
         // only one server is enough.
 
         Bundle includePlayersRequest = new Bundle();
-        includePlayersRequest.setBoolean(Consts.DataSyncRequest.INCLUDE_PLAYERS, true);
+        includePlayersRequest.setBoolean(Consts.DataSync.DataSyncRequest.INCLUDE_PLAYERS, true);
         includePlayersRequest.setRecipient(lastKnownAvailableServers.get(0));
 
         DataSyncType.REQUEST_DATA_SYNC.onSend(includePlayersRequest);
@@ -256,8 +256,8 @@ public class SSBProxyBridgeModule extends PluginModule {
             return;
 
         Bundle response = new Bundle();
-        response.setList(Consts.ForceDataSync.ISLANDS, islands);
-        response.setList(Consts.ForceDataSync.PLAYERS, players);
+        response.setList(Consts.DataSync.ForceDataSync.ISLANDS, islands);
+        response.setList(Consts.DataSync.ForceDataSync.PLAYERS, players);
         if (recipient != null)
             response.setRecipient(recipient);
 

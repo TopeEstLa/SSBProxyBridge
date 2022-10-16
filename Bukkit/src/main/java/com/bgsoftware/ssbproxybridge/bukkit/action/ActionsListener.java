@@ -2,6 +2,7 @@ package com.bgsoftware.ssbproxybridge.bukkit.action;
 
 import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
 import com.bgsoftware.ssbproxybridge.bukkit.connector.BaseConnectorListener;
+import com.bgsoftware.ssbproxybridge.bukkit.utils.Consts;
 import com.bgsoftware.ssbproxybridge.core.bundle.Bundle;
 import com.bgsoftware.ssbproxybridge.core.requests.RequestHandlerException;
 
@@ -18,14 +19,14 @@ public class ActionsListener extends BaseConnectorListener {
         ActionType actionType;
 
         try {
-            actionType = bundle.getEnum("action", ActionType.class);
+            actionType = bundle.getEnum(Consts.Action.ACTION, ActionType.class);
         } catch (NoSuchElementException error) {
-            handleFailureRequest(bundle, new RequestHandlerException("Missing field \"action\""));
+            handleFailureRequest(bundle, new RequestHandlerException("Missing field \"" + Consts.Action.ACTION + "\""));
             return;
         }
 
         try {
-            actionType.getHandler().handle(bundle);
+            actionType.onReceive(bundle);
         } catch (Throwable error) {
             handleFailureRequest(bundle, error);
         }

@@ -1,7 +1,9 @@
 package com.bgsoftware.ssbproxybridge.bukkit.action;
 
 import com.bgsoftware.ssbproxybridge.bukkit.SSBProxyBridgeModule;
+import com.bgsoftware.ssbproxybridge.bukkit.utils.Consts;
 import com.bgsoftware.ssbproxybridge.bukkit.utils.DatabaseBridgeAccessor;
+import com.bgsoftware.ssbproxybridge.bukkit.utils.Serializers;
 import com.bgsoftware.ssbproxybridge.core.bundle.Bundle;
 import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI;
 import com.bgsoftware.superiorskyblock.api.island.Island;
@@ -45,9 +47,9 @@ public class ServerActions {
 
     public static void teleportToIsland(Player player, String targetServer, UUID islandUUID) {
         Bundle bundle = new Bundle();
-        bundle.setEnum("action", ActionType.TELEPORT);
-        bundle.setUUID("island", islandUUID);
-        bundle.setUUID("player", player.getUniqueId());
+        bundle.setEnum(Consts.Action.ACTION, ActionType.TELEPORT);
+        bundle.setUUID(Consts.Action.Teleport.ISLAND, islandUUID);
+        bundle.setUUID(Consts.Action.PLAYER, player.getUniqueId());
         sendData(bundle, targetServer, error -> {
             logger.warning("Cannot send teleport-island command due to an unexpected error:");
             error.printStackTrace();
@@ -60,18 +62,10 @@ public class ServerActions {
     }
 
     public static void teleportToLocation(Player player, String targetServer, Location location) {
-        Bundle position = new Bundle();
-        position.setString("world", location.getWorld().getName());
-        position.setDouble("x", location.getX());
-        position.setDouble("y", location.getY());
-        position.setDouble("z", location.getZ());
-        position.setFloat("yaw", location.getYaw());
-        position.setFloat("pitch", location.getPitch());
-
         Bundle bundle = new Bundle();
-        bundle.setEnum("action", ActionType.TELEPORT);
-        bundle.setExtra("location", position);
-        bundle.setUUID("player", player.getUniqueId());
+        bundle.setEnum(Consts.Action.ACTION, ActionType.TELEPORT);
+        bundle.setExtra(Consts.Action.Teleport.LOCATION, Serializers.serializeLocation(location));
+        bundle.setUUID(Consts.Action.PLAYER, player.getUniqueId());
         sendData(bundle, targetServer, error -> {
             logger.warning("Cannot send teleport command due to an unexpected error:");
             error.printStackTrace();
@@ -100,17 +94,17 @@ public class ServerActions {
         position.setInt("z", blockPosition.getZ());
 
         Bundle bundle = new Bundle();
-        bundle.setEnum("action", ActionType.CREATE_ISLAND);
-        bundle.setUUID("uuid", islandUUID);
-        bundle.setUUID("leader", islandLeader.getUniqueId());
-        bundle.setExtra("position", position);
-        bundle.setString("name", name);
-        bundle.setString("schematic", schematic);
-        bundle.setBigDecimal("worth_bonus", worthBonus);
-        bundle.setBigDecimal("level_bonus", levelBonus);
+        bundle.setEnum(Consts.Action.ACTION, ActionType.CREATE_ISLAND);
+        bundle.setUUID(Consts.Action.CreateIsland.UUID, islandUUID);
+        bundle.setUUID(Consts.Action.CreateIsland.LEADER, islandLeader.getUniqueId());
+        bundle.setExtra(Consts.Action.CreateIsland.POSITION, position);
+        bundle.setString(Consts.Action.CreateIsland.NAME, name);
+        bundle.setString(Consts.Action.CreateIsland.SCHEMATIC, schematic);
+        bundle.setBigDecimal(Consts.Action.CreateIsland.WORTH_BONUS, worthBonus);
+        bundle.setBigDecimal(Consts.Action.CreateIsland.LEVELS_BONUS, levelBonus);
 
         sendData(bundle, targetServer, response -> {
-            if (response.contains("error")) {
+            if (response.contains(Consts.Action.CreateIsland.Response.ERROR)) {
                 result.completeExceptionally(new RuntimeException("Failed to create island: " + response.getString("error")));
                 return;
             }
@@ -159,21 +153,21 @@ public class ServerActions {
         CompletableFuture<IslandCalculationAlgorithm.IslandCalculationResult> result = new CompletableFuture<>();
 
         Bundle bundle = new Bundle();
-        bundle.setEnum("action", ActionType.CALCULATE_ISLAND);
-        bundle.setUUID("island", islandUUID);
+        bundle.setEnum(Consts.Action.ACTION, ActionType.CALCULATE_ISLAND);
+        bundle.setUUID(Consts.Action.CalculateIsland.ISLAND, islandUUID);
 
         sendData(bundle, targetServer, response -> {
-            if (response.contains("error")) {
+            if (response.contains(Consts.Action.CalculateIsland.Response.ERROR)) {
                 result.completeExceptionally(new RuntimeException("Failed to calculate island: " + response.getString("error")));
                 return;
             }
 
             KeyMap<BigInteger> blockCounts = KeyMap.createKeyMap();
-            List<Object> blockCountsArray = response.getList("block_counts");
+            List<Object> blockCountsArray = response.getList(Consts.Action.CalculateIsland.Response.RESULT);
             blockCountsArray.forEach(blockCountElement -> {
                 Bundle blockCount = (Bundle) blockCountElement;
-                Key block = Key.of(blockCount.getString("block"));
-                BigInteger count = blockCount.getBigInteger("count");
+                Key block = Key.of(blockCount.getString(Consts.Action.CalculateIsland.BlockCount.BLOCK));
+                BigInteger count = blockCount.getBigInteger(Consts.Action.CalculateIsland.BlockCount.COUNT);
                 blockCounts.put(block, count);
             });
 
@@ -196,16 +190,16 @@ public class ServerActions {
 
     public static void sendMessage(@Nullable UUID playerUUID, String messageType, Object[] args) {
         Bundle bundle = new Bundle();
-        bundle.setEnum("action", ActionType.SEND_MESSAGE);
+        bundle.setEnum(Consts.Action.ACTION, ActionType.SEND_MESSAGE);
 
         if (playerUUID != null) {
-            bundle.setUUID("player", playerUUID);
+            bundle.setUUID(Consts.Action.SendMessage.PLAYER, playerUUID);
         } else {
-            bundle.setString("console", "");
+            bundle.setString(Consts.Action.SendMessage.CONSOLE, "");
         }
 
-        bundle.setString("type", messageType);
-        bundle.setList("args", Arrays.asList(args));
+        bundle.setString(Consts.Action.SendMessage.TYPE, messageType);
+        bundle.setList(Consts.Action.SendMessage.ARGS, Arrays.asList(args));
 
         sendData(bundle, null, error -> {
             logger.warning("Cannot send message command due to an unexpected error:");
@@ -215,10 +209,10 @@ public class ServerActions {
 
     public static void warpPlayer(Player player, String targetServer, UUID islandUUID, String warpName) {
         Bundle bundle = new Bundle();
-        bundle.setEnum("action", ActionType.WARP_PLAYER);
-        bundle.setUUID("island", islandUUID);
-        bundle.setString("warp_name", warpName);
-        bundle.setUUID("player", player.getUniqueId());
+        bundle.setEnum(Consts.Action.ACTION, ActionType.WARP_PLAYER);
+        bundle.setUUID(Consts.Action.WarpPlayer.ISLAND, islandUUID);
+        bundle.setString(Consts.Action.WarpPlayer.WARP_NAME, warpName);
+        bundle.setUUID(Consts.Action.PLAYER, player.getUniqueId());
         sendData(bundle, targetServer, error -> {
             logger.warning("Cannot send warp command due to an unexpected error:");
             error.printStackTrace();
@@ -232,10 +226,10 @@ public class ServerActions {
 
     public static void setIslandBiome(String targetServer, UUID islandUUID, Biome biome, boolean updateBlocks) {
         Bundle bundle = new Bundle();
-        bundle.setEnum("action", ActionType.SET_BIOME);
-        bundle.setUUID("island", islandUUID);
-        bundle.setEnum("biome", biome);
-        bundle.setBoolean("update_blocks", updateBlocks);
+        bundle.setEnum(Consts.Action.ACTION, ActionType.SET_BIOME);
+        bundle.setUUID(Consts.Action.SetBiome.ISLAND, islandUUID);
+        bundle.setEnum(Consts.Action.SetBiome.BIOME, biome);
+        bundle.setBoolean(Consts.Action.SetBiome.UPDATE_BLOCKS, updateBlocks);
         sendData(bundle, targetServer, error -> {
             logger.warning("Cannot send biome command due to an unexpected error:");
             error.printStackTrace();
@@ -259,12 +253,12 @@ public class ServerActions {
     private static void sendData(Bundle bundle, @Nullable String recipient, Consumer<Bundle> responseCallback,
                                  Consumer<Throwable> errorCallback) {
         int responseId = random.nextInt();
-        bundle.setInt("response-id", responseId);
+        bundle.setInt(Consts.Action.RESPONSE_ID, responseId);
 
         sendData(bundle, recipient, errorCallback);
 
         module.getMessaging().listenOnce(module.getSettings().messagingServiceActionsChannelName + "_response", response -> {
-            if (response.getInt("id") == responseId)
+            if (response.getInt(Consts.Action.RESPONSE_ID) == responseId)
                 responseCallback.accept(response);
         });
     }
