@@ -4,12 +4,17 @@ import com.bgsoftware.ssbproxybridge.bukkit.action.ActionsListener;
 import com.bgsoftware.ssbproxybridge.bukkit.bridge.ProxyDatabaseBridgeFactory;
 import com.bgsoftware.ssbproxybridge.bukkit.config.SettingsManager;
 import com.bgsoftware.ssbproxybridge.bukkit.data.DataSyncListener;
+import com.bgsoftware.ssbproxybridge.bukkit.data.DataSyncType;
+import com.bgsoftware.ssbproxybridge.bukkit.island.RemoteIsland;
 import com.bgsoftware.ssbproxybridge.bukkit.island.algorithm.RemoteIslandCreationAlgorithm;
 import com.bgsoftware.ssbproxybridge.bukkit.listener.IslandsListener;
 import com.bgsoftware.ssbproxybridge.bukkit.listener.PlayersListener;
 import com.bgsoftware.ssbproxybridge.bukkit.manager.ModuleManager;
 import com.bgsoftware.ssbproxybridge.bukkit.proxy.ProxyPlayerBridge;
 import com.bgsoftware.ssbproxybridge.bukkit.teleport.ProxyPlayersFactory;
+import com.bgsoftware.ssbproxybridge.bukkit.utils.Consts;
+import com.bgsoftware.ssbproxybridge.bukkit.utils.Serializers;
+import com.bgsoftware.ssbproxybridge.core.bundle.Bundle;
 import com.bgsoftware.ssbproxybridge.core.connector.ConnectionFailureException;
 import com.bgsoftware.ssbproxybridge.core.connector.EmptyConnector;
 import com.bgsoftware.ssbproxybridge.core.connector.IConnectionArguments;
@@ -21,16 +26,23 @@ import com.bgsoftware.ssbproxybridge.core.redis.RedisConnector;
 import com.bgsoftware.superiorskyblock.api.SuperiorSkyblock;
 import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI;
 import com.bgsoftware.superiorskyblock.api.commands.SuperiorCommand;
+import com.bgsoftware.superiorskyblock.api.island.Island;
 import com.bgsoftware.superiorskyblock.api.modules.ModuleLoadTime;
 import com.bgsoftware.superiorskyblock.api.modules.PluginModule;
 import com.bgsoftware.superiorskyblock.api.world.algorithm.IslandCreationAlgorithm;
+import com.bgsoftware.superiorskyblock.api.wrappers.SuperiorPlayer;
 import org.bukkit.Bukkit;
 import org.bukkit.event.Listener;
 
 import javax.annotation.Nullable;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Locale;
+import java.util.logging.Logger;
 
 public class SSBProxyBridgeModule extends PluginModule {
+
+    private static final Logger logger = Logger.getLogger("SSBProxyBridge");
 
     private static final int API_VERSION = 5;
 
@@ -77,7 +89,19 @@ public class SSBProxyBridgeModule extends PluginModule {
             ProxyPlayerBridge.register(plugin);
 
             // We register the IslandCreationAlgorithm on the first tick, as we need the default one to load first.
-            plugin.getServer().getScheduler().runTask(plugin, this::setupIslandCreationAlgorithm);
+            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                this.setupIslandCreationAlgorithm();
+                List<String> lastKnownAvailableServers = this.getManager().getLastKnownAvailableServers();
+
+                if (lastKnownAvailableServers.isEmpty())
+                    return;
+
+                this.requestDataSync(lastKnownAvailableServers);
+                // We want to sync all the other servers with our data.
+                // recipient - no specific recipient.
+                // includePlayers - We don't want to send our data for the players, as it most likely to not be updated.
+                this.sendDataSync(null, false);
+            });
 
             enabled = true;
         } finally {
@@ -174,6 +198,76 @@ public class SSBProxyBridgeModule extends PluginModule {
     private void setupIslandCreationAlgorithm() {
         IslandCreationAlgorithm original = plugin.getGrid().getIslandCreationAlgorithm();
         plugin.getGrid().setIslandCreationAlgorithm(new RemoteIslandCreationAlgorithm(original));
+    }
+
+    private void requestDataSync(List<String> lastKnownAvailableServers) {
+        // We want to send a data-sync request.
+        // This will load all data from other servers.
+
+        // We want to send two requests. One that will be sent to one server to include players, and the other to
+        // the rest of the servers to not include players. There's no reason to get information from multiple servers,
+        // only one server is enough.
+
+        Bundle includePlayersRequest = new Bundle();
+        includePlayersRequest.setBoolean(Consts.DataSyncRequest.INCLUDE_PLAYERS, true);
+        includePlayersRequest.setRecipient(lastKnownAvailableServers.get(0));
+
+        DataSyncType.REQUEST_DATA_SYNC.onSend(includePlayersRequest);
+
+        getMessaging().sendBundle(includePlayersRequest, error -> {
+            // We prefer to shut down the server so there won't be any data loss or data synchronization issues.
+            logger.warning("Cannot connect with the messaging-service. Closing the server...");
+            Bukkit.shutdown();
+        });
+
+        if (lastKnownAvailableServers.size() <= 1)
+            return;
+
+        lastKnownAvailableServers.remove(0);
+
+        Bundle noPlayersIncludedRequest = new Bundle();
+        includePlayersRequest.setRecipients(lastKnownAvailableServers);
+        DataSyncType.REQUEST_DATA_SYNC.onSend(noPlayersIncludedRequest);
+
+        getMessaging().sendBundle(noPlayersIncludedRequest, error -> {
+            // We prefer to shut down the server so there won't be any data loss or data synchronization issues.
+            logger.warning("Cannot connect with the messaging-service. Closing the server...");
+            Bukkit.shutdown();
+        });
+    }
+
+    public void sendDataSync(@Nullable String recipient, boolean includePlayers) {
+        List<Bundle> islands = new LinkedList<>();
+        List<Bundle> players = new LinkedList<>();
+
+        for (Island island : plugin.getGrid().getIslands()) {
+            if (!(island instanceof RemoteIsland)) {
+                islands.add(Serializers.serializeIsland(island));
+            }
+        }
+
+        if (includePlayers) {
+            for (SuperiorPlayer superiorPlayer : plugin.getPlayers().getAllPlayers()) {
+                players.add(Serializers.serializePlayer(superiorPlayer));
+            }
+        }
+
+        if (islands.isEmpty() && players.isEmpty())
+            return;
+
+        Bundle response = new Bundle();
+        response.setList(Consts.ForceDataSync.ISLANDS, islands);
+        response.setList(Consts.ForceDataSync.PLAYERS, players);
+        if (recipient != null)
+            response.setRecipient(recipient);
+
+        DataSyncType.FORCE_DATA_SYNC.onSend(response);
+
+        getMessaging().sendBundle(response, error -> {
+            // We prefer to shut down the server so there won't be any data loss or data synchronization issues.
+            logger.warning("Cannot connect with the messaging-service. Closing the server...");
+            Bukkit.shutdown();
+        });
     }
 
     public static SSBProxyBridgeModule getModule() {

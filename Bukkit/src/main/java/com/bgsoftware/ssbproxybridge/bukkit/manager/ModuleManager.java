@@ -15,6 +15,8 @@ import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI;
 import com.bgsoftware.superiorskyblock.api.island.Island;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -36,6 +38,7 @@ public class ModuleManager {
     private long keepAlive = 0;
     private BukkitTask keepAliveTask;
     private boolean failedCommunication = false;
+    private List<String> lastKnownAvailableServers;
 
     public ModuleManager(SSBProxyBridgeModule module) {
         this.module = module;
@@ -98,10 +101,16 @@ public class ModuleManager {
                 throw new RuntimeException("Failed to register to the manager: " + response.getString("error"));
 
             this.keepAlive = response.getLong("keep-alive") / 50; // Converting milliseconds to ticks
+            this.lastKnownAvailableServers = new LinkedList<>();
+            response.getList("online_servers").forEach(server -> this.lastKnownAvailableServers.add((String) server));
         } catch (Exception error) {
             error.printStackTrace();
             throw new RuntimeException("Failed to connect to the manager, aborting.", error);
         }
+    }
+
+    public List<String> getLastKnownAvailableServers() {
+        return lastKnownAvailableServers;
     }
 
     private void startCommunication() {

@@ -98,7 +98,7 @@ public class ServersTracker {
         this.islands.clear();
     }
 
-    private boolean checkLastPing(ServerInfo serverInfo) {
+    public boolean checkLastPing(ServerInfo serverInfo) {
         long timeFromLastPing = System.currentTimeMillis() - serverInfo.getLastPingTime();
         return timeFromLastPing <= managerServer.getConfig().keepAlive * 2;
     }

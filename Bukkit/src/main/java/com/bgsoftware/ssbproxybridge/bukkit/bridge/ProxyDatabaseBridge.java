@@ -63,10 +63,9 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
         if (isActivated && databaseBridgeMode == DatabaseBridgeMode.SAVE_DATA) {
             DataSyncType type = buildDataSyncType("update", table, pairs);
 
-            Bundle operation = OperationSerializer.serializeOperation(type.name(),
-                    createFilters(databaseFilter), createColumns(pairs));
+            Bundle operation = OperationSerializer.serializeOperation(createFilters(databaseFilter), createColumns(pairs));
 
-            if (type.getHandler() != null && type.onSent(operation))
+            if (type.canSend(operation) && type.onSend(operation))
                 commitData(operation);
 
             original.updateObject(table, databaseFilter, pairs);
@@ -78,9 +77,9 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
         if (isActivated && databaseBridgeMode == DatabaseBridgeMode.SAVE_DATA) {
             DataSyncType type = buildDataSyncType("insert", table, null);
 
-            Bundle operation = OperationSerializer.serializeOperation(type.name(), Collections.emptyList(), createColumns(pairs));
+            Bundle operation = OperationSerializer.serializeOperation(Collections.emptyList(), createColumns(pairs));
 
-            if (type.getHandler() != null && type.onSent(operation))
+            if (type.canSend(operation) && type.onSend(operation))
                 commitData(operation);
 
             original.insertObject(table, pairs);
@@ -91,9 +90,9 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
         if (isActivated && databaseBridgeMode == DatabaseBridgeMode.SAVE_DATA) {
             DataSyncType type = buildDataSyncType("update", table, pairs);
 
-            Bundle operation = OperationSerializer.serializeOperation(type.name(), createFilters(databaseFilter), createColumns(pairs));
+            Bundle operation = OperationSerializer.serializeOperation(createFilters(databaseFilter), createColumns(pairs));
 
-            if (type.getHandler() != null && type.onSent(operation))
+            if (type.canSend(operation) && type.onSend(operation))
                 commitData(operation);
         }
     }
@@ -103,9 +102,9 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
         if (isActivated && databaseBridgeMode == DatabaseBridgeMode.SAVE_DATA) {
             DataSyncType type = buildDataSyncType("delete", table, null);
 
-            Bundle operation = OperationSerializer.serializeOperation(type.name(), createFilters(databaseFilter));
+            Bundle operation = OperationSerializer.serializeOperation(createFilters(databaseFilter));
 
-            if (type.getHandler() != null && type.onSent(operation))
+            if (type.canSend(operation) && type.onSend(operation))
                 commitData(operation);
 
             original.deleteObject(table, databaseFilter);
@@ -132,7 +131,6 @@ public class ProxyDatabaseBridge implements DatabaseBridge {
     }
 
     private void commitData(Bundle bundle) {
-        bundle.setChannelName(module.getSettings().messagingServiceDataChannelName);
         if (this.batchOperations != null) {
             this.batchOperations.add(bundle);
         } else {

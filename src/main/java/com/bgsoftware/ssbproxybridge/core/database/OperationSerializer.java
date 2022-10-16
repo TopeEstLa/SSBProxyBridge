@@ -10,7 +10,7 @@ public class OperationSerializer {
 
     }
 
-    public static Bundle serializeOperation(String operationType, Collection<Filter> filters, Column... columns) {
+    public static Bundle serializeOperation(Collection<Filter> filters, Column... columns) {
         Bundle operation = new Bundle();
         Bundle filtersBundle = new Bundle();
         Bundle columnsBundle = new Bundle();
@@ -21,7 +21,6 @@ public class OperationSerializer {
         for (Column column : columns)
             columnsBundle.setObject(column.getName(), column.getValue());
 
-        operation.setString("type", operationType);
         operation.setExtra("filters", filtersBundle);
         operation.setExtra("columns", columnsBundle);
 

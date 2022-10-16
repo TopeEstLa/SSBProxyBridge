@@ -25,11 +25,10 @@ public class DataSyncListener extends BaseConnectorListener {
         }
 
         try {
-            if (!dataSyncType.onReceive(bundle))
+            if (!dataSyncType.canReceive(bundle))
                 throw new IllegalStateException("Cannot receive the packet " + dataSyncType);
 
-            if (dataSyncType.getHandler() != null)
-                dataSyncType.getHandler().handle(bundle);
+            dataSyncType.onReceive(bundle);
         } catch (Throwable error) {
             handleFailureRequest(bundle, error);
         }

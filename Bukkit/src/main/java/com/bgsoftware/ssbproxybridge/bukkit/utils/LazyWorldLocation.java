@@ -4,6 +4,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 
+import javax.annotation.Nullable;
+
 public class LazyWorldLocation extends Location {
 
     private final String worldName;
@@ -29,6 +31,12 @@ public class LazyWorldLocation extends Location {
 
     public String getWorldName() {
         return worldName;
+    }
+
+    @Nullable
+    public static String getWorldName(Location location) {
+        return location instanceof LazyWorldLocation ? ((LazyWorldLocation) location).getWorldName() :
+                location.getWorld() == null ? null : location.getWorld().getName();
     }
 
 }

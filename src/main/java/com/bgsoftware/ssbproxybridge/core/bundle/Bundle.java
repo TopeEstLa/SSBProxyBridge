@@ -244,6 +244,11 @@ public class Bundle {
         return data.deepCopy();
     }
 
+    @Override
+    public String toString() {
+        return "Bundle" + BundleSerializer.serializeBundle(this);
+    }
+
     private Number getNumber(String key) {
         return getData(key, JsonPrimitive.class, JsonPrimitive::getAsNumber);
     }
@@ -313,6 +318,12 @@ public class Bundle {
         protected void setData(String key, JsonElement value) {
             throw new UnsupportedOperationException("Cannot set data to immutable bundles.");
         }
+
+        @Override
+        public String toString() {
+            return "Immutable" + super.toString();
+        }
+
     }
 
 }

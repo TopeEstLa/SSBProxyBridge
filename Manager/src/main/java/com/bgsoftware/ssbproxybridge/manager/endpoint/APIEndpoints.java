@@ -4,6 +4,8 @@ import com.bgsoftware.ssbproxybridge.manager.ManagerServer;
 import com.bgsoftware.ssbproxybridge.manager.tracker.IslandInfo;
 import com.bgsoftware.ssbproxybridge.manager.tracker.ServerInfo;
 import com.bgsoftware.ssbproxybridge.manager.tracker.ServersTracker;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.Nullable;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -13,6 +15,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -35,11 +39,19 @@ public class APIEndpoints {
                     .build();
         }
 
-        managerServer.getServersTracker().registerNewServer(serverName);
+        ServersTracker serversTracker = managerServer.getServersTracker();
+        serversTracker.registerNewServer(serverName);
+
+        List<JsonNode> onlineServers = new LinkedList<>();
+        serversTracker.getServers().forEach((onlineServerName, serverInfo) -> {
+            if (!onlineServerName.equals(serverName) && serversTracker.checkLastPing(serverInfo))
+                onlineServers.add(TextNode.valueOf(onlineServerName));
+        });
 
         return Response.RESULT.newBuilder(headers)
                 .set("result", "hello")
                 .set("keep-alive", managerServer.getConfig().keepAlive)
+                .set("online_servers", onlineServers)
                 .build();
     }
 
