@@ -19,8 +19,8 @@ You can join our discord and help with the development [here](https://discord.gg
   - [X] Create a custom PlayerTeleportAlgorithm that will handle teleports between servers.
 - [X] Handle new island creations to be forwarded to other servers.
   - This will require a 3rd-party service to handle the requests.
-- [ ] Handle processing of messages between servers.
-- [ ] Player invites between servers.
+- [X] Handle processing of messages between servers.
+- [X] Player invites between servers.
 - [ ] Testing
 
 
