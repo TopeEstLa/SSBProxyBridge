@@ -1,4 +1,5 @@
 rootProject.name = 'SSBProxyBridge'
 include 'Bukkit'
 include 'Manager'
+include 'Core'
 

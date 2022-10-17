@@ -1,8 +1,41 @@
+plugins {
+    id 'java'
+    id 'com.github.johnrengelman.shadow' version '7.0.0'
+}
+
 group 'Bukkit'
+version = rootProject.version
+
+repositories {
+    maven { url 'https://repo.bg-software.com/repository/nms/' }
+    maven { url 'https://repo.bg-software.com/repository/api/' }
+    maven { url 'https://repo.bg-software.com/repository/common/' }
+}
 
 dependencies {
+    implementation project(":Core")
+
     compileOnly "com.bgsoftware.common.config:CommentedConfiguration:1.0.3"
+    compileOnly "com.bgsoftware.common.reflection:ReflectionUtils:1.0.2"
+
     compileOnly "org.spigotmc:v1_8_R3:latest"
     compileOnly "com.bgsoftware:SuperiorSkyblockAPI:2022.8.1"
-    compileOnly parent
 }
+
+shadowJar {
+    if (project.buildNumber == null) {
+        archiveName = rootProject.name + "-" + version + ".jar"
+    } else {
+        archiveName = rootProject.name + "-" + version + "-b" + project.buildNumber + ".jar"
+    }
+
+    destinationDir = rootProject.targetDir
+}
+
+
+build {
+    dependsOn shadowJar
+}
+
+shadowJar.shouldRunAfter build
+build.shouldRunAfter subprojects.build

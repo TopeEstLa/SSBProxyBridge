@@ -1,11 +1,13 @@
 plugins {
     id 'org.springframework.boot' version '2.4.5'
     id 'io.spring.dependency-management' version '1.0.11.RELEASE'
+    id 'com.github.johnrengelman.shadow' version '7.0.0'
     id 'java'
     id 'application'
 }
 
 group 'Manager'
+version = rootProject.version
 
 repositories {
     mavenCentral()
@@ -20,17 +22,22 @@ dependencies {
 shadowJar {
     dependsOn(jar)
 
-    if (System.getenv("BUILD_NUMBER") == null) {
-        archiveName = rootProject.name + "-" + project.name + "-" + rootProject.version + "_standalone.jar"
+    if (project.buildNumber == null) {
+        archiveName = rootProject.name + "-" + project.name + "-" + version + "_standalone.jar"
     } else {
-        archiveName = rootProject.name + "-" + project.name + "-" + rootProject.version + "-b" + System.getenv("BUILD_NUMBER") + "_standalone.jar"
+        archiveName = rootProject.name + "-" + project.name + "-" + version + "-b" + project.buildNumber + "_standalone.jar"
     }
 
-    destinationDir = file("../target/")
-    from sourceSets.getByName("main").output
-    configurations = [project.configurations.getByName("runtimeClasspath")]
+    destinationDir = rootProject.targetDir
+}
+
+build {
+    dependsOn shadowJar
 }
 
 application {
     mainClassName = 'com.bgsoftware.ssbproxybridge.manager.Main'
 }
+
+shadowJar.shouldRunAfter build
+build.shouldRunAfter subprojects.build

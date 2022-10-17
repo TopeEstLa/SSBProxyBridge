@@ -1,10 +1,10 @@
 package com.bgsoftware.ssbproxybridge.core.redis;
 
 import com.bgsoftware.ssbproxybridge.core.Singleton;
-import com.bgsoftware.ssbproxybridge.core.bundle.Bundle;
-import com.bgsoftware.ssbproxybridge.core.bundle.BundleSerializer;
 import com.bgsoftware.ssbproxybridge.core.connector.ConnectionFailureException;
 import com.bgsoftware.ssbproxybridge.core.connector.ConnectorAbstract;
+import com.bgsoftware.ssbproxybridge.core.bundle.Bundle;
+import com.bgsoftware.ssbproxybridge.core.bundle.BundleSerializer;
 import com.google.common.base.Preconditions;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;

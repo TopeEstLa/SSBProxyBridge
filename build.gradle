@@ -1,123 +1,16 @@
-plugins {
-    id 'java'
-    id 'com.github.johnrengelman.shadow' version '7.0.0'
-    id 'maven-publish'
-}
-
 group 'SSBProxyBridge'
 version = "0.0.1"
 
 allprojects {
     apply plugin: 'java'
-    apply plugin: 'com.github.johnrengelman.shadow'
 
     repositories {
-        maven { url 'https://repo.bg-software.com/repository/nms/' }
-        maven { url 'https://repo.bg-software.com/repository/api/' }
-        maven { url 'https://repo.bg-software.com/repository/common/' }
-        maven { url 'https://repo.bg-software.com/repository/public-libs/' }
-
-        String mavenUsername = System.getenv('mavenUsername') == null ? project.mavenUsername : System.getenv('mavenUsername');
-        String mavenPassword = System.getenv('mavenPassword') == null ? project.mavenPassword : System.getenv('mavenPassword');
-
-        if (mavenUsername != null && mavenPassword != null) {
-            maven {
-                url 'https://repo.bg-software.com/repository/private-libs/'
-                credentials {
-                    username mavenUsername
-                    password mavenPassword
-                }
-            }
-        }
+        mavenCentral()
     }
 
-    dependencies {
-        compileOnly "com.bgsoftware.common.reflection:ReflectionUtils:1.0.2"
-    }
-
-    build {
-        dependsOn shadowJar
-    }
 }
 
-subprojects {
-    shadowJar {
-        archiveFileName = "${project.name}.jar"
-        destinationDirectory = file("../archive/")
-    }
+project.ext {
+    targetDir = file("./target/")
+    buildNumber = System.getenv("BUILD_NUMBER")
 }
-
-repositories {
-    mavenCentral()
-}
-
-dependencies {
-    implementation fileTree("archive")
-
-    // Redis
-    implementation 'io.lettuce:lettuce-core:6.2.0.RELEASE'
-    // RabbitMQ
-    implementation 'com.rabbitmq:amqp-client:5.15.0'
-    // Gson
-    compileOnly 'com.google.code.gson:gson:2.9.0'
-    // Google commons
-    compileOnly 'com.google.guava:guava:31.1-jre'
-}
-
-jar {
-    from {
-        for (File file : new File("archive").listFiles()) {
-            zipTree(file)
-        }
-    }
-}
-
-processResources {
-    outputs.upToDateWhen { false }
-    String versionNumber = System.getenv("BUILD_NUMBER") == null ? version : version + "." + System.getenv("BUILD_NUMBER")
-    eachFile { details ->
-        if (details.name.contentEquals('plugin.yml')) {
-            filter { String line ->
-                line.replace('${project.version}', versionNumber)
-            }
-        }
-    }
-}
-
-shadowJar {
-    dependsOn(jar)
-
-    if (System.getenv("BUILD_NUMBER") == null) {
-        archiveName = rootProject.name + "-" + version + ".jar"
-    } else {
-        archiveName = rootProject.name + "-" + version + "-b" + System.getenv("BUILD_NUMBER") + ".jar"
-    }
-
-    delete fileTree('./target/') {
-        exclude archiveName
-    }
-
-    destinationDir = file("./target/")
-    from sourceSets.getByName("main").output
-    configurations = [project.configurations.getByName("runtimeClasspath")]
-}
-
-task copyAPI(type: Copy) {
-    from './archive/API.jar'
-    into './target/'
-    rename('API.jar', rootProject.name + 'API.jar')
-}
-
-clean {
-    delete file('./archive/')
-}
-
-build {
-    dependsOn shadowJar
-    dependsOn copyAPI
-    dependsOn clean
-}
-
-publish.shouldRunAfter shadowJar
-shadowJar.shouldRunAfter build
-build.shouldRunAfter subprojects.build

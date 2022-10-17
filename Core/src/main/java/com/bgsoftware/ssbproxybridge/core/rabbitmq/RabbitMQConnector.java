@@ -1,9 +1,9 @@
 package com.bgsoftware.ssbproxybridge.core.rabbitmq;
 
 import com.bgsoftware.ssbproxybridge.core.Singleton;
+import com.bgsoftware.ssbproxybridge.core.connector.ConnectionFailureException;
 import com.bgsoftware.ssbproxybridge.core.bundle.Bundle;
 import com.bgsoftware.ssbproxybridge.core.bundle.BundleSerializer;
-import com.bgsoftware.ssbproxybridge.core.connector.ConnectionFailureException;
 import com.bgsoftware.ssbproxybridge.core.connector.IConnector;
 import com.google.common.base.Preconditions;
 import com.rabbitmq.client.Channel;
